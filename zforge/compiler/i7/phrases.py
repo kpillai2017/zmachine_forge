@@ -819,7 +819,8 @@ class PhraseLowerer:
                   "roman type": "<HLIGHT 0>", "fixed letter spacing": "<HLIGHT 8>",
                   "variable letter spacing": "<HLIGHT 0>", "no line break": "",
                   "run paragraph on": "", "/b": "", "b": "",
-                  "bracket": '<TELL "[">', "close bracket": '<TELL "]">'}   # [ and ] themselves
+                  "bracket": '<TELL "[">', "close bracket": '<TELL "]">',  # [ and ] themselves
+                  "parser command so far": "<SAY-COMMAND-SO-FAR>"}
         if low in simple:
             return simple[low]
         if low in self.say_phrases:

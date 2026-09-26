@@ -105,8 +105,22 @@ of the name also works alone in commands, in any order (`velvet`,
 | `Understand nothing as dropping.` | forget an action's earlier grammar | Advent |
 | `... when the location is the Bar` (on an Understand line) | only there | after Cloak (decision in I7_SURVEY) |
 
-Tokens: `[something]`, `[someone]`, `[things]` (treated as `[something]`),
-`[text]` is not supported.
+Tokens: `[something]`, `[someone]`, `[things]` and `[things preferably
+held]` (several objects, below); `[text]` is not supported.
+
+**Several objects at once** (ADR-035), as in Inform 7: the library's take,
+drop, put ... on / in and insert lines use `[things]` / `[things preferably
+held]`, so the player can type `take all`, `drop all except the lamp`,
+`take all but food`, `take lamp and keys`, `drop lamp, keys and food`.
+Each object's result is on its own line after its name (`keys: Taken.`),
+all in one turn. What ALL means: for take, what lies in the room - not
+scenery, not fixed in place, not people, not what is held; for drop and put,
+what is carried but not worn. `put all in the box` leaves out the box. ALL
+is one object, with `(the keys)`, only when ONE thing could have been meant;
+otherwise even a single thing left over is `bottle of water: Taken.`
+(both checked against the real Advent). A verb whose line says
+`[something]` refuses several objects (the *can't use multiple objects*
+error); ALL with nothing to mean is the *nothing to do* error.
 
 ## 5. Actions
 
@@ -258,7 +272,7 @@ Also (from Advent's cave):
 (`[We] [are]` prints "You are"). `[regarding X]` makes the next verb agree
 with X: `[regarding the stream][flow]` -> "flows", `[regarding the keys]
 [are]` -> "are"; `[regarding them][are]` -> "are" with no thing named.
-`[bracket]` and `[close bracket]` print `[` and `]`. There is no
+`[bracket]` and `[close bracket]` print `[` and `]`. `[parser command so far]` prints the command's verb, spelled out as Inform 7 does (`x` -> examine, `l` -> look, `i` -> inventory, `z` -> wait): Advent's "You can only examine one thing at a time." There is no
 story-viewpoint switching. As in Inform 7
 (checked against the real Advent), a paragraph about a thing agrees with
 that thing, and each new turn starts with nothing named.
@@ -300,6 +314,7 @@ the order they run. Response letters and default texts follow Inform 7.
 
 | Stage | Rule | Responses |
 |---|---|---|
+| check | can't drop what's already dropped rule | (A) "[The noun] [are] already here." |
 | check | can't drop what's not held rule | (A) "You haven't got that." |
 | carry out | standard dropping rule | - |
 | report | standard report dropping rule | (A) "Dropped." |
@@ -501,9 +516,13 @@ understood. `the latest parser error` says why, by Inform 7's own names
 | not sure what it refers to | I'm not sure what 'it' refers to. |
 | can't see it at the moment | You can't see 'it' (the lamp) at the moment. |
 | didn't understand | I didn't understand that sentence. |
+| can't use multiple objects | You can't use multiple objects with that verb. |
+| nothing to do | There are none at all available! |
 
-Inform 7's other error names (`said too little`, `nothing to do`, ...) can
-be used in conditions, but I7-lite's parser never makes them. A parser
+(`nothing to do` is the *parser nothing error internal rule*'s response B
+in Inform 7: the one Advent edits for an empty TAKE ALL.) Inform 7's other
+error names (`said too little`, `can only do that to something animate`,
+...) can be used in conditions, but I7-lite's parser never makes them. A parser
 error is a message, not a paragraph: what an after rule prints follows it
 on the next line, as in Inform 7. Its responses (`The parser error internal
 rule response (N) is ...`) cannot be edited: write a rule for the activity.

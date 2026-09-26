@@ -45,9 +45,12 @@ FIELDS = ["S-VERB", "S-NOBJ", "S-PREP1", "S-PREP2", "S-FIND1", "S-FIND2",
 # ZIL search options -> the preference bit the parser library understands.
 # INSIDE-PRSI is a zforge extension (not in Infocom's ZIL): "prefer objects
 # inside the indirect object", for TAKE KEY FROM BOX. See ADR-019.
-BITS = {"SO-HELD": 1, "SO-ROOM": 2, "SO-INSIDE": 4}
+# MANY (Infocom's): object 1 may be several things - TAKE ALL, DROP A AND B.
+# Only the I7 runtime's parser acts on it (ADR-035).
+BITS = {"SO-HELD": 1, "SO-ROOM": 2, "SO-INSIDE": 4, "SO-MANY": 8}
 OPTION_BITS = {"HELD": "SO-HELD", "CARRIED": "SO-HELD", "HAVE": "SO-HELD",
-               "ON-GROUND": "SO-ROOM", "IN-ROOM": "SO-ROOM", "INSIDE-PRSI": "SO-INSIDE"}
+               "ON-GROUND": "SO-ROOM", "IN-ROOM": "SO-ROOM", "INSIDE-PRSI": "SO-INSIDE",
+               "MANY": "SO-MANY"}
 TABLE_NAME = "SYNTAX-TABLE"
 NO_FIND = -1
 

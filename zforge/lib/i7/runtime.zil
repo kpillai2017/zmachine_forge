@@ -62,16 +62,31 @@
         <SETG PRIOR-NAMED 0>               ;"a new turn: nothing has been named yet"
         <TELL CR ">">
         <SETG OUT-OF-WORLD 0>
+        <SETG P-MULTIPLE <>>                 ;"a new command is one object until it says 'all'"
         <COND (<NOT <PARSER>>)
               (<VERB? UNDO> <UNDO-TURN>)          ;"UNDO must not take a snapshot"
               (<EQUAL? <ZOP SAVE_UNDO> 2>         ;"we are back here after an UNDO"
                <TELL "[Previous turn undone.]" CR>)
               (ELSE
-               <APPLY <GET ,P-SYNTAX ,S-ROUTINE>>
+               <COND (,P-MULTIPLE <RUN-FOR-EACH>)
+                     (ELSE <APPLY <GET ,P-SYNTAX ,S-ROUTINE>>)>
                <COND (<AND <NOT ,OUT-OF-WORLD> <NOT ,STORY-ENDED>>
                       <FOLLOW-RULES ,EVERY-TURN-RULES>
                       <SETG TURN-COUNT <+ ,TURN-COUNT 1>>)>)>
         <COND (,STORY-ENDED <END-OF-STORY> <RTRUE>)>>>
+
+<ROUTINE RUN-FOR-EACH ()
+    ;"TAKE ALL: the action once for each object, each on its line after its
+      name - 'keys: Taken.' - as one turn (every turn rules run once)"
+    <DO (I 1 <GET ,P-MULTI 0>)
+        <SETG PRSO <GET ,P-MULTI .I>>
+        <COND (<NOT <EQUAL? ,PRSO ,PRSI>>     ;"PUT ALL IN BOX: not the box itself"
+               <PARA-ABSORB>                 ;"no blank line between the objects"
+               <PRINT-NAME ,PRSO>
+               <TELL ": ">
+               <APPLY <GET ,P-SYNTAX ,S-ROUTINE>>)>
+        ;"(not AGAIN to skip one: in a DO it re-runs the test without stepping)"
+        <COND (,STORY-ENDED <RETURN>)>>>
 
 <ROUTINE UNDO-TURN ()
     <COND (<EQUAL? <ZOP RESTORE_UNDO> 0>

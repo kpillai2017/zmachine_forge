@@ -575,3 +575,46 @@ errors, the question, "no" ("OK."), a reset by a good command, three more,
 "yes" and the hint - and still matches the real game on z5 and z8. Finding
 the docs table claiming `let`, `repeat`, `while` and parameter phrases
 that did not exist led to building them; the table now says what is there.
+
+## ADR-035: Several objects at once (TAKE ALL), as Inform 7 does it
+
+**Context.** Inform 7 lets the player act on several things at once: `take
+all`, `drop all except the lamp`, `take lamp, keys and food`. Its details are
+easy to guess wrong, so every rule below was checked by playing the same
+commands on the real Inform 7 Advent (the i7-advent-differential case now has
+13 such commands).
+
+**Decision.**
+- The library's grammar lines say what Inform 7's say: `take [things]`,
+  `drop [things preferably held]`, `put [things preferably held] in/on
+  [something]`. `[things]` lowers to ZIL's `OBJECT (MANY)` (a new `SO-MANY`
+  search bit, Infocom's name); `preferably held` adds `HELD`.
+- The parser (I7 branch of lib/parser.zil, ADR-034's IFFLAG: ZIL games stay
+  byte-identical and still do not know "all") reads ALL / EVERYTHING,
+  EXCEPT / BUT and lists joined by AND or commas into a list of at most 16.
+  A comma has no dictionary word: it is recognised by its text.
+- What ALL means: take - what lies in the room, not scenery, fixed in place,
+  people or the player; held-things verbs - what is carried, not worn.
+- ALL is ONE object with the "(the keys)" note only when ONE thing could
+  have been meant, counting things it then leaves out (for take, held
+  things). Evidence: with only the keys held, real Advent's DROP ALL prints
+  "(the keys)"; with only the bottle not yet held, its TAKE ALL prints
+  "bottle of water: OK.". This is also how Inform's parser is known to work
+  (candidates first, the "all includes" exclusions after).
+- The turn loop runs the action once per object, each on its line after its
+  printed name and ": ", without paragraph breaks between them, as one turn:
+  one undo snapshot, every turn rules once. The second noun is left out
+  (`put all in box`). A command's list is forgotten before the next one.
+- New parser errors: *can't use multiple objects* ("You can't use multiple
+  objects with that verb.") when a `[something]` verb is given several;
+  *nothing to do* ("There are none at all available!" - Inform 7's parser
+  nothing error response B, the one Advent edits) when ALL means nothing.
+- Found on the way: Inform 7's *can't drop what's already dropped rule*
+  ("[The noun] [are] already here.") was missing from the library; and "The
+  desk is fixed in place." was read as a place called "place" (the
+  containment pattern now steps aside for adjectives only).
+
+**Consequences.** Real sources' `take all` works. Not done: "Which do you
+mean" inside a list (an ambiguous name takes its first match), several
+objects in the second slot, "(first taking off)" for worn things, and
+Inform 7's "deciding whether all includes" activity.

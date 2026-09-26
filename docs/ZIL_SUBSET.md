@@ -115,8 +115,10 @@ numbers, first-seen order), field offsets `S-VERB ... S-PREACTION` and
 `SYNTAX-TABLE` - a row count followed by one 11-word row per verb x
 preposition synonym. Search options become per-object bits: `HELD CARRIED
 HAVE` -> SO-HELD, `ON-GROUND IN-ROOM` -> SO-ROOM, `INSIDE-PRSI` -> SO-INSIDE
-(a zforge extension, not Infocom ZIL); `TAKE MANY EVERYWHERE SEARCH
-ADJACENT` are accepted and ignored.
+(a zforge extension, not Infocom ZIL), `MANY` -> SO-MANY (several objects:
+read only by the Inform 7 branch of lib/parser, ADR-035 - a ZIL game's
+parser ignores it); `TAKE EVERYWHERE SEARCH ADJACENT` are accepted and
+ignored.
 
 `<INSERT-FILE "lib/parser">` supplies the run-time half, in ZIL:
 `HERE LIT PRSA PRSO PRSI`, the `PLAYER` object, `<PARSER>` (read + match:

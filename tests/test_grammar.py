@@ -49,7 +49,8 @@ def test_syntax_becomes_table_rows_with_synonyms():
     # verb, nobj, prep1, prep2, find1, find2, opts1, opts2, action#, routine, preaction
     assert rows[0] == ["take", 1, 0, 0, "TAKEBIT", -1, 0, 0, "V?TAKE", "V-TAKE", 0]
     assert [r[0] for r in rows[:3]] == ["take", "get", "grab"]     # VERB-SYNONYM
-    assert rows[3] == ["put", 2, 0, "in", -1, -1, 1, 4, "V?PUT-IN", "V-PUT-IN", "PRE-PUT"]
+    # (HELD CARRIED) (MANY): SO-HELD | SO-MANY (MANY: several objects, used by I7 only)
+    assert rows[3] == ["put", 2, 0, "in", -1, -1, 1 | 8, 4, "V?PUT-IN", "V-PUT-IN", "PRE-PUT"]
     assert rows[4][3] == "into"                                     # PREP-SYNONYM
     assert rows[5][:4] == ["look", 0, "around", 0]                  # a particle
 
@@ -150,8 +151,8 @@ def test_zil_search_options_become_preference_bits():
 <SYNTAX GET OBJECT (ON-GROUND INSIDE-PRSI) = V-TAKE>""")
     assert not d.items, [i.message for i in d.items]
     rows = [[show(item) for item in row] for row in syntax_rows(program)]
-    assert rows[0][6:8] == [1, 2]       # SO-HELD for object 1, SO-ROOM for object 2
-    assert rows[1][6:8] == [2 | 4, 0]   # SO-ROOM | SO-INSIDE; TAKE / MANY are ignored
+    assert rows[0][6:8] == [1 | 8, 2]   # SO-HELD | SO-MANY for object 1, SO-ROOM for object 2
+    assert rows[1][6:8] == [2 | 4, 0]   # SO-ROOM | SO-INSIDE; TAKE is ignored
 
 
 def test_missing_object_is_asked_for_then_both_objects():

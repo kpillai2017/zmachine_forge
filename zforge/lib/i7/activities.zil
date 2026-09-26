@@ -99,7 +99,7 @@
  ('After printing a parser error: ...').
 
  The numbers are I7-lite's own; an author only ever uses the names
- (standard.py PARSER_ERRORS). These six are the ones this parser makes."
+ (standard.py PARSER_ERRORS). These eight are the ones this parser makes."
 
 <CONSTANT PE-DIDNT-UNDERSTAND 1>  ;"the didn't understand error"
 <CONSTANT PE-CANT-SEE 2>          ;"the can't see any such thing error"
@@ -107,6 +107,8 @@
 <CONSTANT PE-CANT-SEE-IT 4>       ;"the can't see it at the moment error"
 <CONSTANT PE-NOT-A-VERB 5>        ;"the not a verb I recognise error"
 <CONSTANT PE-PARDON 6>            ;"the I beg your pardon error"
+<CONSTANT PE-CANT-USE-MULTIPLE 7> ;"the can't use multiple objects error: X ALL"
+<CONSTANT PE-NOTHING-TO-DO 8>     ;"the nothing to do error: TAKE ALL, and nothing here"
 
 <GLOBAL LATEST-PARSER-ERROR 0>
 
@@ -134,4 +136,17 @@
           (<EQUAL? ,LATEST-PARSER-ERROR ,PE-CANT-SEE-IT>
            <TELL "You can't see '"> <PRINT-WORD ,P-ERROR-WORD> <TELL "' (">
            <SAY-THE ,P-IT> <TELL ") at the moment." CR>)
+          (<EQUAL? ,LATEST-PARSER-ERROR ,PE-CANT-USE-MULTIPLE>
+           <TELL "You can't use multiple objects with that verb." CR>)
+          (<EQUAL? ,LATEST-PARSER-ERROR ,PE-NOTHING-TO-DO>    ;"the parser nothing error"
+           <TELL "There are none at all available!" CR>)      ;"internal rule, response (B)"
           (ELSE <TELL "I didn't understand that sentence." CR>)>>
+
+<ROUTINE SAY-COMMAND-SO-FAR ()
+    ;"[parser command so far]: the verb the player used, as Inform 7 prints it -
+      X is 'examine' (Advent: 'You can only examine one thing at a time.')"
+    <COND (<EQUAL? <WORD-AT 1> ,W?X> <TELL "examine">)
+          (<EQUAL? <WORD-AT 1> ,W?L> <TELL "look">)
+          (<EQUAL? <WORD-AT 1> ,W?I> <TELL "inventory">)
+          (<EQUAL? <WORD-AT 1> ,W?Z> <TELL "wait">)
+          (ELSE <PRINT-WORD 1>)>>

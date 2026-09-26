@@ -73,6 +73,19 @@
   ZIL games compile exactly as before."
 <COMPILATION-FLAG-DEFAULT I7 <>>
 
+;"Inform 7 lets the first object be several: TAKE ALL, DROP ALL BUT THE
+  LAMP, TAKE THE LAMP AND THE KEYS, DROP LAMP, KEYS AND FOOD - where the
+  grammar line says [things] (a SYNTAX with (MANY): S-OPTS1 has SO-MANY). The parser lists them
+  in P-MULTI; the I7 runtime runs the action once for each."
+<IFFLAG (I7
+<CONSTANT P-ERR-MULTI 4>        ;"several objects, but the verb takes one"
+<CONSTANT P-ERR-NOTHING 5>      ;"ALL, but there is nothing it could mean"
+<GLOBAL P-MULTIPLE 0>           ;"true: run the action for each object in P-MULTI"
+<GLOBAL P-MULTI <ITABLE 17 0>>  ;"the objects: word 0 = count (at most 16)"
+<GLOBAL P-USED-ALL 0>           ;"the phrase said ALL / EVERYTHING"
+<GLOBAL P-ALL-SEEN 0>           ;"how many things ALL could have meant, before any was left out"
+) (ELSE)>
+
 "------------------------------------------------------------ reading"
 
 <ROUTINE PARSER ()
@@ -99,7 +112,8 @@
     <SETG P-SYNTAX 0>
     <SETG P-ERROR 0>
     <DO (I 1 ,P-LEN)
-        <COND (<ZERO? <WORD-AT .I>>
+        <COND (<IFFLAG (I7 <AND <ZERO? <WORD-AT .I>> <NOT <COMMA? .I>>>)  ;"',' is no error"
+                       (ELSE <ZERO? <WORD-AT .I>>)>
                <IFFLAG (I7 <COND (<EQUAL? .I 1> <I7-PARSER-ERROR ,PE-NOT-A-VERB>)
                                  (ELSE <I7-PARSER-ERROR ,PE-CANT-SEE>)>)
                        (ELSE
@@ -122,6 +136,8 @@
 <ROUTINE PARSE-ERROR (VERB-KNOWN)
     <IFFLAG (I7
     <I7-PARSER-ERROR <COND (<NOT .VERB-KNOWN> ,PE-NOT-A-VERB)
+                           (<EQUAL? ,P-ERROR ,P-ERR-MULTI> ,PE-CANT-USE-MULTIPLE)
+                           (<EQUAL? ,P-ERROR ,P-ERR-NOTHING> ,PE-NOTHING-TO-DO)
                            (<EQUAL? ,P-ERROR ,P-ERR-NO-IT> ,PE-NOT-SURE)
                            (<EQUAL? ,P-ERROR ,P-ERR-IT-GONE> ,PE-CANT-SEE-IT)
                            (<EQUAL? ,P-ERROR ,P-ERR-NOT-FOUND> ,PE-CANT-SEE)
@@ -178,7 +194,10 @@
     <SET N <GET .ROW ,S-NOBJ>>
     <COND (<NOT <MATCH-PREP <GET .ROW ,S-PREP1>>> <MISSING-IF-ENDED 1 .N> <RFALSE>)>
     <COND (<G? .N 0>
-           <SET O <NOUN-PHRASE <GET .ROW ,S-PREP2> <GET .ROW ,S-FIND1> ,P-MATCHES1>>
+           <IFFLAG (I7 <SET O <OBJECTS-PHRASE <GET .ROW ,S-PREP2> <GET .ROW ,S-FIND1>
+                                               <GET .ROW ,S-OPTS1>>>)
+                   (ELSE
+           <SET O <NOUN-PHRASE <GET .ROW ,S-PREP2> <GET .ROW ,S-FIND1> ,P-MATCHES1>>)>
            <COND (<ZERO? .O> <MISSING-IF-ENDED 1 .N> <RFALSE>)>
            <SETG PRSO .O>
            <SETG P-DEFAULT1 ,P-DEFAULTED>
@@ -218,6 +237,119 @@
            <SETG P-DEFAULTED T>
            <FIND-FLAGGED .FIND>)
           (ELSE <RESOLVE .FIRST .LAST .TBL>)>>
+
+;"--------------------------------------------- several objects (I7 only)"
+<IFFLAG (I7
+<ROUTINE OBJECTS-PHRASE (STOP FIND OPTS "AUX" FIRST LAST I W EXCEPT START O)
+    ;"object 1: one object as NOUN-PHRASE finds it, or - if the words say
+      ALL, AND or a comma - a list in P-MULTI (the first is returned)"
+    <SETG P-MULTIPLE 0>
+    <SETG P-USED-ALL 0>
+    <SETG P-ALL-SEEN 0>
+    <SET FIRST ,P-WORD>
+    <SET LAST <- ,P-WORD 1>>
+    <REPEAT ()                                  ;"where does the phrase end?"
+        <COND (<G? <+ .LAST 1> ,P-LEN> <RETURN>)
+              (<AND .STOP <EQUAL? <WORD-AT <+ .LAST 1>> .STOP>> <RETURN>)>
+        <SET LAST <+ .LAST 1>>>
+    <COND (<NOT <MULTI-WORDS? .FIRST .LAST>> <RETURN <NOUN-PHRASE .STOP .FIND ,P-MATCHES1>>)>
+    <SETG P-WORD <+ .LAST 1>>
+    <COND (<NOT <BAND .OPTS ,SO-MANY>> <SETG P-ERROR ,P-ERR-MULTI> <RFALSE>)>
+    <PUT ,P-MULTI 0 0>
+    <PUT ,P-MATCHES1 0 0>
+    <SET START .FIRST>
+    <SET I .FIRST>
+    <REPEAT ()                                  ;"items, split at AND / , / EXCEPT"
+        <SET W <COND (<G? .I .LAST> 0) (ELSE <WORD-AT .I>)>>
+        <COND (<OR <G? .I .LAST> <LIST-BREAK? .I>>
+               <COND (<NOT <G? .START <- .I 1>>>
+                      <COND (<NOT <MULTI-ITEM .START <- .I 1> .EXCEPT .OPTS>> <RFALSE>)>)>
+               <COND (<AND <NOT <G? .I .LAST>> <EQUAL? .W ,W?EXCEPT ,W?BUT>> <SET EXCEPT T>)>
+               <SET START <+ .I 1>>)>
+        <COND (<G? .I .LAST> <RETURN>)>
+        <SET I <+ .I 1>>>
+    <COND (<ZERO? <GET ,P-MULTI 0>> <SETG P-ERROR ,P-ERR-NOTHING> <RFALSE>)>
+    <SET O <GET ,P-MULTI 1>>
+    ;"As in Inform 7: ALL is one object - '(the keys)' - only when ONE thing
+      could have been meant. Things it could mean but leaves out (held ones,
+      for TAKE ALL) still count: one left over is then 'bottle: Taken.'"
+    <COND (<AND ,P-USED-ALL <EQUAL? ,P-ALL-SEEN 1>>
+           <SETG P-DEFAULTED T>)
+          (ELSE <SETG P-MULTIPLE T> <SETG P-DEFAULTED 0>)>
+    .O>
+
+<ROUTINE MULTI-WORDS? (FIRST LAST)
+    <DO (I .FIRST .LAST)
+        <COND (<OR <EQUAL? <WORD-AT .I> ,W?ALL ,W?EVERYTHING ,W?AND> <COMMA? .I>>
+               <RTRUE>)>>
+    <RFALSE>>
+
+<ROUTINE LIST-BREAK? (I) <OR <EQUAL? <WORD-AT .I> ,W?AND ,W?EXCEPT ,W?BUT> <COMMA? .I>>>
+
+<ROUTINE COMMA? (I "AUX" E)
+    ;"the lexer makes ',' a word of its own (a separator, §13.6.1); it is not
+      in the dictionary, so look at the letter the player typed"
+    <SET E <+ ,PARSEBUF <* 4 .I> -2>>           ;"§13.6.3: the word's 4-byte entry"
+    <AND <ZERO? <GET .E 0>> <EQUAL? <GETB .E 2> 1>
+         <EQUAL? <GETB ,READBUF <GETB .E 3>> 44>>>
+
+<ROUTINE MULTI-ITEM (FIRST LAST EXCEPT OPTS "AUX" O)
+    ;"one item of the list: ALL, or a noun (added, or with EXCEPT taken out)"
+    <SET FIRST <SKIP-ARTICLES .FIRST .LAST>>
+    <COND (<AND <EQUAL? .FIRST .LAST> <EQUAL? <WORD-AT .FIRST> ,W?ALL ,W?EVERYTHING>>
+           <SETG P-USED-ALL T>
+           <ADD-ALL .OPTS>
+           <RTRUE>)>
+    <SET O <RESOLVE .FIRST .LAST ,P-MATCHES2>>  ;"P-MATCHES2 as scratch: PRSI comes later"
+    <COND (<ZERO? .O> <RFALSE>)
+          (.EXCEPT <MULTI-REMOVE .O>)
+          (ELSE <MULTI-ADD .O>)>
+    <RTRUE>>
+
+<ROUTINE ADD-ALL (OPTS "AUX" O)
+    ;"Inform 7's ALL: with a held-things verb (DROP), what the player carries
+      but does not wear; otherwise what lies in the room - not scenery, not
+      fixed in place, not people, not what is held already"
+    <COND (<BAND .OPTS ,SO-HELD>
+           <SET O <FIRST? ,PLAYER>>
+           <REPEAT ()
+               <COND (<ZERO? .O> <RETURN>)>
+               <SETG P-ALL-SEEN <+ ,P-ALL-SEEN 1>>      ;"worn things could be meant too"
+               <COND (<NOT <FSET? .O ,WORNBIT>> <MULTI-ADD .O>)>
+               <SET O <NEXT? .O>>>)
+          (<NOT ,LIT>)                           ;"in the dark: nothing"
+          (ELSE
+           <SETG P-ALL-SEEN <+ ,P-ALL-SEEN <COUNT-HELD>>>  ;"held: meant, then left out"
+           <SET O <FIRST? ,HERE>>
+           <REPEAT ()
+               <COND (<ZERO? .O> <RETURN>)>
+               <COND (<NOT <EQUAL? .O ,PLAYER>> <SETG P-ALL-SEEN <+ ,P-ALL-SEEN 1>>)>
+               <COND (<NOT <OR <EQUAL? .O ,PLAYER> <FSET? .O ,SCENERYBIT>
+                               <FSET? .O ,FIXEDBIT> <FSET? .O ,PERSONBIT>>>
+                      <MULTI-ADD .O>)>
+               <SET O <NEXT? .O>>>)>>
+
+<ROUTINE COUNT-HELD ("AUX" (N 0) O)
+    <SET O <FIRST? ,PLAYER>>
+    <REPEAT ()
+        <COND (<ZERO? .O> <RETURN>)>
+        <SET N <+ .N 1>>
+        <SET O <NEXT? .O>>>
+    .N>
+
+<ROUTINE MULTI-ADD (O "AUX" N)
+    <SET N <GET ,P-MULTI 0>>
+    <DO (I 1 .N) <COND (<EQUAL? <GET ,P-MULTI .I> .O> <RTRUE>)>>
+    <COND (<L? .N 16> <PUT ,P-MULTI <+ .N 1> .O> <PUT ,P-MULTI 0 <+ .N 1>>)>>
+
+<ROUTINE MULTI-REMOVE (O "AUX" N KEPT)
+    <SET N <GET ,P-MULTI 0>>
+    <DO (I 1 .N)
+        <COND (<NOT <EQUAL? <GET ,P-MULTI .I> .O>>
+               <SET KEPT <+ .KEPT 1>>
+               <PUT ,P-MULTI .KEPT <GET ,P-MULTI .I>>)>>
+    <PUT ,P-MULTI 0 .KEPT>>
+) (ELSE)>
 
 <ROUTINE SKIP-ARTICLES (FIRST LAST)
     <REPEAT ()

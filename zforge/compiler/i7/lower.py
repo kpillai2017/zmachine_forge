@@ -510,10 +510,14 @@ class Lowerer:
             if part.startswith("["):
                 token = part[1:-1]
                 if token not in ("something", "someone", "things", "any thing", "anything",
-                                 "something preferably held", "thing"):
+                                 "something preferably held", "thing",
+                                 "things preferably held"):
                     self.p.unsupported(where, line, f"the grammar token [{token}]")
                     return []
-                options = [o + ["OBJECT"] for o in options]
+                # [things]: several at once - TAKE ALL, DROP A AND B (ADR-035)
+                flags = {"things": ["(MANY)"],
+                         "things preferably held": ["(MANY", "HELD)"]}.get(token, [])
+                options = [o + ["OBJECT", *flags] for o in options]
             else:
                 alts = [w for w in part.split("/") if w]
                 options = [o + [w.upper()] for o in options for w in alts]

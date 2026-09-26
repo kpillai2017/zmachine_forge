@@ -112,6 +112,8 @@
 <ROUTINE TAKE-REPORT () <TAKE-REPORT-A> <RFALSE>>
 
 ;"------------------------------------------------------------ dropping"
+<ROUTINE DROP-ALREADY ()                ;"in the holder of the actor: the room, or a seat"
+    <COND (<IN? ,PRSO <LOC ,PLAYER>> <DROP-ALREADY-A> <RTRUE>)> <RFALSE>>
 <ROUTINE DROP-NOT-HELD ()
     <COND (<NOT <IN? ,PRSO ,PLAYER>> <DROP-NOT-HELD-A> <RTRUE>)> <RFALSE>>
 <ROUTINE DROP-STANDARD () <FCLEAR ,PRSO ,WORNBIT> <MOVE ,PRSO ,HERE> <RFALSE>>

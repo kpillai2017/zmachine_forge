@@ -172,6 +172,14 @@ DEFAULT_PLAN: list[Task] = [
           "examples/advent_opening.ni"],
          ["I7_LITE.md", "ZIL_SUBSET.md", "ADR-034"],
          ["i7-advent-differential", "golden"], ["tests/test_i7_parser_errors.py"]),
+    Task("v2-i7-multiple", 7, "I7-lite: several objects at once - TAKE ALL, ALL EXCEPT, "
+         "'lamp, keys and food', '(the keys)' when ALL can mean one thing - checked against the "
+         "real Advent; the can't drop what's already dropped rule (ADR-035)",
+         ["zforge/lib/parser.zil", "zforge/lib/i7/runtime.zil", "zforge/compiler/grammar.py",
+          "zforge/compiler/i7/standard.py", "zforge/compiler/i7/lower.py",
+          "zforge/compiler/i7/model.py", "examples/advent_opening.ni"],
+         ["I7_LITE.md", "ADR-035"],
+         ["i7-advent-differential", "golden"], ["tests/test_i7_multiple.py"]),
 
     # ---- Tier 8: version 6, the eight-window screen model (§8.8, ADR-030)
     Task("v2-v6-file", 8, "a z6 story file: §5.4 starts by calling main, §11.1 swaps "

@@ -50,8 +50,8 @@ ACTIONS: tuple[StandardAction, ...] = (
         R("standard examining rule", "EXAMINE-STANDARD"),
         R("examine undescribed things rule", "EXAMINE-UNDESCRIBED",
           (("A", "You see nothing special about [the noun]."),)))}),
-    StandardAction("taking", 1, ("take [something]", "get [something]",
-                                 "pick up [something]", "pick [something] up"), {
+    StandardAction("taking", 1, ("take [things]", "get [things]",       # Inform 7's grammar
+                                 "pick up [things]", "pick [things] up"), {
         "check": (
             R("can't take yourself rule", "TAKE-YOURSELF",
               (("A", "You are always self-possessed."),)),
@@ -64,9 +64,12 @@ ACTIONS: tuple[StandardAction, ...] = (
               (("A", "That's fixed in place."),))),
         "carry out": (R("standard taking rule", "TAKE-STANDARD"),),
         "report": (R("standard report taking rule", "TAKE-REPORT", (("A", "Taken."),)),)}),
-    StandardAction("dropping", 1, ("drop [something]", "put down [something]",
-                                   "discard [something]"), {
-        "check": (R("can't drop what's not held rule", "DROP-NOT-HELD",
+    StandardAction("dropping", 1, ("drop [things preferably held]",
+                                   "put down [things preferably held]",
+                                   "discard [things preferably held]"), {
+        "check": (R("can't drop what's already dropped rule", "DROP-ALREADY",
+                    (("A", "[The noun] [are] already here."),)),
+                  R("can't drop what's not held rule", "DROP-NOT-HELD",
                     (("A", "You haven't got that."),)),),
         "carry out": (R("standard dropping rule", "DROP-STANDARD"),),
         "report": (R("standard report dropping rule", "DROP-REPORT", (("A", "Dropped."),)),)}),
@@ -82,8 +85,8 @@ ACTIONS: tuple[StandardAction, ...] = (
         R("print empty inventory rule", "INVENTORY-EMPTY", (("A", "You are carrying nothing."),)),
         R("print standard inventory rule", "INVENTORY-STANDARD",
           (("A", "You are carrying:[line break]"),)))}),
-    StandardAction("putting it on", 2, ("put [something] on [something]",
-                                        "hang [something] on [something]"), {
+    StandardAction("putting it on", 2, ("put [things preferably held] on [something]",
+                                        "hang [things preferably held] on [something]"), {
         "check": (
             R("can't put something on itself rule", "PUT-ON-ITSELF",
               (("A", "You can't put something on top of itself."),)),
@@ -93,8 +96,8 @@ ACTIONS: tuple[StandardAction, ...] = (
         "carry out": (R("standard putting rule", "PUT-STANDARD"),),
         "report": (R("standard report putting rule", "PUT-REPORT",
                      (("A", "You put [the noun] on [the second noun]."),)),)}),
-    StandardAction("inserting it into", 2, ("put [something] in [something]",
-                                            "insert [something] in [something]"), {
+    StandardAction("inserting it into", 2, ("put [things preferably held] in [something]",
+                                            "insert [things preferably held] in [something]"), {
         "check": (
             R("can't insert something into itself rule", "INSERT-ITSELF",
               (("A", "You can't put something inside itself."),)),
@@ -247,7 +250,7 @@ ACTIVITIES: tuple[LibraryActivity, ...] = (
 # Inform 7's parser errors, by the names an author uses ('the latest parser
 # error is the can't see any such thing error'). The names are Inform 7's own
 # (checked against the compiled Advent_Crowther.z8, which contains them).
-# I7-lite's parser makes the first six; a rule about any other can be written
+# I7-lite's parser makes the first eight; a rule about any other can be written
 # but never applies - as in a game where that kind of mistake cannot happen.
 PARSER_ERRORS: dict[str, str] = {
     "didn't understand": "PE-DIDNT-UNDERSTAND",
@@ -256,20 +259,20 @@ PARSER_ERRORS: dict[str, str] = {
     "can't see it at the moment": "PE-CANT-SEE-IT",
     "not a verb i recognise": "PE-NOT-A-VERB",
     "i beg your pardon": "PE-PARDON",
+    "can't use multiple objects": "PE-CANT-USE-MULTIPLE",
+    "nothing to do": "PE-NOTHING-TO-DO",
     # never made by I7-lite's parser: each has its own number (101 up),
     # which LATEST-PARSER-ERROR never holds
     "only understood as far as": "101",
     "didn't understand that number": "102",
     "said too little": "103",
     "aren't holding that": "104",
-    "can't use multiple objects": "105",
     "can only use multiple objects": "106",
     "excepted something not included": "107",
     "can only do that to something animate": "108",
     "not something you need to refer to": "109",
     "didn't understand the way that finished": "110",
     "not enough of those available": "111",
-    "nothing to do": "112",
     "noun did not make sense in that context": "113",
     "referred to a determination of scope": "114",
     "can't again the addressee": "115",

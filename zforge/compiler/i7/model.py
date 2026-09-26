@@ -488,6 +488,9 @@ class ModelBuilder:
     def placed(self, s, m):
         """X is [descriptor] in/on Y: 'a supporter', 'scenery', 'a scenery supporter'."""
         subject, descriptor, relation, place = m.group(1), m.group(2), m.group(3), m.group(4)
+        tail = m.string[m.end(1):].split(None, 1)[1]            # after 'is' / 'are'
+        if self.only_adjectives(tail):          # 'The desk is fixed in place.' - not a place
+            return False
         obj = self.subject(s, subject)
         if descriptor:
             self.describe(s, obj, descriptor)
@@ -547,6 +550,12 @@ class ModelBuilder:
                     self.p.problem(s.where, s.text, f"'{adj.strip()}' is not a property I know.")
                     break
         self.last_object = objs[-1]
+
+    def only_adjectives(self, text: str) -> bool:
+        """'fixed in place', 'scenery and fixed in place': adjectives only?"""
+        table = {**ADJECTIVES, **self.m.either_or}
+        chunks = [c.strip().lower() for c in re.split(r",\s*|\s+and\s+", text) if c.strip()]
+        return bool(chunks) and all(c in table or c in NAMING for c in chunks)
 
     def apply_adjective(self, obj: Obj, adj: str) -> bool:
         if adj in NAMING:

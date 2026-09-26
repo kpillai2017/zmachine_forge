@@ -54,11 +54,24 @@ To pose the question (proposition - a text)
 Rule for printing a parser error when the latest parser error is the not a verb I recognise error:
 	say "I don't know that word. ".
 
+[Advent 330, 388 and 395, the same way: its edits of the parser error
+ internal rule's response (H) - one thing at a time - and of the parser
+ nothing error internal rule's response (B) - TAKE ALL with nothing there.]
+To say dunno:
+	say "I don't know how to apply that word here. ".
+
+Rule for printing a parser error when the latest parser error is the can't use multiple objects error:
+	say "[We] [can] only [parser command so far] one thing at a time. ".
+
+Rule for printing a parser error when the latest parser error is the nothing to do error:
+	say "[dunno]".
+
 [Advent 261: there is nothing to examine closely.]
 Instead of examining something: try looking.
 
 [Advent 354, 363, 367.]
 The standard report taking rule response (A) is "OK."
+The can't take what's already taken rule response (A) is "[We] [are] already carrying [regarding the noun][them]! ".
 The standard report dropping rule response (A) is "OK."
 The can't go that way rule response (A) is "There is no way to go that direction."
 The list writer internal rule response (D) is "lit".
