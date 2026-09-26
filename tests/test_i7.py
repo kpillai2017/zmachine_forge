@@ -142,3 +142,48 @@ def test_out_of_world_actions_skip_before_rules():
 def test_a_held_thing_is_matched_once_with_the_player_in_the_room():
     text = play(compile_i7(CLOAKROOM, "t.ni").story, ["x lamp"]).transcript
     assert "Which do you mean" not in text and "You see nothing special about the lamp." in text
+
+
+# ------------------------------------------------------------------ 7b
+
+def test_names_with_of_are_not_properties():
+    m, problems = model_of('The set of keys is in the Lab. The Lab is a room.')
+    assert problems == []
+    assert m.objects["set of keys"].parent == "Lab"
+
+
+def test_a_door_has_two_sides_and_a_key():
+    m, problems = model_of('The Top is a room. The Bottom is a room. The grate is a door. '
+              'It is below the Top and above the Bottom. The grate is locked. '
+              'The key is in the Top. The key unlocks the grate.')
+    assert problems == []
+    grate = m.objects["grate"]
+    assert grate.sides == [("Top", "down"), ("Bottom", "up")]
+    assert grate.key == "key" and "LOCKEDBIT" in grate.flags
+
+
+def test_kind_defaults_with_usually():
+    m, problems = model_of('A room is usually dark. A forest is a kind of room. '
+              'The printed name of a forest is usually "Forest". The Wood is a forest.')
+    assert problems == []
+    assert "LITBIT" in m.kinds["room"].unflags and m.kinds["forest"].printed == "Forest"
+
+
+def test_naming_articles_and_synonyms():
+    m, problems = model_of(
+              'The Lab is a room. The lamp is a device in the Lab. The lamp is privately-named. '
+              'The printed name of the lamp is "brass lantern". The water is in the Lab. '
+              'The indefinite article of the water is "some". Understand "lantern" as the lamp. '
+              'Understand "plugh" as north. Understand the command "grab" as "take".')
+    assert problems == []
+    lamp, water = m.objects["lamp"], m.objects["water"]
+    assert lamp.private and lamp.printed == "brass lantern" and lamp.words == ["lantern"]
+    assert water.article == "some"
+    assert m.direction_words == {"north": ["plugh"]} and m.command_synonyms == [("grab", "take")]
+
+
+def test_privately_named_things_are_not_understood_by_their_name():
+    zil = compile_i7('"T" by "U"\nThe Lab is a room. The lamp is a device in the Lab. '
+                     'The lamp is privately-named. Understand "lantern" as the lamp.', "t.ni").zil
+    obj = zil[zil.index("<OBJECT LAMP"):]
+    assert "(SYNONYM LANTERN)" in obj[:obj.index(">")]

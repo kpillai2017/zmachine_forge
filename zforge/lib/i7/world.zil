@@ -7,6 +7,23 @@
 <PROPDEF DESCRIPTION 0>
 <PROPDEF INITIAL-APPEARANCE 0>
 
+;"A door is in two rooms at once in Inform 7, but a ZIL object has one
+  parent. So a door (listed in the compiler's DOORS table) is moved into
+  whichever of its two rooms (SIDE-A, SIDE-B) the player arrives in."
+<PROPDEF SIDE-A 0>
+<PROPDEF SIDE-B 0>
+<PROPDEF WITH-KEY 0>                   ;"what locks and unlocks it"
+
+<ROUTINE OTHER-SIDE (DOOR)
+    <COND (<EQUAL? <GETP .DOOR ,P?SIDE-A> ,HERE> <GETP .DOOR ,P?SIDE-B>)
+          (ELSE <GETP .DOOR ,P?SIDE-A>)>>
+
+<ROUTINE PLACE-DOORS ("AUX" N D)
+    <SET N <GET ,DOORS 0>>
+    <DO (I 1 .N)
+        <SET D <GET ,DOORS .I>>
+        <COND (<EQUAL? ,HERE <GETP .D ,P?SIDE-A> <GETP .D ,P?SIDE-B>> <MOVE .D ,HERE>)>>>
+
 <ROUTINE LIGHT-HERE? ()
     <COND (<FSET? ,HERE ,LITBIT> <RTRUE>)
           (<HAS-LIGHT? ,HERE> <RTRUE>)
@@ -55,4 +72,5 @@
 <ROUTINE MOVE-PLAYER-TO (ROOM)
     <MOVE ,PLAYER .ROOM>
     <SETG HERE .ROOM>
+    <PLACE-DOORS>
     <SETG LIT <LIGHT-HERE?>>>

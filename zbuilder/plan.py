@@ -139,6 +139,10 @@ DEFAULT_PLAN: list[Task] = [
     Task("v2-i7-problems", 7, "Inform 7-style problem messages for broken sources",
          ["zforge/compiler/i7/problems.py", "tests/samples/broken.ni"], [],
          ["i7-problems"], ["tests/test_i7.py"]),
+    Task("v2-i7-7b", 7, "I7-lite 7b: the survey's features (doors, keys, devices, "
+         "'is usually', articles, names, synonyms, presence)",
+         ["zforge/compiler/i7/", "zforge/lib/i7/", "tests/samples/doors_and_lamps.ni"],
+         ["I7_LITE.md", "I7_SURVEY.md"], ["i7-doors-devices"], ["tests/test_i7.py"]),
 ]
 
 

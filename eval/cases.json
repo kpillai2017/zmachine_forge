@@ -866,6 +866,51 @@
         "[one of] has no ending"
       ],
       "expect": "a broken .ni gets Inform 7-style problems, each quoting the sentence and its line, no traceback"
+    },
+    {
+      "id": "i7-doors-devices",
+      "suite": "v2",
+      "type": "cross_version",
+      "source": "tests/samples/doors_and_lamps.ni",
+      "versions": [
+        5,
+        7,
+        8
+      ],
+      "script": [
+        "grab keys",
+        "get lantern",
+        "i",
+        "d",
+        "open grate",
+        "unlock grate with lamp",
+        "unlock grate with keys",
+        "open grate",
+        "turn on lantern",
+        "plugh",
+        "wait",
+        "jump",
+        "turn on lamp",
+        "u",
+        "close grate",
+        "lock grate with keys",
+        "switch keys on"
+      ],
+      "must_contain": [
+        "  a brass lantern\n  some set of keys",
+        "You can't, since the grate is closed.",
+        "It seems to be locked.",
+        "That doesn't seem to fit the lock.",
+        "You unlock the grate.",
+        "You switch the brass lantern on.",
+        "Chamber\nA dry chamber",
+        "You can see a grate and a bird here.",
+        "The bird sings.",
+        "That's already on.",
+        "You lock the grate.",
+        "That isn't something you can switch."
+      ],
+      "expect": "7b features: a locked two-sided door and its key, a device that lights a dark room, custom articles, printed/private names, Understand as a direction, command synonyms, 'in the presence of', 'try'; identical on z5, z7 and z8"
     }
   ]
 }

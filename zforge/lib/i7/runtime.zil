@@ -5,6 +5,7 @@
    constants  STORY-TITLE STORY-AUTHOR STORY-HEADLINE RELEASE-NUMBER
               SCORING (1 = Use scoring) MAX-SCORE FIRST-ROOM
    tables     WHEN-PLAY-BEGINS-RULES  EVERY-TURN-RULES  (LTABLEs of rules)
+              DOORS (an LTABLE of the story's doors)
               GENERAL-RULES (the six stages for 'doing something' rules)
    one routine V-<ACTION> and one rulebook table per action (actions.zil)
 
@@ -36,8 +37,7 @@
 <GLOBAL OUT-OF-WORLD 0>        ;"set by out-of-world actions: no time passes"
 
 <ROUTINE GO ()
-    <SETG HERE ,FIRST-ROOM>
-    <MOVE ,PLAYER ,HERE>
+    <MOVE-PLAYER-TO ,FIRST-ROOM>
     <FSET ,PLAYER ,PROPERBIT>
     <SETG P-I7-STYLE 1>                 ;"the parser speaks like Inform 7"
     <SPLIT 1>

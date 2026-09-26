@@ -46,6 +46,12 @@
     <COND (<OR <ZERO? .PT> <NOT <EQUAL? <PTSIZE .PT> 1>>>
            <TELL "You can't go that way." CR> <RTRUE>)>
     <SETG GOING-TO <GETB .PT 0>>
+    ;"an exit may lead to a door: then through it, if it is open"
+    <COND (<FSET? ,GOING-TO ,DOORBIT>
+           <COND (<NOT <FSET? ,GOING-TO ,OPENBIT>>
+                  <TELL "You can't, since "> <SAY-THE ,GOING-TO>
+                  <SAY-IS-ARE ,GOING-TO> <TELL " closed." CR> <RTRUE>)>
+           <SETG GOING-TO <OTHER-SIDE ,GOING-TO>>)>
     <RFALSE>>
 <ROUTINE GOING-CARRY-OUT () <MOVE-PLAYER-TO ,GOING-TO> <RFALSE>>
 <ROUTINE GOING-REPORT () <DESCRIBE-ROOM> <RFALSE>>
@@ -100,6 +106,56 @@
     <RFALSE>>
 <ROUTINE TAKING-OFF-CARRY-OUT () <FCLEAR ,PRSO ,WORNBIT> <RFALSE>>
 <ROUTINE TAKING-OFF-REPORT () <TELL "You take off "> <SAY-THE ,PRSO> <TELL "." CR> <RFALSE>>
+
+;"--------------------------------------------------- opening / closing"
+<ROUTINE OPENING-CHECK ()
+    <COND (<NOT <FSET? ,PRSO ,OPENABLEBIT>> <TELL "That's not something you can open." CR> <RTRUE>)
+          (<FSET? ,PRSO ,LOCKEDBIT> <TELL "It seems to be locked." CR> <RTRUE>)
+          (<FSET? ,PRSO ,OPENBIT> <TELL "That's already open." CR> <RTRUE>)>
+    <RFALSE>>
+<ROUTINE OPENING-CARRY-OUT () <FSET ,PRSO ,OPENBIT> <RFALSE>>
+<ROUTINE OPENING-REPORT () <TELL "You open "> <SAY-THE ,PRSO> <TELL "." CR> <RFALSE>>
+<ROUTINE CLOSING-CHECK ()
+    <COND (<NOT <FSET? ,PRSO ,OPENABLEBIT>> <TELL "That's not something you can close." CR> <RTRUE>)
+          (<NOT <FSET? ,PRSO ,OPENBIT>> <TELL "That's already closed." CR> <RTRUE>)>
+    <RFALSE>>
+<ROUTINE CLOSING-CARRY-OUT () <FCLEAR ,PRSO ,OPENBIT> <RFALSE>>
+<ROUTINE CLOSING-REPORT () <TELL "You close "> <SAY-THE ,PRSO> <TELL "." CR> <RFALSE>>
+
+;"------------------------------------------------- locking / unlocking"
+<ROUTINE LOCKING-CHECK ()
+    <COND (<NOT <FSET? ,PRSO ,LOCKABLEBIT>>
+           <TELL "That doesn't seem to be something you can lock." CR> <RTRUE>)
+          (<FSET? ,PRSO ,LOCKEDBIT> <TELL "It's locked at the moment." CR> <RTRUE>)
+          (<FSET? ,PRSO ,OPENBIT> <TELL "First you would have to close "> <SAY-THE ,PRSO> <TELL "." CR> <RTRUE>)
+          (<NOT <EQUAL? <GETP ,PRSO ,P?WITH-KEY> ,PRSI>>
+           <TELL "That doesn't seem to fit the lock." CR> <RTRUE>)>
+    <RFALSE>>
+<ROUTINE LOCKING-CARRY-OUT () <FSET ,PRSO ,LOCKEDBIT> <RFALSE>>
+<ROUTINE LOCKING-REPORT () <TELL "You lock "> <SAY-THE ,PRSO> <TELL "." CR> <RFALSE>>
+<ROUTINE UNLOCKING-CHECK ()
+    <COND (<NOT <FSET? ,PRSO ,LOCKABLEBIT>>
+           <TELL "That doesn't seem to be something you can unlock." CR> <RTRUE>)
+          (<NOT <FSET? ,PRSO ,LOCKEDBIT>> <TELL "It's unlocked at the moment." CR> <RTRUE>)
+          (<NOT <EQUAL? <GETP ,PRSO ,P?WITH-KEY> ,PRSI>>
+           <TELL "That doesn't seem to fit the lock." CR> <RTRUE>)>
+    <RFALSE>>
+<ROUTINE UNLOCKING-CARRY-OUT () <FCLEAR ,PRSO ,LOCKEDBIT> <RFALSE>>
+<ROUTINE UNLOCKING-REPORT () <TELL "You unlock "> <SAY-THE ,PRSO> <TELL "." CR> <RFALSE>>
+
+;"------------------------------------------------------- switching"
+<ROUTINE SWITCHING-ON-CHECK ()
+    <COND (<NOT <FSET? ,PRSO ,DEVICEBIT>> <TELL "That isn't something you can switch." CR> <RTRUE>)
+          (<FSET? ,PRSO ,ONBIT> <TELL "That's already on." CR> <RTRUE>)>
+    <RFALSE>>
+<ROUTINE SWITCHING-ON-CARRY-OUT () <FSET ,PRSO ,ONBIT> <RFALSE>>
+<ROUTINE SWITCHING-ON-REPORT () <TELL "You switch "> <SAY-THE ,PRSO> <TELL " on." CR> <RFALSE>>
+<ROUTINE SWITCHING-OFF-CHECK ()
+    <COND (<NOT <FSET? ,PRSO ,DEVICEBIT>> <TELL "That isn't something you can switch." CR> <RTRUE>)
+          (<NOT <FSET? ,PRSO ,ONBIT>> <TELL "That's already off." CR> <RTRUE>)>
+    <RFALSE>>
+<ROUTINE SWITCHING-OFF-CARRY-OUT () <FCLEAR ,PRSO ,ONBIT> <RFALSE>>
+<ROUTINE SWITCHING-OFF-REPORT () <TELL "You switch "> <SAY-THE ,PRSO> <TELL " off." CR> <RFALSE>>
 
 ;"--------------------------------------------------------------- misc"
 <ROUTINE WAITING-REPORT () <TELL "Time passes." CR> <RFALSE>>

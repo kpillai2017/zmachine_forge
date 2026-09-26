@@ -37,16 +37,19 @@ ADJECTIVES = {
     "plural-named": ("PLURALBIT", True), "singular-named": ("PLURALBIT", False),
     "visited": ("VISITEDBIT", True), "handled": ("HANDLEDBIT", True),
 }
+NAMING = ("privately-named", "publicly-named")          # compile-time only: no flag
 # built-in kinds: name -> (parent, flags every object of the kind gets)
 BUILTIN_KINDS = {
     "object": (None, ()), "room": ("object", ("ROOMBIT", "LITBIT")),
-    "thing": ("object", ()), "container": ("thing", ("CONTAINERBIT",)),
-    "supporter": ("thing", ("SUPPORTERBIT",)), "door": ("thing", ("DOORBIT", "FIXEDBIT")),
+    "thing": ("object", ()), "container": ("thing", ("CONTAINERBIT", "OPENBIT")),         # open
+    "supporter": ("thing", ("SUPPORTERBIT",)),
+    "door": ("thing", ("DOORBIT", "FIXEDBIT", "OPENABLEBIT")),      # closed, openable
     "device": ("thing", ("DEVICEBIT",)), "person": ("thing", ("PERSONBIT",)),
     "man": ("person", ()), "woman": ("person", ()), "animal": ("person", ()),
 }
-TEXT_PROPERTIES = {"description": "DESCRIPTION", "initial appearance": "INITIAL-APPEARANCE",
-                   "printed name": "PRINTED-NAME"}
+TEXT_PROPERTIES = {"description": "DESCRIPTION", "initial appearance": "INITIAL-APPEARANCE"}
+DIRECTION_WORDS = ("north|northeast|east|southeast|south|southwest|west|northwest|"
+                   "up|down|inside|outside")
 
 
 @dataclass
@@ -56,6 +59,8 @@ class Kind:
     flags: set[str] = field(default_factory=set)            # set on every instance
     unflags: set[str] = field(default_factory=set)          # cleared on every instance
     where: Location = Location(0)
+    texts: dict[str, Text] = field(default_factory=dict)    # 'is usually' texts
+    printed: str | None = None                              # usual printed name
 
 
 @dataclass
@@ -71,6 +76,11 @@ class Obj:
     values: dict[str, str] = field(default_factory=dict)    # value properties
     words: list[str] = field(default_factory=list)          # extra Understand words
     proper: bool = False
+    private: bool = False                                   # privately-named: no name words
+    printed: str | None = None                              # printed name, if not its name
+    article: str | None = None                              # indefinite article ("some")
+    sides: list[tuple[str, str]] = field(default_factory=list)  # a door: (room, direction)
+    key: str | None = None                                  # what unlocks it
 
 
 @dataclass
@@ -123,6 +133,8 @@ class WorldModel:
     phrases: list[PhraseDef] = field(default_factory=list)
     either_or: dict[str, tuple[str, bool]] = field(default_factory=dict)  # adj -> (flag, value)
     value_properties: dict[str, str] = field(default_factory=dict)        # name -> kind
+    direction_words: dict[str, list[str]] = field(default_factory=dict)  # 'north' -> ['plugh']
+    command_synonyms: list[tuple[str, str]] = field(default_factory=list)  # ('grab', 'take')
     notes: list[str] = field(default_factory=list)
 
     # ------------------------------------------------------------ queries
@@ -241,8 +253,7 @@ class ModelBuilder:
         body = t[:-1].strip() if t.endswith(".") else t
         for pattern, handler in self.PATTERNS:
             m = re.match(pattern, body, re.I)
-            if m:
-                handler(self, s, m)
+            if m and handler(self, s, m) is not False:    # False: 'not mine after all'
                 return
         self.p.problem(s.where, s.text, "I7-lite does not understand this sentence "
                        "(see docs/I7_LITE.md for the forms it knows).")
@@ -310,6 +321,25 @@ class ModelBuilder:
         self.link(self.last_room, m.group(1).lower(), there)
 
     def connect(self, s, subject: str, direction: str, other: str) -> None:
+        # 'It is north of A and south of B': two connections in one sentence
+        more = re.match(rf"^(.+?) and ({DIRECTION_WORDS}|above|below) (?:(?:of|from) )?(.+)$",
+                        other, re.I)
+        if more:
+            self.connect(s, subject, direction, more.group(1))
+            direction2 = {"above": "up", "below": "down"}.get(more.group(2).lower(),
+                                                              more.group(2).lower())
+            self.connect(s, subject, direction2, more.group(3))
+            return
+        door = self.subject(s, subject) if self.is_door_phrase(subject) else None
+        if door is not None:
+            # 'The grate is below the Depression': going down from the
+            # Depression leads to the grate, and through it
+            room = self.object_for(other, s.where, "room")
+            door.sides.append((room.name, direction))
+            if door.parent is None:
+                door.parent, door.relation = room.name, "in"
+            self.last_object = door
+            return
         here = self.object_for(subject, s.where, "room")
         there = self.object_for(other, s.where, "room")
         for room in (here, there):
@@ -319,6 +349,66 @@ class ModelBuilder:
         # 'X is north of Y': going north from Y reaches X, and back again
         self.link(there, direction, here)
         self.last_object = self.last_room = here
+
+    def is_door_phrase(self, phrase: str) -> bool:
+        if phrase.strip().lower() in ("it", "they"):
+            return self.last_object is not None and self.m.is_a(self.last_object.kind, "door")
+        obj = self.m.find(phrase)
+        return obj is not None and self.m.is_a(obj.kind, "door")
+
+    def above_below(self, s, m):
+        """X is above/below Y  (= up/down from Y)."""
+        self.connect(s, m.group(1), "up" if m.group(2).lower() == "above" else "down", m.group(3))
+
+    def unlocks(self, s, m):
+        """The keys unlock the grate."""
+        key = self.subject(s, m.group(1))
+        target = self.subject(s, m.group(2))
+        target.key = key.name
+        target.flags.add("LOCKABLEBIT")
+
+    def usually(self, s, m):
+        """A room is usually dark.   (a default for every object of a kind)"""
+        kind = strip_article(m.group(1)).lower()
+        if kind not in self.m.kinds:
+            obj = self.subject(s, m.group(1))          # 'X is usually Y' of one thing
+            for adj in re.split(r",\s*|\s+and\s+", m.group(2)):
+                if not self.apply_adjective(obj, adj.strip().lower()):
+                    self.p.problem(s.where, s.text, f"'{adj.strip()}' is not a property I know.")
+            return
+        k = self.m.kinds[kind]
+        for adj in re.split(r",\s*|\s+and\s+", m.group(2)):
+            adj = adj.strip().lower()
+            table = {**ADJECTIVES, **self.m.either_or}
+            if adj not in table:
+                self.p.problem(s.where, s.text, f"'{adj}' is not a property I know.")
+                continue
+            flag, value = table[adj]
+            (k.flags if value else k.unflags).add(flag)
+            (k.unflags if value else k.flags).discard(flag)
+
+    def usually_text(self, s, m):
+        """The printed name of a forest is usually "Forest"."""
+        prop, kind, value = m.group(1).lower(), strip_article(m.group(2)).lower(), m.group(3)
+        if kind in self.m.kinds and prop == "printed name":
+            self.m.kinds[kind].printed = unquote(value)
+            return
+        if kind not in self.m.kinds or prop not in TEXT_PROPERTIES:
+            self.p.problem(s.where, s.text, "I7-lite can only give a kind a usual printed "
+                           f"name, {' or '.join(TEXT_PROPERTIES)}.")
+            return
+        try:
+            self.m.kinds[kind].texts[prop] = parse_text(value)
+        except TextError as e:
+            self.p.problem(s.where, value, f"the text is malformed: {e}.")
+
+    def command_synonym(self, s, m):
+        """Understand the command "grab" as "take"."""
+        new = [unquote(w).lower() for w in re.split(r"\s*(?:,|\band\b|\bor\b)\s*", m.group(1))
+               if w.strip()]
+        old = unquote(m.group(2)).lower()
+        for word in new:
+            self.m.command_synonyms.append((word, old))
 
     def link(self, frm: Obj, direction: str, to: Obj) -> None:
         self.m.map[(frm.name, direction)] = to.name
@@ -377,6 +467,9 @@ class ModelBuilder:
         self.last_object = obj
 
     def apply_adjective(self, obj: Obj, adj: str) -> bool:
+        if adj in NAMING:
+            obj.private = adj == "privately-named"
+            return True
         table = {**ADJECTIVES, **self.m.either_or}
         if adj not in table:
             return False
@@ -388,8 +481,19 @@ class ModelBuilder:
     def text_property(self, s, m):
         """The description of X is "...". (also printed name, initial appearance)"""
         prop, subject, value = m.group(1).lower(), m.group(2), m.group(3)
+        if prop not in (*TEXT_PROPERTIES, "printed name", "indefinite article") \
+                and prop not in self.m.value_properties:
+            return False                    # 'The set of keys is in ...' is not a property
         obj = self.subject(s, subject)
-        if prop in TEXT_PROPERTIES:
+        if prop in ("printed name", "indefinite article"):
+            if not re.fullmatch(r'"[^"\[\]]*"', value.strip()):
+                self.p.problem(s.where, s.text, f"the {prop} must be plain text in I7-lite "
+                               "(no [substitutions]).")
+            elif prop == "printed name":
+                obj.printed = unquote(value)
+            else:
+                obj.article = unquote(value)
+        elif prop in TEXT_PROPERTIES:
             self.set_text(s, obj, prop, value)
         elif prop in self.m.value_properties:
             obj.values[prop] = value.strip()
@@ -427,6 +531,11 @@ class ModelBuilder:
     def understand(self, s, m):
         words, target = m.group(1), m.group(2).strip()
         words = [unquote(w) for w in re.split(r'\s*(?:,|\band\b|\bor\b)\s*', words) if w.strip()]
+        if strip_article(target).lower() in DIRECTION_NAMES:
+            direction = strip_article(target).lower()
+            for w in words:
+                self.m.direction_words.setdefault(direction, []).extend(w.lower().split("/"))
+            return
         action = self.m.actions.get(strip_article(target).lower())
         if action:
             for w in words:
@@ -455,6 +564,11 @@ class ModelBuilder:
         (r"^(.+?) is an? (dark |lit )?room$", is_room),
         (r"^an? (.+?) is a kind of (.+)$", kind_of),
         (r"^(.+?) is an action (applying to .+|out of world.*)$", new_action),
+        (r"^the (.+?) of (an? .+?) (?:is|are) usually (\".*\")$", usually_text),
+        (r"^(.+?) (?:is|are) usually (.+)$", usually),
+        (r"^understand the commands? (.+?) as (\".*?\")$", command_synonym),
+        (r"^(.+?) (?:is|are) (above|below) (.+)$", above_below),
+        (r"^(.+?) (?:unlock|unlocks) (.+)$", unlocks),
         (r"^(.+?) (?:is|are) (north|northeast|east|southeast|south|southwest|west|northwest|"
          r"up|down|inside|outside) (?:of|from) (.+)$", map_connection),
         (r"^(north|northeast|east|southeast|south|southwest|west|northwest|up|down|inside|"

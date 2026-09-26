@@ -12,6 +12,11 @@ Darkness; **7b** adds the survey's features (doors, devices, `try`, ...);
 **7c** adds adaptive text. Anything not listed is refused with a problem
 message that names the construct and points here.
 
+**Built so far:** 7a and 7b (see `examples/cloak.ni` and
+`tests/samples/doors_and_lamps.ni`). Details that differ from Inform 7:
+doors are closed and openable by default, containers open; a door is
+listed in room descriptions (not yet checked against real Inform 7).
+
 ## Source layout
 
 * A source file is a sequence of **sentences**, ending in `.` (or a quoted

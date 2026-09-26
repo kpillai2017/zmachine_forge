@@ -2,10 +2,11 @@
 
  The compiler gives every thing an ARTICLE property, worked out when the
  game is compiled: 1 = 'a', 2 = 'an', 3 = 'some' (plural-named), 0 = none
- (proper-named, like 'Roger'). So the running game never needs to look at
- the letters of a name to choose 'a' or 'an'."
+ (proper-named, like 'Roger'), 4 = the author's own, in ARTICLE-TEXT. So
+ the running game never needs to look at the letters of a name."
 
 <PROPDEF ARTICLE 1>
+<PROPDEF ARTICLE-TEXT 0>
 
 <ROUTINE SAY-A (O "AUX" A)
     ;"[a noun]: 'a brass hook', 'an apple', 'some water', 'Roger'"
@@ -13,6 +14,7 @@
     <COND (<FSET? .O ,PROPERBIT>)
           (<EQUAL? .A 2> <TELL "an ">)
           (<EQUAL? .A 3> <TELL "some ">)
+          (<EQUAL? .A 4> <PRINT <GETP .O ,P?ARTICLE-TEXT>> <TELL " ">)
           (<EQUAL? .A 1> <TELL "a ">)>
     <TELL D .O>>
 
@@ -22,8 +24,23 @@
     <COND (<FSET? .O ,PROPERBIT>)
           (<EQUAL? .A 2> <TELL "An ">)
           (<EQUAL? .A 3> <TELL "Some ">)
+          (<EQUAL? .A 4> <SAY-CAPITALISED <GETP .O ,P?ARTICLE-TEXT>> <TELL " ">)
           (<EQUAL? .A 1> <TELL "A ">)>
     <TELL D .O>>
+
+<GLOBAL CAP-BUFFER <ITABLE 64 (BYTE)>>
+
+<ROUTINE SAY-CAPITALISED (STR "AUX" N C)
+    ;"print a string with its first letter in capitals: print it into a
+      buffer (output stream 3, §7.1.2), then print the buffer"
+    <ZOP OUTPUT_STREAM 3 ,CAP-BUFFER>
+    <PRINT .STR>
+    <ZOP OUTPUT_STREAM -3>
+    <SET N <GET ,CAP-BUFFER 0>>
+    <DO (I 0 <- .N 1>)
+        <SET C <GETB ,CAP-BUFFER <+ .I 2>>>
+        <COND (<AND <ZERO? .I> <G? .C 96> <L? .C 123>> <SET C <- .C 32>>)>
+        <PRINTC .C>>>
 
 <ROUTINE SAY-THE (O)
     ;"[the noun]"

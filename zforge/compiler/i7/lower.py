@@ -46,9 +46,12 @@ def zil_string(s: str) -> str:
 
 
 def article_code(obj: Obj) -> int:
-    """0 = none (proper-named), 1 = a, 2 = an, 3 = some (plural-named)."""
+    """0 = none (proper-named), 1 = a, 2 = an, 3 = some (plural-named),
+    4 = the author's own (ARTICLE-TEXT)."""
     if obj.proper or "PROPERBIT" in obj.flags:
         return 0
+    if obj.article is not None:
+        return 4
     if "PLURALBIT" in obj.flags:
         return 3
     return 2 if obj.name[:1].lower() in "aeiou" else 1
@@ -124,7 +127,8 @@ class Lowerer:
     def directions(self) -> None:
         self.emit('"--- directions: Inform 7 treats north as an object (the noun of going)"')
         for name, abbrev, _ in DIRECTIONS:
-            words = " ".join(w.upper() for w in (name, abbrev))
+            extra = [w for w in self.m.direction_words.get(name, []) if DICT_WORD.match(w)]
+            words = " ".join(w.upper() for w in (name, abbrev, *extra))
             self.emit(f'<OBJECT DIR-{name.upper()} (DESC "{name}") (SYNONYM {words}) '
                       f"(DIR-PROP ,P?{DIRECTION_PROPS[name]}) (FLAGS PROPERBIT)>")
         self.emit("")
@@ -148,8 +152,9 @@ class Lowerer:
         lines = [f"<OBJECT {atom}   ;\"{o.kind} (line {o.where.line})\""]
         if o.parent:
             lines.append(f"    (IN {self.atom[o.parent]})")
-        lines.append(f"    (DESC {zil_string(o.name)})")
-        words = [w for w in (o.name.lower().split() + o.words)
+        lines.append(f"    (DESC {zil_string(self.printed_name(o))})")
+        own = [] if o.private else o.name.lower().split()     # privately-named: none
+        words = [w for w in (own + o.words)
                  if DICT_WORD.match(w) and w not in ("the", "a", "an", "of")]
         if words:
             lines.append("    (SYNONYM " + " ".join(dict.fromkeys(w.upper() for w in words)) + ")")
@@ -157,24 +162,62 @@ class Lowerer:
         if flags:
             lines.append("    (FLAGS " + " ".join(sorted(flags)) + ")")
         lines.append(f"    (ARTICLE {article_code(o)})")
-        for prop, text in o.texts.items():
+        if o.article is not None:
+            lines.append(f"    (ARTICLE-TEXT {zil_string(o.article)})")
+        for prop, text in self.texts_of(o).items():
             routine = self.text_routine(f"{atom}-{zil_name(prop)}", text,
                                         f"the {prop} of {o.name}")
             lines.append(f"    ({zil_name(prop)} ,{routine})")
         for prop, value in o.values.items():
             lines.append(f"    ({zil_name(prop)} {self.phrases.value(value, o.where)})")
-        for (room, direction), to in self.m.map.items():
-            if room == o.name:
-                lines.append(f"    ({DIRECTION_PROPS[direction]} TO {self.atom[to]})")
+        for direction, to in self.exits_of(o):
+            lines.append(f"    ({DIRECTION_PROPS[direction]} TO {self.atom[to]})")
+        if o.sides:                                   # a door: its two rooms
+            if len(o.sides) != 2:
+                self.p.problem(o.where, o.name, f"a door needs two sides (one in each room), "
+                               f"but '{o.name}' has {len(o.sides)}.")
+            for prop, (room, _) in zip(("SIDE-A", "SIDE-B"), o.sides, strict=False):
+                lines.append(f"    ({prop} {self.atom[room]})")
+        if o.key:
+            lines.append(f"    (WITH-KEY {self.atom[o.key]})")
         return "\n".join(lines) + ">"
+
+    def exits_of(self, room: Obj) -> list[tuple[str, str]]:
+        """(direction, room-or-door): the map, plus exits that lead to doors."""
+        exits = {d: to for (r, d), to in self.m.map.items() if r == room.name}
+        for door in self.m.objects.values():
+            for side, direction in door.sides:
+                if side == room.name:
+                    exits[direction] = door.name
+        return list(exits.items())
+
+    def kind_chain(self, o: Obj) -> list:
+        """The object's kinds, most specific first."""
+        chain, kind = [], o.kind
+        while kind:
+            chain.append(self.m.kinds[kind])
+            kind = self.m.kinds[kind].parent
+        return chain
+
+    def printed_name(self, o: Obj) -> str:
+        if o.printed is not None:
+            return o.printed
+        for k in self.kind_chain(o):
+            if k.printed is not None:
+                return k.printed
+        return o.name
+
+    def texts_of(self, o: Obj) -> dict:
+        """The object's texts, with its kinds' usual ones where it has none."""
+        texts = {}
+        for k in reversed(self.kind_chain(o)):
+            texts.update(k.texts)
+        texts.update(o.texts)
+        return texts
 
     def flags_of(self, o: Obj) -> set[str]:
         flags: set[str] = set()
-        chain, kind = [], o.kind
-        while kind:                                   # kind flags, most general first
-            chain.append(self.m.kinds[kind])
-            kind = self.m.kinds[kind].parent
-        for k in reversed(chain):
+        for k in reversed(self.kind_chain(o)):        # kind flags, most general first
             flags = (flags | k.flags) - k.unflags
         flags = (flags | o.flags) - o.unflags
         if o.proper:
@@ -267,6 +310,19 @@ class Lowerer:
                       f"<SYNTAX GO {up} = V-GO-{up}>")
             self.routines.append(f"<ROUTINE V-GO-{up} ()\n    <SETG PRSO ,DIR-{up}> "
                                  f"<SETG PRSA ,V?GOING> <V-GOING>>")
+        for direction, words in self.m.direction_words.items():   # Understand "plugh" as north
+            for w in words:
+                if DICT_WORD.match(w):
+                    self.emit(f"<SYNTAX {w.upper()} = V-GO-{direction.upper()}>")
+        verbs = {line.split()[1] for line in self.out if line.startswith("<SYNTAX ")}
+        for new, old in self.m.command_synonyms:          # Understand the command "grab" ...
+            if old.upper() not in verbs:
+                self.p.problem(self.where0(), f'Understand the command "{new}" as "{old}"',
+                               f"'{old}' is not a command I know.")
+            else:
+                self.emit(f"<VERB-SYNONYM {old.upper()} {new.upper()}>")
+        doors = [self.atom[o.name] for o in self.m.objects.values() if o.sides]
+        self.emit(f"<GLOBAL DOORS <LTABLE {' '.join(',' + d for d in doors)}>>")
         self.emit("<SYNTAX UNDO = V-UNDO>", "<ROUTINE V-UNDO () <RTRUE>>", "")
 
     def rulebook_global(self, global_name: str, action: str) -> str:

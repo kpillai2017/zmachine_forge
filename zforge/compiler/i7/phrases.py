@@ -201,6 +201,12 @@ class PhraseLowerer:
             text = parts[0]
             guards.append(self.condition(" when ".join(parts[1:]), where))
             spec[2] = 1
+        # 'in the presence of X': only while X is in the same room
+        m = re.match(r"^(.+) in the presence of (.+)$", text, re.I)
+        if m:
+            text = m.group(1)
+            guards.insert(0, f"<EQUAL? <LOC {self.value(m.group(2), where)}> ,HERE>")
+            spec[1] = 1
         # a trailing 'in <room>' limits the rule to that room
         m = re.match(r"^(.+) in (.+)$", text, re.I)
         if m:
