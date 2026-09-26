@@ -27,16 +27,19 @@
 <GLOBAL SILENTLY 0>            ;"'silently try': skip the Report stage"
 
 <ROUTINE RUN-ACTION (RULES)
-    <COND (<RUN-STAGE .RULES ,BEFORE-STAGE> <RFALSE>)>
-    <COND (<RUN-STAGE .RULES ,INSTEAD-STAGE> <RFALSE>)>
+    ;"Out-of-world actions (saving, the score, ...) happen outside the
+      story: like Inform 7, they skip Before, Instead and After rules"
+    <COND (<AND <NOT ,OUT-OF-WORLD> <RUN-STAGE .RULES ,BEFORE-STAGE>> <RFALSE>)>
+    <COND (<AND <NOT ,OUT-OF-WORLD> <RUN-STAGE .RULES ,INSTEAD-STAGE>> <RFALSE>)>
     <COND (<RUN-STAGE .RULES ,CHECK-STAGE> <RFALSE>)>
     <RUN-STAGE .RULES ,CARRY-OUT-STAGE>
-    <COND (<RUN-STAGE .RULES ,AFTER-STAGE> <RTRUE>)>
+    <COND (<AND <NOT ,OUT-OF-WORLD> <RUN-STAGE .RULES ,AFTER-STAGE>> <RTRUE>)>
     <COND (<NOT ,SILENTLY> <RUN-STAGE .RULES ,REPORT-STAGE>)>
     <RTRUE>>
 
 <ROUTINE RUN-STAGE (RULES STAGE)
-    <COND (<FOLLOW-RULES <GET .RULES .STAGE>> <RTRUE>)>
+    <COND (<FOLLOW-RULES <GET .RULES .STAGE>> <RTRUE>)
+          (,OUT-OF-WORLD <RFALSE>)>        ;"no 'doing something' rules either"
     <FOLLOW-RULES <GET ,GENERAL-RULES .STAGE>>>
 
 <ROUTINE FOLLOW-RULES (TBL "AUX" N)

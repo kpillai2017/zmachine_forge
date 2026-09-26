@@ -62,6 +62,10 @@
 
 <OBJECT PLAYER (DESC "yourself")>
 
+;"0 = Infocom-style messages (\"I don't know the word ...\"); the I7-lite
+  runtime sets 1 for Inform 7's wording (\"You can't see any such thing.\")"
+<GLOBAL P-I7-STYLE 0>
+
 "------------------------------------------------------------ reading"
 
 <ROUTINE PARSER ()
@@ -86,9 +90,9 @@
     <SETG P-ERROR 0>
     <DO (I 1 ,P-LEN)
         <COND (<ZERO? <WORD-AT .I>>
-               <TELL "I don't know the word \"">
-               <PRINT-WORD .I>
-               <TELL "\"." CR>
+               <COND (<AND ,P-I7-STYLE <EQUAL? .I 1>> <TELL "That's not a verb I recognise." CR>)
+                     (,P-I7-STYLE <TELL "You can't see any such thing." CR>)
+                     (ELSE <TELL "I don't know the word \""> <PRINT-WORD .I> <TELL "\"." CR>)>
                <RFALSE>)>>
     <SET ROW <+ ,SYNTAX-TABLE 2>>              ;"word 0 is the row count"
     <DO (I 1 <GET ,SYNTAX-TABLE 0>)
@@ -109,6 +113,8 @@
            <PRINT-WORD ,P-ERROR-WORD>
            <TELL "\" refers to." CR>)
           (<EQUAL? ,P-ERROR ,P-ERR-IT-GONE> <TELL "You can't see the " D ,P-IT " here." CR>)
+          (<AND <EQUAL? ,P-ERROR ,P-ERR-NOT-FOUND> ,P-I7-STYLE>
+           <TELL "You can't see any such thing." CR>)
           (<EQUAL? ,P-ERROR ,P-ERR-NOT-FOUND>
            <TELL "You can't see any ">
            <PRINT-WORD ,P-ERROR-WORD>
@@ -238,7 +244,10 @@
             <COND (<MATCHES? .C .FIRST .LAST> <ADD-MATCH .TBL .C>)>>>>
 
 <ROUTINE ADD-MATCH (TBL O "AUX" N)
+    ;"once only: when the player is IN the room (as in Inform 7), a thing
+      they hold is reached twice - as held, and inside the room's contents"
     <SET N <GET .TBL 0>>
+    <DO (I 1 .N) <COND (<EQUAL? <GET .TBL .I> .O> <RTRUE>)>>
     <COND (<L? .N ,P-MAX-MATCHES>
            <SET N <+ .N 1>>
            <PUT .TBL .N .O>

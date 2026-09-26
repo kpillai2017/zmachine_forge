@@ -128,6 +128,17 @@ DEFAULT_PLAN: list[Task] = [
          ["stories/urls.txt", "eval/run_eval.py", "zforge/vm/screen/plain.py",
           "zforge/vm/screen/base.py"], ["§1.2.3", "§8", "Quetzal"],
          ["play-real-z8-advent", "play-real-z8-jigsaw"], ["tests/test_screen.py"]),
+    # ---- Tier 7: the I7-lite compiler (docs/I7_LITE.md, docs/I7_TO_ZIL.md)
+    Task("v2-i7-hello", 7, "I7-lite pipeline + runtime: Hello World on z5, z7, z8",
+         ["zforge/compiler/i7/", "zforge/lib/i7/", "zforge/cli.py", "examples/hello.ni"],
+         ["§1.2.3", "§12", "§15"], ["hello-i7"], ["tests/test_i7.py"]),
+    Task("v2-i7-cloak", 7, "Cloak of Darkness in Inform 7: rules, darkness, scoring, endings",
+         ["zforge/compiler/i7/", "zforge/lib/i7/", "zforge/lib/parser.zil",
+          "examples/cloak.ni"], ["§12", "§15"],
+         ["cloak-i7-win", "cloak-i7-lose", "i7-parser-messages"], ["tests/test_i7.py"]),
+    Task("v2-i7-problems", 7, "Inform 7-style problem messages for broken sources",
+         ["zforge/compiler/i7/problems.py", "tests/samples/broken.ni"], [],
+         ["i7-problems"], ["tests/test_i7.py"]),
 ]
 
 

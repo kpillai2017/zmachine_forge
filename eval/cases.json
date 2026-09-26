@@ -753,6 +753,119 @@
         "There is no score in this story."
       ],
       "expect": "examples/hello.ni (Inform 7) compiles for z5, z7 and z8 and plays identical transcripts: greeting, banner, room, standard actions"
+    },
+    {
+      "id": "cloak-i7-win",
+      "suite": "v2",
+      "type": "cross_version",
+      "source": "examples/cloak.ni",
+      "versions": [
+        5,
+        7,
+        8
+      ],
+      "script": [
+        "n",
+        "x cloak",
+        "w",
+        "x hook",
+        "hang cloak on hook",
+        "inventory",
+        "e",
+        "s",
+        "read message"
+      ],
+      "must_contain": [
+        "You've only just arrived",
+        "You put the velvet cloak on the small brass hook.",
+        "You are carrying nothing.",
+        "The message, neatly marked in the sawdust, reads...",
+        "*** You have won ***",
+        "In that game you scored 2 out of a possible 2"
+      ],
+      "expect": "Cloak of Darkness in Inform 7 (examples/cloak.ni) is won on z5, z7 and z8 with identical transcripts"
+    },
+    {
+      "id": "cloak-i7-lose",
+      "suite": "v2",
+      "type": "cross_version",
+      "source": "examples/cloak.ni",
+      "versions": [
+        5,
+        7,
+        8
+      ],
+      "script": [
+        "s",
+        "look",
+        "w",
+        "wait",
+        "score",
+        "n",
+        "drop cloak",
+        "w",
+        "hang cloak on hook",
+        "x hook",
+        "look",
+        "e",
+        "s",
+        "read message"
+      ],
+      "must_contain": [
+        "Darkness\nIt is pitch dark, and you can't see a thing.",
+        "Blundering around in the dark isn't a good idea!",
+        "In the dark? You could easily disturb something!",
+        "You have so far scored 0 out of a possible 2",
+        "This isn't the best place to leave a smart cloak lying around.",
+        "with a cloak hanging on it",
+        "On the small brass hook is a velvet cloak.",
+        "*** You have lost ***"
+      ],
+      "must_not_contain": [
+        "Which do you mean"
+      ],
+      "expect": "the losing path: darkness rules, out-of-world score (no disturbance), Instead/Carry out rules, [if] text"
+    },
+    {
+      "id": "i7-parser-messages",
+      "suite": "v2",
+      "type": "cross_version",
+      "source": "examples/cloak.ni",
+      "versions": [
+        8
+      ],
+      "script": [
+        "xyzzy",
+        "x banana",
+        "s",
+        "read message"
+      ],
+      "must_contain": [
+        "That's not a verb I recognise.",
+        "You can't see any such thing."
+      ],
+      "must_not_contain": [
+        "I don't know the word"
+      ],
+      "expect": "I7 stories use Inform 7's parser wording (v1 ZIL games keep Infocom's)"
+    },
+    {
+      "id": "i7-problems",
+      "suite": "v2",
+      "type": "i7_problems",
+      "source": "tests/samples/broken.ni",
+      "expect_lines": [
+        4,
+        5,
+        6
+      ],
+      "must_contain": [
+        "3 problems",
+        "is not a supporter",
+        "does not understand this sentence",
+        "[one of] has no ending"
+      ],
+      "expect": "a broken .ni gets Inform 7-style problems, each quoting the sentence and its line, no traceback"
     }
   ]
 }

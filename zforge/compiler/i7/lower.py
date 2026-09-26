@@ -130,6 +130,12 @@ class Lowerer:
         self.emit("")
 
     def objects(self) -> None:
+        own_flags = sorted({flag for flag, _ in self.m.either_or.values()})
+        if own_flags:
+            self.emit(";\"In ZIL a flag exists once an object uses it: this object (never",
+                      "  anywhere) declares the flags of this story's either/or properties.\"",
+                      f"<OBJECT STORY-FLAGS (DESC \"story flags\") (FLAGS {' '.join(own_flags)})>",
+                      "")
         self.emit('"--- rooms and things"')
         for o in self.m.objects.values():
             if o.name == "yourself":

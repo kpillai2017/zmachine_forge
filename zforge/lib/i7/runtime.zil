@@ -39,6 +39,7 @@
     <SETG HERE ,FIRST-ROOM>
     <MOVE ,PLAYER ,HERE>
     <FSET ,PLAYER ,PROPERBIT>
+    <SETG P-I7-STYLE 1>                 ;"the parser speaks like Inform 7"
     <SPLIT 1>
     <SCREEN 0>
     <FOLLOW-RULES ,WHEN-PLAY-BEGINS-RULES>

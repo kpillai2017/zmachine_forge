@@ -8,7 +8,8 @@ starts and ends; what a sentence MEANS is sentences.py's job.
   last character is . ! or ? ("You are standing here." ends a sentence).
 * A RULE is a preamble ending in ':' followed by phrases: on the same
   line separated by ';', or on the following indented lines. The rule
-  ends at a blank line (or at the next unindented line).
+  ends at a blank line (or at the next unindented line). A one-line rule
+  may use a comma instead: 'Instead of taking the lamp, say "No."'.
 * Headings (Volume/Book/Part/Chapter/Section ...) are skipped."""
 
 from __future__ import annotations
@@ -86,6 +87,17 @@ def colon_outside_quotes(text: str) -> int:
     return -1
 
 
+def comma_outside_quotes(text: str) -> int:
+    """Index of the first ',' outside quotes, or -1."""
+    in_quote = False
+    for i, ch in enumerate(text):
+        if ch == '"':
+            in_quote = not in_quote
+        elif ch == "," and not in_quote:
+            return i
+    return -1
+
+
 def split_sentences(text: str, where: Location) -> list[Sentence]:
     """Split one run of assertion text into sentences."""
     out, buf, start, in_quote = [], "", None, False
@@ -134,6 +146,11 @@ def read_sentences(source: str) -> list[Sentence]:
         colon = colon_outside_quotes(text)
         if RULE_START.match(text) and colon >= 0:
             i = read_rule(lines, i, text, colon, where, out)
+            continue
+        comma = comma_outside_quotes(text)
+        if RULE_START.match(text) and comma >= 0 and not text.lower().startswith("to "):
+            # a one-line rule: 'Instead of taking the lamp, say "No."'
+            i = read_rule(lines, i, text, comma, where, out)
             continue
         # an assertion paragraph: gather lines up to a blank line or a rule
         chunk, first = [raw], i

@@ -40,8 +40,9 @@
 
 ;"--------------------------------------------------------------- going"
 <GLOBAL GOING-TO 0>
-<ROUTINE GOING-CHECK ("AUX" PT)
-    <SET PT <GETPT ,HERE <GETP ,PRSO ,P?DIR-PROP>>>
+<ROUTINE GOING-CHECK ("AUX" DIR PT)
+    <SET DIR <GETP ,PRSO ,P?DIR-PROP>>        ;"0 if the noun is not a direction"
+    <COND (.DIR <SET PT <GETPT ,HERE .DIR>>)>
     <COND (<OR <ZERO? .PT> <NOT <EQUAL? <PTSIZE .PT> 1>>>
            <TELL "You can't go that way." CR> <RTRUE>)>
     <SETG GOING-TO <GETB .PT 0>>

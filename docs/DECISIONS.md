@@ -215,3 +215,34 @@ the current memory. **Found on the way.** `PlainScreen.read_line` echoed
 input without moving the screen model's cursor, so games that re-prompt on
 the same line ("Please respond yes or no. >") wrapped earlier every turn.
 Fixed with `_next_lower_row()`; covered by a unit test.
+
+## ADR-025: The I7-lite compiler lowers Inform 7 to ZIL-lite
+*spec: docs/I7_LITE.md, docs/I7_TO_ZIL.md* **Context.** Inform 7's own
+compiler goes through Inform 6 and targets z5/z8/Glulx only, and its
+Standard Rules are a very large library (docs/I7_SURVEY.md). **Decision.**
+Compile a documented subset, *I7-lite*, to ZIL-lite text and let the
+existing ZIL compiler finish the job, so there is one code generator and the
+output can be read (`--emit-zil`). Its runtime is written in ZIL-lite
+(`zforge/lib/i7/`) and reuses `lib/parser.zil`. Choices made on the way:
+Inform 7 stories default to **z8** (larger stories; `--target` overrides);
+the player is IN the current room, as in Inform 7; directions are objects
+(DIR-NORTH ...) because Inform 7 treats "north" as the noun of going;
+every text property is a routine (so plain and substituted text print the
+same way); rulebooks are six LTABLEs per action, ordered by specificity
+(noun tests, then room, then *when*), library rules first on ties;
+out-of-world actions skip Before/Instead/After and "doing something" rules;
+a flag is declared by an object that is never anywhere (LIBRARY-FLAGS,
+STORY-FLAGS), because ZIL creates a flag only when an object uses it.
+
+## ADR-026: Parser: each match once, and Inform 7 wording (golden re-recorded)
+*spec: -* **Context.** With the player inside the room (ADR-025), the
+parser reached a held thing twice (as held, and one level down from the
+room): "Which do you mean, the velvet cloak or the velvet cloak?". I7
+stories also need Inform 7's parser messages. **Decision.** `ADD-MATCH`
+ignores an object already matched; a new global `P-I7-STYLE` (0 by
+default, set by the I7 runtime) switches the unknown-word and not-found
+messages to "That's not a verb I recognise." / "You can't see any such
+thing.". **Consequence.** The two v1 outputs that include the parser
+(`cloak_syntax.zil`, `parser_demo.zil`) grew by 128 bytes each, so their
+golden hashes were re-recorded; every other golden output is unchanged and
+the v1 behaviour suite still passes 28/28 (their messages are unchanged).

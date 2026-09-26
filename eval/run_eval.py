@@ -154,6 +154,22 @@ def run_compile_error(case: dict) -> list[str]:
     return ["compiled without errors"]
 
 
+def run_i7_problems(case: dict) -> list[str]:
+    """A broken Inform 7 source: every problem reported, Inform 7 style, at its line."""
+    from zforge.compiler.i7.driver import compile_i7
+    src = ROOT / case["source"]
+    try:
+        compile_i7(src.read_text(), str(src))
+    except ZForgeError as exc:
+        text = str(exc)
+        problems = [f"no problem reported at line {n}" for n in case["expect_lines"]
+                    if f"{src.name}:{n}: Problem. You wrote" not in text]
+        if "Traceback" in text:
+            problems.append("a Python traceback leaked into the problems")
+        return problems + _check_text(case, text)
+    return ["compiled without problems"]
+
+
 def run_reject(case: dict) -> list[str]:
     from zforge.vm.machine import ZMachine
     from zforge.vm.screen.virtual import VirtualScreen
@@ -305,7 +321,7 @@ RUNNERS = {"story": run_story_case, "compile_run": run_compile_run, "screen": ru
            "disasm": run_disasm, "audit": run_audit, "spec_opcodes": run_spec_opcodes,
            "golden": run_golden, "pytest": run_pytest, "asm_run": run_asm_run,
            "reject_cli": run_reject_cli, "illegal_opcode": run_illegal_opcode,
-           "cross_version": run_cross_version}
+           "cross_version": run_cross_version, "i7_problems": run_i7_problems}
 
 
 def expand_targets(cases: list[dict]) -> list[dict]:

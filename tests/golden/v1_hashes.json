@@ -20,16 +20,16 @@
    "header": "058cf5b3dd046f8557ee320558a44328e3de0de04b435cbdd915a8413edf2083"
   },
   "examples/cloak_syntax.zil": {
-   "size": 7560,
-   "story": "ef42d4af41d237ac17eebc3ba75494125bb70f3d893bf8b1af0604e53a29c0a2",
-   "disasm": "7a7b89ae510429b1a4f4abc9d67c15fd683680eff47bb5dc1ad6ef45abe6f922",
-   "header": "693d701da4be22fce42986a683d0b82d700dcdb5b92549662cdda0e54d90c481"
+   "size": 7688,
+   "story": "2617ff8f59ea1e8495cb2a6e159afe968496fb8990887be24cffd1477a0fb253",
+   "disasm": "b3cb83d416d8d48a3179357143a732b53a7d6dc7cdc7dfaa585fc6407c7589bb",
+   "header": "311ae5c89fb1afd7c2aa23793c7b26bff1d45d7a7a73c67fc46c3ebb43ce818d"
   },
   "examples/parser_demo.zil": {
-   "size": 5280,
-   "story": "c34c19efa51588bda6ee3d15eae1dfee7b706dc5edeac3ea7a656e8140ca30e4",
-   "disasm": "9946d429c23759555e7af24cec0c838b6ec6604b29a4aa2526469671628dd578",
-   "header": "4f57ad470b186ed359c290efa3edf6da96449df011f1436d34fa5431edbcf893"
+   "size": 5408,
+   "story": "8fb77c8fd5e5385e4230c157a4d0dcd9439a4a59af2dc78509c49d24dd7b0af7",
+   "disasm": "97f5f8d5a130813a366751d4607adabe44cbc7cbd00889a67ea96700f1cf73be",
+   "header": "724ad58768868676a77e7815f843abf0ea32eca3fdd68cd15a1a36ba22f11328"
   },
   "tests/samples/arith.zil": {
    "size": 1088,

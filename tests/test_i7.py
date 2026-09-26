@@ -116,3 +116,29 @@ def test_generated_zil_names_its_source_sentences():
 def test_the_title_line_needs_no_full_stop_or_blank_line():
     ss = read_sentences('"Hello" by "Me"\nThe Lab is a room.')
     assert [s.text for s in ss] == ['"Hello" by "Me"', "The Lab is a room."]
+
+
+# ------------------------------------------------------------------ Cloak mechanics
+def test_one_line_rules_use_a_comma():
+    ss = read_sentences('Instead of taking the lamp, say "No."')
+    assert ss[0].text == "Instead of taking the lamp:" and ss[0].body[0].text == 'say "No."'
+
+
+CLOAKROOM = '''"Test" by "T"
+The Hall is a room. The Bar is south of the Hall. The Bar is dark.
+The player carries a lamp.
+Before doing something other than going in the Bar when in darkness:
+	say "Careful!" instead.
+'''
+
+
+def test_out_of_world_actions_skip_before_rules():
+    text = play(compile_i7(CLOAKROOM, "t.ni").story, ["s", "score", "wait"]).transcript
+    after_s = text.split(">s", 1)[1]
+    assert "There is no score in this story." in after_s        # score: no "Careful!"
+    assert after_s.count("Careful!") == 1                        # only wait
+
+
+def test_a_held_thing_is_matched_once_with_the_player_in_the_room():
+    text = play(compile_i7(CLOAKROOM, "t.ni").story, ["x lamp"]).transcript
+    assert "Which do you mean" not in text and "You see nothing special about the lamp." in text
