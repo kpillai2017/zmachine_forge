@@ -13,7 +13,7 @@ from dataclasses import dataclass
 from zforge.compiler.i7.model import Obj, Rule, WorldModel
 from zforge.compiler.i7.phrases import PhraseLowerer
 from zforge.compiler.i7.problems import Location, Problems
-from zforge.compiler.i7.standard import DIRECTIONS, LIBRARY_RULES, STAGES, zil_name, \
+from zforge.compiler.i7.standard import ACTIVITIES, DIRECTIONS, LIBRARY_RULES, STAGES, zil_name, \
     zil_string
 from zforge.compiler.i7.text import parse_text
 
@@ -89,6 +89,7 @@ class Lowerer:
         self.variables()
         self.rules()
         self.actions()
+        self.activities()
         self.check_listings()
         self.responses()
         if self.extra_globals:
@@ -269,6 +270,9 @@ class Lowerer:
             book = "WHEN-PLAY-BEGINS" if stage == "when play begins" else "EVERY-TURN"
             self.add_rule(book, "", (0,), name)
             return
+        if stage.startswith("activity "):
+            self.activity_rule(rule, stage[len("activity "):])
+            return
         pattern = self.phrases.action_pattern(rule.preamble, rule.where)
         if pattern is None:
             return
@@ -278,6 +282,54 @@ class Lowerer:
             self.named_rules[rule.named] = name
         for action in pattern.actions or [""]:        # "" = every action ('doing something')
             self.add_rule(action, stage, pattern.specificity, name)
+
+    def activity_rule(self, rule: Rule, stage: str) -> None:
+        """'Rule for printing the name of the lamp when the lamp is lit:' - STAGE is
+        before, for or after. The rule applies to the item described (an object
+        activity) and/or when a condition holds. A for rule that applies makes
+        the decision (so the library's own way is skipped) unless it says
+        'continue the activity'; a before or after rule never stops the others."""
+        activity = next(a for a in ACTIVITIES if rule.preamble.lower().startswith(a.name))
+        rest = rule.preamble[len(activity.name):].strip()
+        when = ""
+        m = re.match(r"^(.*?)\s*\bwhen (.+)$", rest, re.I)
+        if m:
+            rest, when = m.group(1).strip(), m.group(2)
+        if re.search(r"\bwhile\b|\(called ", rest, re.I):
+            self.p.unsupported(rule.where, rule.preamble,
+                               "'while ...' and '(called ...)' in an activity rule")
+            return
+        guards = []
+        if rest:
+            prep = activity.preposition
+            if not prep or not rest.lower().startswith(prep + " "):
+                what = f"'{activity.name} {prep} <something>'" if prep else f"'{activity.name}'"
+                self.p.problem(rule.where, rule.preamble,
+                               f"I expected {what} here, optionally followed by 'when ...'.")
+                return
+            guards.append(self.phrases.object_guard(",ACT-OBJ", rest[len(prep):].strip(),
+                                                    rule.where))
+        if when:
+            guards.append(self.phrases.condition(when, rule.where))
+        guard = self.phrases.all_of(guards)
+        name = self.rule_routine(rule, guard, "<RTRUE>" if stage == "for" else "<RFALSE>")
+        if rule.named:
+            self.named_rules[rule.named] = name
+        specificity = (sum(1 for g in guards if g),)
+        self.add_rule(activity.atom, stage, specificity, name)
+
+    def activities(self) -> None:
+        """One global per library activity (activities.zil): its before, for and
+        after rulebooks, the most specific rule first (as for actions)."""
+        self.emit('"--- activities"')
+        for activity in ACTIVITIES:
+            tables = []
+            for stage in ("before", "for", "after"):
+                entries = self.rulebooks.get(activity.atom, {}).get(stage, [])
+                order = sorted(enumerate(entries), key=lambda e: (tuple(-x for x in e[1][0]), e[0]))
+                tables.append("<LTABLE" + "".join(" ," + r for _, (_, r) in order) + ">")
+            self.emit(f"<GLOBAL {activity.atom} <TABLE {' '.join(tables)}>>")
+        self.emit("")
 
     def rule_routine(self, rule: Rule, guard: str, default: str) -> str:
         name = self.names.new(f"RULE-{rule.number}")

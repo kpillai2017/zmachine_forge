@@ -26,24 +26,49 @@
 <ROUTINE LOOK-HEADING ()               ;"the room description heading rule"
     <PARA-FLUSH>
     <HLIGHT 2>
-    <COND (,LIT <TELL D ,HERE>) (ELSE <LOOK-HEADING-A>)>
+    ;"in the dark: the printing the name of a dark room activity, whose
+      library way is this rule's response (A), 'Darkness'"
+    <COND (,LIT <PRINT-NAME ,HERE>)
+          (ELSE <CARRY-OUT ,PRINTING-DARK-NAME-ACTIVITY 0 ,LOOK-HEADING-A>)>
     <HLIGHT 0> <CRLF>
     <RFALSE>>
 
 <ROUTINE LOOK-BODY ()                  ;"the room description body text rule"
-    <COND (<NOT ,LIT> <LOOK-BODY-A>)
+    <COND (<NOT ,LIT> <CARRY-OUT ,PRINTING-DARK-DESC-ACTIVITY 0 ,LOOK-BODY-A>)
           (<GETP ,HERE ,P?DESCRIPTION> <PARA-FLUSH> <SAY-TEXT ,HERE ,P?DESCRIPTION> <CRLF>)>
     <RFALSE>>
 
+<ROUTINE WRITE-PARAGRAPH? (O "AUX" MARK OWED SAID NAMED)
+    ;"offer O to the writing a paragraph about activity; true if a rule
+      printed something. A blank line is owed first, so it is printed only
+      if the rule says anything; if it says nothing, the paragraph state is
+      put back exactly as it was."
+    <SET OWED ,PARA-BREAK> <SET SAID ,SAY-P> <SET MARK ,SAID-COUNT>
+    <SET NAMED ,PRIOR-NAMED>
+    <SETG PARA-BREAK 1>
+    <SETG PRIOR-NAMED .O>
+    <CARRY-OUT ,WRITING-PARAGRAPH-ACTIVITY .O 0>
+    <COND (<EQUAL? .MARK ,SAID-COUNT>
+           <SETG PARA-BREAK .OWED> <SETG SAY-P .SAID> <SETG PRIOR-NAMED .NAMED>
+           <RFALSE>)>
+    <RTRUE>>
+
 <ROUTINE LOOK-OBJECTS ()     ;"the room description paragraphs about objects rule"
     <COND (<NOT ,LIT> <RFALSE>)>
-    ;"things that describe themselves, until they are first picked up.
-      Like Inform 7, the thing is 'regarded' first: '[There] [are] ...'
-      in its paragraph agrees with it."
+    ;"Each thing here in turn, as Inform 7's locale paragraphs do: first it
+      is offered to the writing a paragraph about activity; if no rule wrote
+      anything, a thing that describes itself (until first picked up) shows
+      its initial appearance. Either way it is then MENTIONED, and not
+      listed in 'You can see ...'. Like Inform 7, the thing is 'regarded'
+      first: '[There] [are] ...' in its paragraph agrees with it."
+    <MAP-CONTENTS (O ,HERE) <FCLEAR .O ,MENTIONEDBIT>>
     <MAP-CONTENTS (O ,HERE)
-        <COND (<SHOWS-INITIAL? .O>
-               <SETG PRIOR-NAMED .O>
-               <PARA-ABSORB> <CRLF> <SAY-TEXT .O ,P?INITIAL-APPEARANCE> <CRLF>)>>
+        <COND (<VISIBLE-THING? .O>
+               <COND (<WRITE-PARAGRAPH? .O> <FSET .O ,MENTIONEDBIT>)
+                     (<SHOWS-INITIAL? .O>
+                      <SETG PRIOR-NAMED .O>
+                      <PARA-ABSORB> <CRLF> <SAY-TEXT .O ,P?INITIAL-APPEARANCE> <CRLF>
+                      <FSET .O ,MENTIONEDBIT>)>)>>
     <COND (<NOT <ZERO? <COUNT-LISTED ,HERE ,LISTED-HERE?>>>
            <PARA-ABSORB>
            <CRLF> <TELL "You can see "> <SAY-LIST ,HERE ,LISTED-HERE?> <TELL " here." CR>)>

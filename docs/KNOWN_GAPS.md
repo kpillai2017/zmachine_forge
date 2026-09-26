@@ -35,8 +35,8 @@
   choosing the shortest call/branch forms.
 - **Differential testing** against dfrotz runs only if dfrotz is installed.
 - **I7-lite** is a subset (docs/I7_LITE.md): stories written for the full
-  Inform 7 (Standard Rules internals, tables, relations, activities,
-  response edits, Inform 6 inclusions) do not compile - Advent's source
+  Inform 7 (Standard Rules internals, tables, relations, most activities,
+  Inform 6 inclusions) do not compile - Advent's source
   cannot (docs/I7_SURVEY.md). Unsupported constructs are Problems, not crashes.
 - **I7 turn count**: the runtime starts it at 1 and counts each turn in the
   world, so "score" after 4 turns says "in 5 turns". Not yet checked against
@@ -46,3 +46,12 @@
 - **I7 phrases**: no phrases with parameters, no "To decide which ...", no
   'let' / repeat / while yet; adaptive text and the survey additions (doors,
   devices, 'try', 'is usually' ...) are Tier 7b/7c.
+- **I7 activities** (ADR-031): five are supported. The announcements of
+  darkness and light, parser errors, supplying a missing noun and choosing
+  notable locale objects are refused: their Inform 7 defaults could not be
+  checked against a real game (Advent overrides them all), and the last two
+  need parser changes. A *writing a paragraph* rule counts as having "said
+  something" when any say ran, even one whose text came out empty
+  (`say "[if false]x[end if]"`); the `while`
+  clause (`... while taking inventory`) and `(called ...)` names in activity
+  rules are not supported.

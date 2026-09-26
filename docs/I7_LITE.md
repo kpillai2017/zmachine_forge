@@ -419,10 +419,50 @@ the order they run. Response letters and default texts follow Inform 7.
 |---|---|---|
 | - | list writer internal rule | (D) "providing light", (K) "providing light and being worn", (L) "being worn": the inventory's notes in brackets |
 
+## 10. Activities (ADR-031)
+
+An *action* is what happens; an *activity* is how the library does
+something along the way - printing a name, writing a room's paragraphs.
+Each activity has three rulebooks: `Before <activity>`, `Rule for
+<activity>` and `After <activity>`. The before and after rules all run;
+the first *for* rule that applies decides, and the library's own way is
+skipped, unless the rule ends with `continue the activity`.
+
+| Activity | Written as | The library's own way |
+|---|---|---|
+| printing the name | `Rule for printing the name of the lamp: ...` | the printed name |
+| printing the banner text | `After printing the banner text: ...` | title, headline, release line |
+| printing the name of a dark room | `Rule for printing the name of a dark room: ...` | "Darkness" (heading response (A)) |
+| printing the description of a dark room | `Rule for printing the description of a dark room: ...` | "It is pitch dark, and you can't see a thing." (body text response (A)) |
+| writing a paragraph about | `Rule for writing a paragraph about the rock: ...` | nothing: the thing is listed as usual |
+
+- `of`/`about` takes a thing (`the lamp`), a kind (`a container`) or
+  `something`; a `when` condition may follow. As with actions, rules about a
+  particular thing run before rules about a kind, and those before rules
+  about anything.
+- Inside the rules, `the item described` is the thing being named or
+  described.
+- Every name the library prints goes through *printing the name*: room
+  descriptions, lists, inventory, messages, the status line. A name rule
+  that says its own thing's name (`say "[the box] (empty)"`) gets the plain
+  name there, not an endless loop.
+- A *writing a paragraph* rule that says something gives the thing its own
+  paragraph and leaves it out of "You can see ..."; one that says nothing
+  (`do nothing`) leaves the thing as it was, as in Inform 7.
+- An author's rule can run an activity itself, as Advent's heading and body
+  rules do: `begin the X activity`, `if handling the X activity:`,
+  `end the X activity`, or all three at once with
+  `carry out the X activity [with <thing>]`.
+
+Other Inform 7 activities (the announcements of darkness and light, parser
+errors, supplying a missing noun, choosing notable locale objects, listing
+contents, and so on) are recognised by name and refused with a problem
+message that says so.
+
 ## Not supported (a problem message says so)
 
-Relations and relation verbs, tables, activities (`Rule for ...`,
-`After printing the banner text`), Inform 6 inclusions `(- -)`,
+Relations and relation verbs, tables, activities other than the five in
+section 10, Inform 6 inclusions `(- -)`,
 extensions (`Include`), `does nothing`, action variables, kinds of action
 (`... is attempting entry`), rulebooks the author makes, `Definition:`,
 backdrops, regions, scenes, kinds of value, `[text]` tokens, units,

@@ -22,7 +22,10 @@
 <ROUTINE SENTENCE-BREAK ()      ;"the line break after 'say \"Taken.\"'"
     <CRLF> <SETG SAY-P 1>>
 
+<GLOBAL SAID-COUNT 0>    ;"one more for every say: 'did that activity print anything?'"
+
 <ROUTINE PARA-FLUSH ()          ;"before printing: the blank line owed, if any"
+    <SETG SAID-COUNT <+ ,SAID-COUNT 1>>
     <SETG SAY-P 0>
     <COND (,PARA-BREAK <CRLF> <SETG PARA-BREAK 0>)>>
 
@@ -60,7 +63,7 @@
 
 <ROUTINE SAY-NAME (O)
     <SETG PRIOR-NAMED .O>
-    <TELL D .O>>
+    <PRINT-NAME .O>>
 
 <ROUTINE SAY-A (O "AUX" A)
     <SETG PRIOR-NAMED .O>
@@ -71,7 +74,7 @@
           (<EQUAL? .A 3> <TELL "some ">)
           (<EQUAL? .A 4> <PRINT <GETP .O ,P?ARTICLE-TEXT>> <TELL " ">)
           (<EQUAL? .A 1> <TELL "a ">)>
-    <TELL D .O>>
+    <PRINT-NAME .O>>
 
 <ROUTINE SAY-CAP-A (O "AUX" A)
     <SETG PRIOR-NAMED .O>
@@ -82,7 +85,7 @@
           (<EQUAL? .A 3> <TELL "Some ">)
           (<EQUAL? .A 4> <SAY-CAPITALISED <GETP .O ,P?ARTICLE-TEXT>> <TELL " ">)
           (<EQUAL? .A 1> <TELL "A ">)>
-    <TELL D .O>>
+    <PRINT-NAME .O>>
 
 <GLOBAL CAP-BUFFER <ITABLE 64 (BYTE)>>
 
@@ -102,13 +105,13 @@
     <SETG PRIOR-NAMED .O>
     ;"[the noun]"
     <COND (<NOT <FSET? .O ,PROPERBIT>> <TELL "the ">)>
-    <TELL D .O>>
+    <PRINT-NAME .O>>
 
 <ROUTINE SAY-CAP-THE (O)
     <SETG PRIOR-NAMED .O>
     ;"[The noun]"
     <COND (<NOT <FSET? .O ,PROPERBIT>> <TELL "The ">)>
-    <TELL D .O>>
+    <PRINT-NAME .O>>
 
 <ROUTINE SAY-TEXT (O PROP "AUX" R)
     ;"print a text property (description, initial appearance, ...): the

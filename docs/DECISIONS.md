@@ -402,3 +402,54 @@ including the Standard's own worked wrapping example (§8.8.3.1.2.2) for
 all four combinations of wrapping and buffering, cursor position
 included. Every cross-version eval now covers z6, and the Inform 7 Advent
 port prints the same 49-command walkthrough on z5, z6, z7 and z8.
+
+## ADR-031: Inform 7 activities
+
+**Context.** Activities are the second most common construct Advent uses
+that I7-lite lacked (docs/I7_SURVEY.md), and the way real authors change how
+the library prints things. Inform 7 gives each activity three rulebooks
+(before, for, after) and runs them around a piece of library behaviour.
+
+**Decision.**
+- *One mechanism*: each activity is a table of three rulebooks plus the
+  library's own way (lib/i7/activities.zil). `CARRY-OUT` runs the before
+  rules, the for rules (the first that applies decides), the library's way
+  if none did, then the after rules. `BEGIN-`, `HANDLING?` and
+  `END-ACTIVITY` are the same three steps, so an author's rule can run an
+  activity as Advent's heading and body rules do. Activity rules reuse the
+  action machinery: the same preamble parser, the same noun tests
+  (`object_guard`), the same specificity order.
+- *Five activities*, the ones whose Inform 7 behaviour could be checked:
+  printing the name, the banner text, the name and description of a dark
+  room, writing a paragraph about. The library's own ways are the texts
+  Inform 7 prints; the dark room's are the heading and body rules'
+  responses (A), as in the Standard Rules, where they sit inside
+  "if handling".
+- *Every name goes through the activity* (`PRINT-NAME`), including the
+  status line, which saves its paragraph state so a name rule cannot push a
+  line break into it. A name rule that names its own thing gets the plain
+  name: Inform 7 would recurse; we choose not to crash.
+- *"Mentioned" means "said something"*: writing a paragraph about a thing
+  gives it its own paragraph only if the activity printed text, as in
+  Inform 7 (not merely if a rule applied). `PARA-FLUSH` counts says, since
+  every non-empty say starts with it.
+- *Refused, by name*: the other Standard Rules activities get a problem
+  naming them, rather than "I don't understand".
+
+**Checked against the real game.** The Advent port now prints its
+introduction from `After printing the banner text` and runs Crowther's
+dark-room activities through begin/handling/end. The differential grew
+from 49 to 54 commands (lamp off, look, inventory, lamp on, look), and our
+build still prints exactly what Inform 7 prints. Two Inform 7 behaviours
+learned from it:
+- A sentence-ending mark followed by a closing bracket or quote still ends
+  the sentence: "(Type ABOUT ... implementation.)" is followed by a
+  paragraph break (`ends_sentence`).
+- A said text ending in a substitution, like Crowther's "...into a pit.[/b]",
+  gets no line break of its own.
+
+**Consequences.** No existing output changed: the golden builds, 184 tests
+and all evals passed before any author activity rule existed. The survey's
+"`Rule for <activity>`: out" becomes "partly in". `do nothing` became a
+phrase on the way.
+

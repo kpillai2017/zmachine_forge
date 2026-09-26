@@ -48,14 +48,21 @@ The Crowther's heading rule is listed instead of the room description heading ru
 The Crowther's body text rule is listed instead of the room description body text rule in the carry out looking rulebook.
 
 This is the Crowther's heading rule:
-	if the description print count of the location is 5:
-		now the description print count of the location is 0;
-	if look later is true and the description print count of the location is not 0 and the short description of the location is not "":
-		say "[short description of the location][line break]".
+	if in darkness:
+		begin the printing the name of a dark room activity;
+		end the printing the name of a dark room activity;
+	otherwise:
+		if the description print count of the location is 5:
+			now the description print count of the location is 0;
+		if look later is true and the description print count of the location is not 0 and the short description of the location is not "":
+			say "[short description of the location][line break]".
 
 This is the Crowther's body text rule:
 	if in darkness:
-		say "It is now pitch black. If you proceed you will likely fall into a pit.";
+		begin the printing the description of a dark room activity;
+		if handling the printing the description of a dark room activity:
+			say "It is now pitch black. If you proceed you will likely fall into a pit.[/b]";
+		end the printing the description of a dark room activity;
 	otherwise if look later is false:
 		say "[description of the location][line break]";
 	otherwise if the location is visited:
@@ -227,10 +234,10 @@ The Hall of Mists is west from the steps.
 
 Part 4 - The beginning
 
-[Advent 1676-1689. Conley says this 'after printing the banner text', an
- activity I7-lite lacks, so here it comes first and the banner after it: the
- only difference the eval case allows for.]
-When play begins:
+[Advent 1676-1689: Crowther's introduction follows the banner. (Conley's
+ guard 'when we must print the intro' stops a second banner, from the
+ VERSION command, repeating it; this port has no VERSION command.)]
+After printing the banner text:
 	say "[line break]Welcome to Adventure!! Would you like instructions?[paragraph break]  ";
 	if the player consents:
 		say line break;

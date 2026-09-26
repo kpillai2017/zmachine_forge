@@ -15,7 +15,8 @@ from dataclasses import dataclass, field
 
 from zforge.compiler.i7.problems import Location, Problems
 from zforge.compiler.i7.source import BodyLine, Sentence
-from zforge.compiler.i7.standard import ACTIONS, DIRECTIONS, OPPOSITE, StandardAction
+from zforge.compiler.i7.standard import (
+    ACTIONS, ACTIVITIES, DIRECTIONS, OPPOSITE, UNSUPPORTED_ACTIVITIES, StandardAction)
 from zforge.compiler.i7.text import Text, TextError, parse_text
 
 ARTICLES = ("the ", "a ", "an ", "some ")
@@ -854,12 +855,45 @@ class ModelBuilder:
         if m:
             preamble, named = m.group(1), self.rule_name(m.group(2))
             low = preamble.lower()
+        # Activities: "Rule for printing the name of the lamp", "Before
+        # printing the banner text". Checked before actions, so "Before
+        # printing ..." is not read as a before-rule for an action.
+        m = re.match(r"^(rule for|before|after) (.+)$", preamble, re.I)
+        if m:
+            stage, rest = m.group(1).lower(), m.group(2)
+            activity = self.activity_named(rest)
+            if activity is not None:
+                self.m.rules.append(Rule("activity " + ("for" if stage == "rule for" else stage),
+                                         rest, s.body, s.where, number, named))
+                return
+            if stage == "rule for":
+                known = [a for a in UNSUPPORTED_ACTIVITIES if rest.lower().startswith(a)]
+                if known:
+                    self.p.unsupported(s.where, s.text, f"the '{known[0]}' activity")
+                else:
+                    names = ", ".join(f"'{a.name}'" for a in ACTIVITIES)
+                    self.p.problem(s.where, s.text, "I know no activity by that name. "
+                                   f"The activities I7-lite carries out are {names}.")
+                return
+            for name in UNSUPPORTED_ACTIVITIES:
+                if rest.lower().startswith(name):
+                    self.p.unsupported(s.where, s.text, f"the '{name}' activity")
+                    return
         for words, stage in self.STAGE_WORDS:
             if low.startswith(words):
                 rest = preamble[len(words):].strip()
                 self.m.rules.append(Rule(stage, rest, s.body, s.where, number, named))
                 return
         self.p.unsupported(s.where, s.text, "this kind of rule")
+
+    @staticmethod
+    def activity_named(preamble: str):
+        """The library activity a rule preamble starts with, or None."""
+        low = preamble.lower()
+        for activity in ACTIVITIES:               # longest names first
+            if low == activity.name or low.startswith(activity.name + " "):
+                return activity
+        return None
 
 
 def build_model(sentences: list[Sentence], problems: Problems) -> WorldModel:

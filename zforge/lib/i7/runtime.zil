@@ -18,6 +18,7 @@
 <INSERT-FILE "lib/i7/say">
 <INSERT-FILE "lib/i7/world">
 <INSERT-FILE "lib/i7/actions">
+<INSERT-FILE "lib/i7/activities">
 <INSERT-FILE "lib/i7/standard">
 
 ;"In ZIL a flag exists once some object uses it. This object - which is
@@ -28,7 +29,7 @@
     (FLAGS LITBIT SCENERYBIT FIXEDBIT SUPPORTERBIT CONTAINERBIT OPENBIT
            OPENABLEBIT LOCKEDBIT LOCKABLEBIT WEARABLEBIT WORNBIT PROPERBIT
            PLURALBIT PERSONBIT DEVICEBIT ONBIT EDIBLEBIT DOORBIT VISITEDBIT
-           HANDLEDBIT ROOMBIT)>
+           HANDLEDBIT ROOMBIT MENTIONEDBIT)>
 
 <GLOBAL TURN-COUNT 1>          ;"Inform 7's turn count starts at 1"
 <GLOBAL SCORE 0>
@@ -49,14 +50,8 @@
     <TRY ,V?LOOKING ,V-LOOKING 0 0>    ;"Inform 7's first look is the looking action"
     <TURN-LOOP>>
 
-<ROUTINE BANNER ("AUX" S)
-    <PARA-ABSORB>
-    <CRLF>
-    <HLIGHT 2> <TELL ,STORY-TITLE> <HLIGHT 0> <CRLF>
-    <TELL ,STORY-HEADLINE " by " ,STORY-AUTHOR CR>
-    <TELL "Release " N ,RELEASE-NUMBER " / Serial number ">
-    <DO (I 18 23) <PRINTC <GETB 0 .I>>>     ;"§11: header bytes $12-$17"
-    <TELL " / zforge I7-lite" CR CR>>
+<ROUTINE BANNER ()      ;"the printing the banner text activity (activities.zil)"
+    <CARRY-OUT ,PRINTING-BANNER-ACTIVITY 0 ,BANNER-STANDARD>>
 
 <ROUTINE TURN-LOOP ()
     <REPEAT ()
@@ -81,14 +76,22 @@
     <COND (<EQUAL? <ZOP RESTORE_UNDO> 0>
            <TELL "You can't \"undo\" what hasn't been done!" CR>)>>
 
-<ROUTINE STATUS-LINE ("AUX" WIDTH)
+<ROUTINE SAY-DARKNESS () <TELL "Darkness">>
+
+<ROUTINE STATUS-LINE ("AUX" WIDTH OWED SAID)
     <SET WIDTH <GETB 0 33>>                   ;"§11: header byte $21 = screen width"
     <SCREEN 1>
     <HLIGHT 1>
     <CURSET 1 1>
     <DO (I 1 .WIDTH) <PRINTC 32>>
     <CURSET 1 2>
-    <COND (,LIT <TELL D ,HERE>) (ELSE <TELL "Darkness">)>
+    ;"Inform 7's 'player's surroundings': names come from the activities.
+      A rule's say must not leave a line break in the status line, so the
+      paragraph state is set aside while it runs."
+    <SET OWED ,PARA-BREAK> <SET SAID ,SAY-P> <SETG PARA-BREAK 0>
+    <COND (,LIT <PRINT-NAME ,HERE>)
+          (ELSE <CARRY-OUT ,PRINTING-DARK-NAME-ACTIVITY 0 ,SAY-DARKNESS>)>
+    <SETG PARA-BREAK .OWED> <SETG SAY-P .SAID>
     <CURSET 1 <- .WIDTH 12>>
     <COND (,SCORING <TELL N ,SCORE "/" N ,TURN-COUNT>) (ELSE <TELL N ,TURN-COUNT>)>
     <HLIGHT 0>

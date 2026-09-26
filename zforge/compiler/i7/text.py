@@ -138,12 +138,14 @@ def _parse_parts(pieces, pos, stop):
 
 
 def ends_sentence(text: Text) -> bool:
-    """Inform 7: a said text ending in . ! or ? is followed by a line break."""
+    """Inform 7: a said text ending in . ! or ? is followed by a line break -
+    also when a closing bracket or quote follows the mark: Advent's
+    '(Type ABOUT for details ...)' ends a sentence in the real game."""
     for part in reversed(text.parts):
         if isinstance(part, Literal):
             s = part.text.rstrip()
             if s:
-                return s[-1] in ".!?"
+                return s.rstrip(")]'\"")[-1:] in (".", "!", "?")
             continue
         return False                             # ends in a substitution
     return False

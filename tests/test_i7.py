@@ -410,3 +410,109 @@ The Lab is a room. Some rocks are in the Lab. "[regarding the rocks][They] [are]
 Instead of waiting, say "The air [are] still."
 ''', ["wait"])
     assert "They are here." in text and "The air is still." in text
+
+
+# ------------------------------------------------------------ activities (ADR-031)
+ROOM_OF_THINGS = '''"T" by A
+
+The Lab is a room. "A clean lab."
+The lamp is a device in the Lab.
+A box is a container in the Lab.
+A rock is in the Lab.
+The Cellar is below the Lab. The Cellar is dark.
+'''
+
+
+def test_rule_for_printing_the_name_replaces_the_name_everywhere():
+    text = _play_i7(ROOM_OF_THINGS + '''
+Rule for printing the name of the lamp when the lamp is switched on:
+	say "glowing lamp".
+''', ["look", "switch on lamp", "take lamp", "i"])
+    assert "You can see a lamp, a box and a rock here." in text    # off: the plain name
+    assert "You switch the glowing lamp on." in text                 # on: the rule's name
+    assert "  a glowing lamp" in text                                 # in the inventory too
+
+
+def test_a_name_rule_that_names_itself_does_not_loop_forever():
+    text = _play_i7(ROOM_OF_THINGS + '''
+Rule for printing the name of the box:
+	say "[the box] (empty)".
+''', ["x box"])
+    assert "the box (empty)" in text.lower()
+
+
+def test_before_and_after_rules_surround_the_name_and_for_rules_are_specific_first():
+    text = _play_i7(ROOM_OF_THINGS + '''
+Before printing the name of a container:
+	say "<".
+After printing the name of a container:
+	say ">".
+Rule for printing the name of something:
+	say "thing".
+Rule for printing the name of the rock:
+	say "pebble".
+''', ["look"])
+    assert "You can see a thing, a <thing> and a pebble here." in text
+
+
+def test_continue_the_activity_lets_the_library_name_it():
+    text = _play_i7(ROOM_OF_THINGS + '''
+Rule for printing the name of the rock:
+	say "large ";
+	continue the activity.
+''', ["look"])
+    assert "a large rock" in text
+
+
+def test_writing_a_paragraph_mentions_the_thing_only_if_it_says_something():
+    text = _play_i7(ROOM_OF_THINGS + '''
+Rule for writing a paragraph about the rock:
+	say "A rock squats in the corner."
+Rule for writing a paragraph about the box:
+	do nothing.
+''', ["look"])
+    assert ("A clean lab.\n\nA rock squats in the corner.\n\n"
+            "You can see a lamp and a box here.") in text
+
+
+def test_the_banner_and_the_dark_room_activities():
+    text = _play_i7(ROOM_OF_THINGS + '''
+After printing the banner text:
+	say "(A test.)".
+Rule for printing the name of a dark room:
+	say "Somewhere Dark".
+Rule for printing the description of a dark room:
+	say "You see nothing."
+''', ["d"])
+    assert "I7-lite\n\n(A test.)\n\nLab\n" in text     # the banner, then the after rule
+    assert "Somewhere Dark\nYou see nothing." in text
+
+
+def test_begin_handling_and_end_let_an_authors_rule_run_an_activity():
+    swap = ("The quiet body text rule is listed instead of the room description body text rule"
+            " in the carry out looking rulebook.\n")
+    text = _play_i7(ROOM_OF_THINGS + swap + '''
+This is the quiet body text rule:
+	if in darkness:
+		begin the printing the description of a dark room activity;
+		if handling the printing the description of a dark room activity:
+			say "Pitch black.";
+		end the printing the description of a dark room activity.
+''', ["d"])
+    assert "Darkness\nPitch black." in text
+
+
+def test_activity_problems_are_clear():
+    for src, message in (
+            ("Rule for printing a parser error: say \"Eh?\".",
+             "'printing a parser error' activity"),
+            ("Rule for tickling the lamp: say \"Hee.\".", "I know no activity by that name"),
+            ("Rule for printing the name: say \"x\".", None),
+            ("Rule for printing the name about the lamp: say \"x\".",
+             "I expected 'printing the name of <something>'")):
+        try:
+            compile_i7(ROOM_OF_THINGS + "\n" + src + "\n")
+        except I7Problem as e:
+            assert message is not None and message in str(e), (src, str(e))
+        else:
+            assert message is None, src

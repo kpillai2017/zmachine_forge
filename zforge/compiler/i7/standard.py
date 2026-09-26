@@ -219,6 +219,47 @@ LIBRARY_RULES: dict[str, LibraryRule] = {
 LIBRARY_RULES.update({rule.name: rule for rule in INTERNAL_RULES})
 
 
+@dataclass(frozen=True)
+class LibraryActivity:
+    """One of Inform 7's activities that the library carries out (activities.zil).
+
+    name        how an author refers to it: "Rule for printing the name of ..."
+    atom        the ZIL global holding its three rulebooks (before, for, after)
+    preposition "of" / "about" when the activity is about an object (the
+                item described), "" when it is about nothing
+    """
+    name: str
+    atom: str
+    preposition: str = ""
+
+
+# Longest names first, so "printing the name of a dark room" is not read as
+# "printing the name" of an object called "a dark room".
+ACTIVITIES: tuple[LibraryActivity, ...] = (
+    LibraryActivity("printing the description of a dark room", "PRINTING-DARK-DESC-ACTIVITY"),
+    LibraryActivity("printing the name of a dark room", "PRINTING-DARK-NAME-ACTIVITY"),
+    LibraryActivity("printing the banner text", "PRINTING-BANNER-ACTIVITY"),
+    LibraryActivity("printing the name", "PRINTING-NAME-ACTIVITY", "of"),
+    LibraryActivity("writing a paragraph", "WRITING-PARAGRAPH-ACTIVITY", "about"),
+)
+
+# Inform 7 activities that I7-lite knows by name but does not carry out yet:
+# a rule for one gets a clear problem instead of being read as an action.
+UNSUPPORTED_ACTIVITIES: tuple[str, ...] = (
+    "printing the announcement of darkness", "printing the announcement of light",
+    "printing a parser error", "supplying a missing noun", "supplying a missing second noun",
+    "choosing notable locale objects", "printing the locale description",
+    "printing a locale paragraph about", "listing contents", "listing nondescript items",
+    "grouping together", "printing the plural name", "printing room description details",
+    "printing inventory details", "printing a refusal to act in the dark",
+    "printing the player's obituary", "amusing a victorious player",
+    "handling the final question", "deciding the scope", "deciding the concealed possessions",
+    "deciding whether all includes", "clarifying the parser's choice", "asking which do you mean",
+    "reading a command", "implicitly taking", "constructing the status line",
+    "starting the virtual machine", "printing a number", "issuing the response text",
+)
+
+
 # (name, abbreviation, opposite): the twelve Inform 7 directions.
 DIRECTIONS: tuple[tuple[str, str, str], ...] = (
     ("north", "n", "south"), ("northeast", "ne", "southwest"),

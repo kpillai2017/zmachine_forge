@@ -20,7 +20,7 @@ from zforge.compiler.i7.model import ADJECTIVES, BUILTIN_KINDS, TEXT_PROPERTIES,
     strip_article, unquote
 from zforge.compiler.i7.problems import Location
 from zforge.compiler.i7.source import BodyLine
-from zforge.compiler.i7.standard import DIRECTIONS, zil_name, zil_string
+from zforge.compiler.i7.standard import ACTIVITIES, DIRECTIONS, zil_name, zil_string
 from zforge.compiler.i7.text import IfText, Literal, OneOf, Substitution, Text, TextError, \
     ends_sentence, parse_text
 
@@ -124,6 +124,8 @@ class PhraseLowerer:
             return f'"{unquote(t)}"'
         if t.lower() in ("true", "false"):
             return "1" if t.lower() == "true" else "0"
+        if t.lower() == "the item described":        # the object an activity is about
+            return ",ACT-OBJ"
         for word, op in ((" plus ", "+"), (" minus ", "-"), (" times ", "*"),
                          (" + ", "+"), (" - ", "-")):
             if word in t:
@@ -151,6 +153,12 @@ class PhraseLowerer:
                 return f"<{routine}>"
         if low in ("in darkness", "in the dark"):
             return "<NOT ,LIT>"
+        m = re.match(r"^handling (the .+ activity)$", t, re.I)
+        if m:                                         # true if no for rule decided
+            atom = self.activity_atom(m.group(1))
+            if atom is None:
+                return self.problem(where, t, f"'{m.group(1)}' is not an activity I7-lite knows.")
+            return f"<HANDLING? ,{atom}>"
         if low == "the player consents":           # asks: yes or no?
             return "<YES?>"
         m = re.match(r'^(.+?) (is|is not) ""$', t, re.I)     # a text that is empty (or unset)
@@ -297,17 +305,32 @@ class PhraseLowerer:
         return best
 
     def noun_guards(self, nouns: list[str], where: Location) -> list[str]:
-        out = []
-        for global_name, noun in zip((",PRSO", ",PRSI")[:len(nouns)], nouns, strict=True):
-            n = noun.strip().lower()
-            if n in ("something", "anything", "someone", "a thing"):
-                continue
-            kind = strip_article(n)
-            if n.startswith(("a ", "an ")) and kind in KIND_FLAGS:
-                out.append(f"<FSET? {global_name} ,{KIND_FLAGS[kind]}>")
-                continue
-            out.append(f"<EQUAL? {global_name} {self.value(noun, where)}>")
-        return out
+        guards = [self.object_guard(global_name, noun, where) for global_name, noun
+                  in zip((",PRSO", ",PRSI")[:len(nouns)], nouns, strict=True)]
+        return [g for g in guards if g]        # 'something' tests nothing (and adds no specificity)
+
+    def object_guard(self, global_name: str, noun: str, where: Location) -> str:
+        """The test that the object in GLOBAL_NAME fits NOUN, a description in a
+        rule's preamble: 'something' (always: ""), 'a container' (a kind),
+        'the lamp' (that one thing)."""
+        n = noun.strip().lower()
+        if n in ("something", "anything", "someone", "a thing"):
+            return ""
+        kind = strip_article(n)
+        if n.startswith(("a ", "an ")) and kind in KIND_FLAGS:
+            return f"<FSET? {global_name} ,{KIND_FLAGS[kind]}>"
+        return f"<EQUAL? {global_name} {self.value(noun, where)}>"
+
+    @staticmethod
+    def activity_atom(name: str) -> str | None:
+        """'the printing the banner text activity' -> PRINTING-BANNER-ACTIVITY"""
+        n = name.strip().lower()
+        n = n[4:] if n.startswith("the ") else n
+        n = n[:-len(" activity")] if n.endswith(" activity") else n
+        for activity in ACTIVITIES:
+            if n == activity.name:
+                return activity.atom
+        return None
 
     @staticmethod
     def all_of(guards: list[str]) -> str:
@@ -442,8 +465,21 @@ class PhraseLowerer:
             return code + ["<RTRUE>"]
         if low in ("stop the action", "stop", "rule succeeds", "rule fails"):
             return ["<RTRUE>"]
-        if low in ("continue the action", "make no decision"):
+        if low in ("continue the action", "continue the activity", "make no decision"):
             return ["<RFALSE>"]
+        if low == "do nothing":                  # the rule applies, and says nothing
+            return []
+        m = re.match(r"^(begin|end|carry out) (the .+? activity)(?: with (.+))?$", t, re.I)
+        if m:
+            verb, atom = m.group(1).lower(), self.activity_atom(m.group(2))
+            if atom is None:
+                return [self.problem(where, t, f"'{m.group(2)}' is not an activity I7-lite knows.")]
+            obj = self.value(m.group(3), where) if m.group(3) else "0"
+            if verb == "begin":
+                return [f"<BEGIN-ACTIVITY ,{atom} {obj}>"]
+            if verb == "end":
+                return [f"<END-ACTIVITY ,{atom}>"]
+            return [f"<CARRY-OUT ,{atom} {obj} 0>"]
         m = re.match(r"^try (silently )?(.+)$", t, re.I)
         if m:
             return [self.try_action(m.group(2), bool(m.group(1)), where)]

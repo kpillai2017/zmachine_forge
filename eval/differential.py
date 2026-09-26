@@ -6,7 +6,8 @@ is exact - every line and blank line, as wrapped on the same 80-column
 screen (the same text always wraps the same way) - with one allowance:
 
 * the banner goes, with the blank lines around it: its serial number and
-  compiler name differ, and a story may print it before or after its intro.
+  compiler name differ (both print it before the intro, which Advent prints
+  'after printing the banner text' - ADR-031).
 """
 
 from __future__ import annotations

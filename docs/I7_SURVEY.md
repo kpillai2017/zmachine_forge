@@ -58,7 +58,7 @@ parts of real ones read like genuine I7.
 | `move X to Y` | 11 | yes | keep |
 | `To decide` | 10 | yes | keep |
 | Regions | 9 | no | out |
-| `Rule for <activity>` | 9 | no | out |
+| `Rule for <activity>` | 9 | partly (5 activities, ADR-031) | in, partly |
 | `[if]` conditional text | 7 | yes | keep |
 | `repeat` | 7 | yes | keep |
 | Backdrops | 6 | no | out |
