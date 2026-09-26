@@ -152,6 +152,10 @@ DEFAULT_PLAN: list[Task] = [
          ["zforge/compiler/i7/", "zforge/lib/i7/", "examples/advent_opening.ni",
           "eval/differential.py"],
          ["I7_LITE.md", "ADR-028"], ["i7-advent-differential"], ["tests/test_i7.py"]),
+    Task("v2-i7-advent-cave", 7, "I7-lite: Advent's preliminary cave (XYZZY, the bird, "
+         "the dark Debris Room) matches the real game, 49 commands (ADR-029)",
+         ["zforge/compiler/i7/", "zforge/lib/i7/", "examples/advent_opening.ni"],
+         ["I7_LITE.md", "ADR-029"], ["i7-advent-differential"], ["tests/test_i7.py"]),
 ]
 
 

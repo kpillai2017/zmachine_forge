@@ -299,3 +299,45 @@ game prints for all 31 responses of a 30-command walkthrough, line for line
 and blank line for blank line. One normalisation: the banner and its blank
 lines are set aside (Advent moves it with an activity). Mutations of one
 word or one blank line are caught.
+
+## ADR-029: Advent's preliminary cave: Inform 7 behaviours learned from the real game
+
+**Context.** The Advent port (ADR-028) was extended past the grate to the
+Top of Small Pit: the dark Debris Room, XYZZY, the cage, the rod and the
+bird. Where Inform 7's documented behaviour and the real game's output
+disagreed, the real game (Inform 7 6L38 output, run on our VM) decided.
+
+**Decision.** I7-lite follows what the real game prints:
+- `[It]`, `[it]`, `[There]`, `[there]` are printed as written, and the next
+  verb agrees as a singular (`[We] [are] crawling ... [There] [are] a dim
+  light` -> "There is"; `as [we] [approach] [it] [become] disturbed` ->
+  "as you approach it becomes").
+- Each new turn starts with nothing named (the crack's `[are]` after a
+  look that ended on the plural steps prints "is").
+- A thing first made by a sentence with "are" is plural-named, and "Some
+  X" gives it the article "some" (Inform 7's inference; the port no longer
+  needs "The keys are plural-named.").
+- `move the player to X` describes X; `, without printing a room
+  description` does not (Inform 7; no earlier example used it).
+- A name met first in a list (`..., and Cobble Crawl are lighted`) is an
+  assumed thing until a sentence gives it a kind; a map sentence makes it
+  a room. A kind the author gave still gets a problem.
+- Inventory notes are the list writer internal rule's responses (D, K, L),
+  so `The list writer internal rule response (D) is "lit".` works.
+- Also: adjectives before a kind (`an open unopenable door`), a kind then a
+  place after a comma, `called` with adjectives, a door's other side (`The
+  Hall is west from the steps.`), `Outside is nowhere.`, `if X,` blocks,
+  modal verbs, `[']`, `held`, `does not carry`. A placement's description
+  now splits at the last " in " (`a fixed in place thing in the Top`).
+
+**Left out of the port, with a comment.** Advent's custom relations
+(XYZZY is ported as an ordinary action with the same output), Understand
+lines with `when`, `Inside from A ... are east from B`, the parser-error
+activity and attacking. The walkthrough takes the food on its first visit:
+Advent's food is "ambiguously plural", and later descriptions of the
+Building would say "There are food here."
+
+**Evidence.** Eval `i7-advent-differential`: 49 commands, z5 and z8, every
+line and blank line the same as the real game. It stops before the Hall of
+Mists, where the dwarves wake and move at random (Advent 1520). Golden
+outputs unchanged; each behaviour above has a unit test in `tests/test_i7.py`.

@@ -302,8 +302,111 @@ def test_differential_responses_are_split_at_each_command():
 def test_every_library_rule_is_listed_in_the_docs():
     from pathlib import Path
 
-    from zforge.compiler.i7.standard import ACTIONS
+    from zforge.compiler.i7.standard import ACTIONS, LIBRARY_RULES
     doc = (Path(__file__).parent.parent / "docs" / "I7_LITE.md").read_text()
     names = [r.name for a in ACTIONS for rules in a.rules.values() for r in rules]
     assert len(set(names)) == 72    # the carrying requirements rule serves three actions
-    assert [n for n in names if f"| {n} |" not in doc] == []
+    assert [n for n in LIBRARY_RULES if f"| {n} |" not in doc] == []   # internal ones too
+
+
+# --- Advent's preliminary cave: Inform 7 behaviours checked against the real game
+
+def _play_i7(src: str, commands: list[str]) -> str:
+    return play(compile_i7(src, "t.ni", 8).story, commands).transcript
+
+
+def test_comma_if_blocks_and_modal_verbs():
+    text = _play_i7('''"T" by A
+
+The Lab is a room. The rod is in the Lab. The bird is in the Lab.
+To approach is a verb.
+
+Check taking the bird:
+	if the player carries the rod,
+		say "[We] [approach] [it] and [we] [cannot catch] it." instead;
+''', ["take rod", "take bird"])
+    assert "You approach it and you cannot catch it." in text
+
+
+def test_there_and_it_start_a_singular_agreement():
+    text = _play_i7('''"T" by A
+
+The Lab is a room. "[We] [are] here. [There] [are] a light. [We] [see] [it] [glow]."
+To see is a verb. To glow is a verb.
+''', [])
+    assert "You are here. There is a light. You see it glows." in text
+
+
+def test_are_makes_a_new_thing_plural_and_some_is_its_article():
+    m, problems = model_of('''"T" by A
+
+The Lab is a room. Some keys are in the Lab. A lamp is in the Lab.
+''')
+    assert problems == []
+    assert "PLURALBIT" in m.objects["keys"].flags and m.objects["keys"].article == "some"
+    assert "PLURALBIT" not in m.objects["lamp"].flags
+
+
+def test_adjectives_before_the_kind_and_comma_placement():
+    m, problems = model_of('''"T" by A
+
+The Top is a room. Some steps are an open unopenable door, below the Top.
+The Hall is west from the steps.
+In the Top is a scenery, privately-named, plural-named thing called walls.
+''')
+    assert problems == []
+    steps = m.objects["steps"]
+    assert steps.kind == "door" and "OPENBIT" in steps.flags and "PLURALBIT" in steps.flags
+    assert ("Top", "down") in steps.sides and ("Hall", "east") in steps.sides
+    walls = m.objects["walls"]
+    assert walls.private and walls.parent == "Top" and "PLURALBIT" in walls.flags
+
+
+def test_nowhere_cancels_the_reverse_connection():
+    m, problems = model_of('''"T" by A
+
+The Crawl is a room. The Debris Room is inside from the Crawl. Outside is nowhere.
+''')
+    assert problems == []
+    assert m.map[("Crawl", "inside")] == "Debris Room"
+    assert ("Debris Room", "outside") not in m.map
+
+
+def test_a_list_subject_can_come_before_its_rooms():
+    m, problems = model_of('''"T" by A
+
+The Lab and the Hall are lighted. The Hall is north of the Lab.
+''')
+    assert problems == []
+    assert m.objects["Hall"].kind == "room" and "LITBIT" in m.objects["Hall"].flags
+
+
+def test_move_the_player_describes_unless_asked_not_to():
+    src = '''"T" by A
+
+The Lab is a room. The Hall is a room. "A long hall."
+Jumping is an action applying to nothing. Understand "jump" as jumping.
+Carry out jumping: move the player to the Hall{}.
+'''
+    assert "A long hall." in _play_i7(src.format(""), ["jump"]).split(">jump")[1]
+    quiet = src.format(", without printing a room description")
+    assert "A long hall." not in _play_i7(quiet, ["jump"]).split(">jump")[1]
+
+
+def test_inventory_annotations_are_editable_responses():
+    src = '''"T" by A
+
+The Lab is a room. The lamp is a device in the Lab. The lamp is lit.
+{}'''
+    assert "a lamp (providing light)" in _play_i7(src.format(""), ["take lamp", "i"])
+    edited = src.format('The list writer internal rule response (D) is "lit".\n')
+    assert "a lamp (lit)" in _play_i7(edited, ["take lamp", "i"])
+
+
+def test_a_new_turn_forgets_the_thing_named_last():
+    text = _play_i7('''"T" by A
+
+The Lab is a room. Some rocks are in the Lab. "[regarding the rocks][They] [are] here."
+Instead of waiting, say "The air [are] still."
+''', ["wait"])
+    assert "They are here." in text and "The air is still." in text

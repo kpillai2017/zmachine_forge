@@ -35,6 +35,12 @@ Instead of examining something: try looking.
 The standard report taking rule response (A) is "OK."
 The standard report dropping rule response (A) is "OK."
 The can't go that way rule response (A) is "There is no way to go that direction."
+The list writer internal rule response (D) is "lit".
+
+[Advent 268-271: Crowther always displayed the initial appearance of everything in a room.]
+After dropping something:
+	now the noun is not handled;
+	continue the action.
 
 [Advent 425-487: the first time, and every fifth time after, a room shows
  its long description; otherwise its short one.]
@@ -72,7 +78,6 @@ The short description is "[We]['re] inside Building."
 The Building is inside from End of Road.
 
 Some keys are in the Building. "[There] [regarding keys][are] some keys on the ground [here]."
-The keys are plural-named.
 
 The lamp is a device in the Building. "[There] [are] a shiny brass lamp nearby."
 Understand "headlamp" as the lamp.
@@ -116,7 +121,7 @@ The grate is a door. The grate is locked and lockable. The grate is down from St
 "[The grate] [are] [if the grate is open]open[otherwise]locked[end if]."
 The keys unlock the grate.
 
-End of Road, the Building, the Valley, the Streambed, Stream's End, and the Entryway are lighted.
+End of Road, the Building, the Valley, the Streambed, Stream's End, the Entryway, and Cobble Crawl are lighted.
 
 [Advent 172-180 and 736-775: Crowther's grate is opened by unlocking it and
  shut by locking it. Conley's 'kinds of action' (attempting entry,
@@ -153,7 +158,72 @@ Before locking the grate with something when the grate is locked and the locatio
 	say "The grate was already locked." instead.
 Before going down in Stream's End when the grate is locked:
 	now look later is true;
-	say "[We] can't go in through a locked steel grate!" instead.  [Advent 758: '[can't go]']
+	say "[We] [can't go] in through a locked steel grate!" instead.
+
+Part 3b - The preliminary cave
+
+[Advent 808-905, as far as the Top of Small Pit: the dwarves wake once the
+ player has been in the Hall of Mists (Advent 1520), and they move at random,
+ so the port stops at the top of the steps.  Left out, as the walkthrough
+ never needs them: the conditional Understand lines ('Understand "crawl" as
+ west when the location is Entryway'), the depressive/debrisward/pitwise
+ relations, 'Inside from A is east from B', attacking the bird, and the
+ parser-error question (an activity).]
+
+Cobble Crawl is west of the Entryway. "[We] [are] crawling over cobbles in a low passage. [There] [are] a dim light at the east end of the passage."
+The short description is "[We]['re] in Cobble Crawl."
+Outside is the Entryway.
+
+A small wicker cage is in the Cobble Crawl. "There [are] a small wicker cage discarded nearby."
+
+To become is a verb. To say is a verb.
+The Debris Room is inside from Cobble Crawl. "[We] [are] in a debris room, filled with stuff washed in from the surface. A low wide passage with cobbles [regarding it][become] plugged with mud and debris [here], but an awkward canyon [lead] upward and west.[paragraph break]A note on the wall [say] [']Magic word XYZZY[']."
+The short description is "[We]['re] in Debris Room."
+East is Cobble Crawl. Outside is nowhere.
+
+To lie (he lies, they lie, he lay, it is lain, he is lying) is a verb.
+A black rod is in the Debris Room. "A three foot [black rod] with a rusty star on an end [lie] nearby."
+
+[Advent 783-798: XYZZY is a keyword for going between two xyzzy-linked
+ rooms, a relation.  Here it is an action that moves the player the same
+ way, and leaves the room description to the every turn rule, as going does.]
+Xyzzying is an action applying to nothing. Understand "xyzzy" as xyzzying.
+Carry out xyzzying:
+	if the location is the Debris Room:
+		move the player to the Building, without printing a room description;
+		now look later is true;
+	otherwise if the location is the Building:
+		move the player to the Debris Room, without printing a room description;
+		now look later is true;
+	otherwise:
+		say "Nothing happens."
+
+The Awkward Canyon is west of the Debris Room. "[We] [are] in an awkward sloping east/west canyon."
+Down is the Debris Room.
+
+To exit is a verb.
+The Bird Chamber is west of the Awkward Canyon. "[We] [are] in a splendid chamber thirty feet high. The [walls] [are] frozen rivers of orange stone. An awkward canyon and a good passage [exit] from east and west sides of the chamber."
+The short description is "[We]['re] in Bird Chamber."
+In the Bird Chamber are a scenery, privately-named, plural-named thing called walls.
+
+A little bird is a thing in the Bird Chamber. "A cheerful [little bird] [are] sitting [here] singing."
+
+To approach is a verb. To catch is a verb.
+Check taking the little bird when the little bird is not held:
+	if the player carries the rod,
+		say "The bird was unafraid when [we] entered, but as [we] [approach] [it] [become] disturbed and [we] [cannot catch] it." instead;
+	if the player does not carry the cage,
+		say "[We] [can catch] the bird, but [we] [cannot carry] it." instead;
+
+To end is a verb.
+The Top of Small is west of the Bird Chamber. "At [our] feet [regarding it][are] a small pit breathing traces of white mist. An east passage [end] [here] except for a small crack leading on."
+The short description is "[We]['re] at Top of Small Pit."
+The printed name is "Top of Small Pit".
+
+Instead of going west in the Top of Small, say "The crack [are] far too small for [us] to follow."
+
+Some rough stone steps are an open unopenable door, below the Top of Small. "Rough stone steps [regarding steps][lead] [if the location is the Top of Small]down into the pit[otherwise]up the dome[end if]."
+The Hall of Mists is west from the steps.
 
 Part 4 - The beginning
 

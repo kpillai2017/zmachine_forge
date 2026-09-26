@@ -48,6 +48,10 @@
     <SETG PRIOR-NAMED ,PLAYER>
     <PRINT .TEXT>>
 
+<ROUTINE SAY-IT (S)
+    ;"[it]: prints 'it'; what follows agrees with a singular"
+    <TELL .S> <SETG PRIOR-NAMED 0>>
+
 <ROUTINE SAY-PRONOUN (YOU THEY IT)
     ;"[They] [they] [them] [Those]: the pronoun for the prior named object"
     <COND (<EQUAL? ,PRIOR-NAMED ,PLAYER> <PRINT .YOU>)

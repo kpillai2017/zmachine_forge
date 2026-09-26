@@ -81,6 +81,7 @@ class Obj:
     article: str | None = None                              # indefinite article ("some")
     sides: list[tuple[str, str]] = field(default_factory=list)  # a door: (room, direction)
     key: str | None = None                                  # what unlocks it
+    kind_assumed: bool = False    # 'thing' only because nothing has said otherwise yet
 
 
 @dataclass
@@ -154,6 +155,7 @@ class WorldModel:
     listings: list[Listing] = field(default_factory=list)
     # (rule name, response letter) -> (the author's text, where)
     response_edits: dict[tuple[str, str], tuple[Text, Location]] = field(default_factory=dict)
+    nowhere: set[tuple[str, str]] = field(default_factory=set)   # (room, dir)
     forgotten_commands: dict[str, Location] = field(default_factory=dict)  # "open" -> where
     ungrammatical: dict[str, Location] = field(default_factory=dict)       # 'Understand nothing as'
     notes: list[str] = field(default_factory=list)
@@ -272,11 +274,19 @@ class ModelBuilder:
         return obj
 
     def object_for(self, phrase: str, where: Location, kind: str = "thing") -> Obj:
-        """The object a phrase names, creating it (as KIND) if it is new."""
+        """The object a phrase names, creating it (as KIND) if it is new.
+        Inform 7 infers a kind from all the sentences: something that is a
+        thing only by assumption ('A and B are lighted.') becomes a room when a
+        later sentence needs a room ('B is north of A.')."""
         found = self.m.find(phrase)
         if found:
+            if (kind == "room" and found.kind_assumed and found.kind == "thing"
+                    and found.parent is None):
+                found.kind, found.kind_assumed, found.proper = "room", False, False
             return found
-        return self.new_object(phrase, kind, where)
+        obj = self.new_object(phrase, kind, where)
+        obj.kind_assumed = kind == "thing"
+        return obj
 
     # ------------------------------------------------------------ pass 2
     def assertion(self, s: Sentence, first: bool) -> None:
@@ -357,8 +367,13 @@ class ModelBuilder:
         if self.last_room is None:
             self.p.problem(s.where, s.text, "it is not clear which room this is from.")
             return
+        direction = m.group(1).lower()
+        if m.group(2).lower() == "nowhere":          # 'Outside is nowhere.': no exit
+            self.m.map.pop((self.last_room.name, direction), None)
+            self.m.nowhere.add((self.last_room.name, direction))
+            return
         there = self.object_for(m.group(2), s.where, "room")
-        self.link(self.last_room, m.group(1).lower(), there)
+        self.link(self.last_room, direction, there)
 
     def connect(self, s, subject: str, direction: str, other: str) -> None:
         # 'It is north of A and south of B': two connections in one sentence
@@ -379,6 +394,12 @@ class ModelBuilder:
             if door.parent is None:
                 door.parent, door.relation = room.name, "in"
             self.last_object = door
+            return
+        if self.is_door_phrase(other):
+            # going west through the steps leads to the Hall, so from the
+            # Hall the steps are to the east
+            door, room = self.subject(s, other), self.object_for(subject, s.where, "room")
+            door.sides.append((room.name, OPPOSITE[direction]))
             return
         here = self.object_for(subject, s.where, "room")
         there = self.object_for(other, s.where, "room")
@@ -459,7 +480,8 @@ class ModelBuilder:
     def link(self, frm: Obj, direction: str, to: Obj) -> None:
         self.m.map[(frm.name, direction)] = to.name
         back = (to.name, OPPOSITE[direction])
-        self.m.map.setdefault(back, frm.name)        # both ways, unless set already
+        if back not in self.m.nowhere:               # 'Outside is nowhere.' wins
+            self.m.map.setdefault(back, frm.name)    # both ways, unless set already
 
     def placed(self, s, m):
         """X is [descriptor] in/on Y: 'a supporter', 'scenery', 'a scenery supporter'."""
@@ -480,16 +502,19 @@ class ModelBuilder:
                 words = words[:-n]
                 break
         rest = " ".join(words)
-        for adj in [a for a in re.split(r",\s*|\s+and\s+", rest) if a]:
-            if not self.apply_adjective(obj, adj.strip()):
-                self.p.problem(s.where, s.text,
-                               f"'{adj.strip()}' is not a kind or property I know.")
+        for chunk in [a.strip() for a in re.split(r",\s*|\s+and\s+", rest) if a.strip()]:
+            # 'fixed in place' is one adjective; 'open unopenable' is two
+            if self.apply_adjective(obj, chunk):
+                continue
+            for adj in chunk.split():
+                if not self.apply_adjective(obj, adj):
+                    self.p.problem(s.where, s.text, f"'{adj}' is not a kind or property I know.")
 
     def placed_called(self, s, m):
-        """In Y is a kind called X."""
-        relation, place, kind, name = m.group(1).lower(), m.group(2), m.group(3), m.group(4)
+        """In Y is a [adjectives] kind called X."""
+        relation, place, descriptor, name = m.group(1).lower(), m.group(2), m.group(3), m.group(4)
         obj = self.object_for(name, s.where)
-        self.set_kind(s, obj, kind)
+        self.describe(s, obj, descriptor)
         self.place(s, obj, relation, place)
         self.last_object = obj
 
@@ -506,11 +531,12 @@ class ModelBuilder:
 
     def adjectives(self, s, m):
         """X is scenery. / It is fixed in place and lit. / The Bar is dark.
-        Also 'A, B, and C are lighted.' when each of A, B, C already exists."""
+        Also 'A, B, and C are lighted.': with 'are', as in Inform 7, a subject
+        with commas or 'and' is a list (a part not yet defined is made now)."""
         parts = [p for p in re.split(r",\s*(?:and\s+)?|\s+and\s+", m.group(1)) if p.strip()]
-        found = [self.m.find(p) for p in parts]
-        if len(parts) > 1 and all(found):
-            objs = found
+        verb = m.string[m.end(1):m.start(2)].strip().lower()
+        if len(parts) > 1 and verb == "are":
+            objs = [self.subject(s, part) for part in parts]
         else:
             objs = [self.subject(s, m.group(1))]
         for adj in re.split(r",\s*|\s+and\s+", m.group(2)):
@@ -682,7 +708,16 @@ class ModelBuilder:
         self.m.ungrammatical[strip_article(m.group(1)).lower()] = s.where
 
     # (pattern, handler): the first that matches wins, so order matters
+    def comma_placement(self, s, m):
+        """X is <kind phrase>, below Y: the kind, then the place, as two sentences."""
+        subject, what, where_ = m.group(1), m.group(2), m.group(3)
+        verb = m.string[m.end(1):m.start(2)].strip()           # 'is' or 'are', as written
+        self.assertion(Sentence(f"{subject} {verb} {what}", s.where), False)
+        self.assertion(Sentence(f"{subject} {verb} {where_}", s.where), False)
+
     PATTERNS = [
+        (rf"^(.+?) (?:is|are) ((?:an?|some) [^,]+), ((?:above|below|in|on|inside from|outside from"
+         rf"|(?:{DIRECTION_WORDS}) (?:of|from)) .+)$", comma_placement),
         (r"^(.+? rule) response \(([a-z])\) is (\".*\")$", response_edit),
         (r"^(.+? rule) is not listed in (any rulebook|.+? rulebook)$", not_listed),
         (r"^(.+? rule) is listed (instead of|before|after) (.+? rule) in (.+? rulebook)$",
@@ -721,9 +756,11 @@ class ModelBuilder:
         (r"^understand (.+?) as (.+)$", understand),
         (r"^the player (carries|wears) (.+)$", possession),
         (r"^(in|on) (.+?) (?:is|are) an? (.+?) called (.+)$", placed_called),
-        (r"^(.+?) (?:is|are) (?:([a-z ,-]+?) )?(in|on) (.+)$", placed),
+        # greedy descriptor: 'a fixed in place thing in the Hall' splits at the last 'in'
+        (r"^(.+?) (?:is|are) (?:([a-z ,-]+) )?(in|on) (.+)$", placed),
         (r"^(.+?) (?:is|are) an? ([a-z-]+)$",
          lambda self, s, m: self.kind_or_value(s, m)),
+        (r"^(.+?) (?:is|are) ((?:an?|some) .+)$", lambda self, s, m: self.described(s, m)),
         (r"^(.+?) (?:is|are) (.+)$", lambda self, s, m: self.is_something(s, m)),
     ]
 
@@ -736,6 +773,15 @@ class ModelBuilder:
             self.last_object = obj
         else:
             self.p.problem(s.where, s.text, f"'{kind}' is not a kind I know.")
+
+    def described(self, s, m):
+        """X is an open unopenable door: adjectives, then a kind at the end."""
+        words = strip_article(m.group(2)).lower().split()
+        if not any(" ".join(words[-n:]) in self.m.kinds for n in range(1, len(words) + 1)):
+            return False                                # not a kind: let others try
+        obj = self.subject(s, m.group(1))
+        self.describe(s, obj, m.group(2))
+        self.last_object = obj
 
     def is_something(self, s, m):
         """The last resort: 'X is <adjectives>' or 'V is <value>'."""
@@ -750,7 +796,17 @@ class ModelBuilder:
                 self.p.problem(s.where, s.text, "it is not clear what 'it' means here.")
                 return self.object_for("nothing", s.where)
             return self.last_object
-        return self.object_for(phrase, s.where)
+        new = self.m.find(phrase) is None
+        obj = self.object_for(phrase, s.where)
+        if new:
+            # Inform 7: 'Some keys are in the Building.' makes plural-named
+            # keys whose indefinite article is 'some'.
+            rest = " ".join(s.text.split())[len(" ".join(phrase.split())):].lstrip().lower()
+            if rest.startswith("are "):
+                obj.flags.add("PLURALBIT")
+            if phrase.strip().lower().startswith("some ") and obj.article is None:
+                obj.article = "some"
+        return obj
 
     def set_kind(self, s: Sentence, obj: Obj, kind: str) -> None:
         kind = strip_article(kind).lower()
@@ -758,6 +814,7 @@ class ModelBuilder:
             self.p.problem(s.where, s.text, f"'{kind}' is not a kind I know.")
             return
         obj.kind = kind
+        obj.kind_assumed = False
 
     def place(self, s: Sentence, obj: Obj, relation: str, place: str) -> None:
         holder = self.object_for(place, s.where)

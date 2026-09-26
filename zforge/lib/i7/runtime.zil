@@ -63,6 +63,7 @@
         <SETG LIT <LIGHT-HERE?>>
         <STATUS-LINE>
         <PARA-ABSORB>                      ;"the prompt has its own blank line"
+        <SETG PRIOR-NAMED 0>               ;"a new turn: nothing has been named yet"
         <TELL CR ">">
         <SETG OUT-OF-WORLD 0>
         <COND (<NOT <PARSER>>)

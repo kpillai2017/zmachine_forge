@@ -65,6 +65,13 @@ listed in room descriptions (not yet checked against real Inform 7).
 | `The grate is locked. The keys unlock the grate.` | lock and key | 7b |
 | `The indefinite article of the water is "some".` | article | 7b |
 | `The keys are plural-named.` / `privately-named` / `proper-named` | naming | 7b |
+| `Some keys are in the Building.` | a thing first made by an "are" sentence is plural-named; "Some ..." gives it the article "some" (Inform 7's inference) | Advent |
+| `The steps are an open unopenable door.` / `a scenery, privately-named thing` | adjectives before the kind, separated by commas, "and" or spaces | Advent |
+| `The steps are an open unopenable door, below the Top.` | the kind, then (after a comma) where it is | Advent |
+| `The Hall is west from the steps.` (the steps being a door) | the door's other side: the Hall, going east | Advent |
+| `In the Bird Chamber is a scenery thing called walls.` | a thing named with "called", with its kind and adjectives | Advent |
+| `Outside is nowhere.` (inside a room's paragraph) | no exit that way, cancelling the automatic reverse connection | Advent |
+| `A, B, and C are lighted.` | a list (with "are"); a part not yet defined is made now, and becomes a room when a later sentence needs one | Advent |
 
 **Names.** A thing is called by its whole name (`velvet cloak`); every word
 of the name also works alone in commands, in any order (`velvet`,
@@ -187,6 +194,17 @@ carries X`, `the player is in Y`, `X is <property>`, `the noun is X`,
 The location, the noun, the second noun, the player, the score, the turn
 count are built in.
 
+
+Also (from Advent's cave):
+
+| Phrase | Meaning |
+|---|---|
+| `if <condition>,` with the phrases indented below it | the same as `if <condition>:` |
+| `move the player to X` | moves the player and describes X, as Inform 7 does |
+| `move the player to X, without printing a room description` | moves the player only |
+| `if X is held` / `is not held` | carried or worn by the player |
+| `if the player does not carry X` / `does not wear X` | negated possession |
+
 ## 8. Text substitutions (inside quoted text)
 
 | Substitution | Step |
@@ -200,11 +218,16 @@ count are built in.
 | `[name of a To say phrase]` | 7a |
 | `'` is printed as `"` unless inside a word (`don't`), as in Inform 7 | 7a |
 | **adaptive text** (7c): `[We] [we] [us] [our] [Our] [ourselves] [are] ['re] [have] [here] [now] [There] [there] [regarding X]`, and custom verbs `To flow is a verb.` then `[flow]` | 7c |
+| `[It]` `[it]` `[There]` `[there]`: printed as written; the next verb then agrees as a singular (`[There] [are] a light` -> "There is a light") | Advent |
+| modal verbs: `[can catch]` `[cannot carry]` `[can't go]` `[might try]` (printed as written) | Advent |
+| `[']`: an apostrophe | Advent |
 
 **Adaptive text in I7-lite** is always second person, present tense
 (`[We] [are]` prints "You are"). `[regarding X]` makes the next verb agree
 with X: `[regarding the stream][flow]` -> "flows", `[regarding the keys]
-[are]` -> "are". There is no story-viewpoint switching.
+[are]` -> "are". There is no story-viewpoint switching. As in Inform 7
+(checked against the real Advent), a paragraph about a thing agrees with
+that thing, and each new turn starts with nothing named.
 
 ## 9. The library's rules and responses (ADR-028)
 
@@ -389,6 +412,12 @@ the order they run. Response letters and default texts follow Inform 7.
 | Stage | Rule | Responses |
 |---|---|---|
 | carry out | quit the game rule | - |
+
+**internal rules** (in no rulebook; their responses can be edited)
+
+| Stage | Rule | Responses |
+|---|---|---|
+| - | list writer internal rule | (D) "providing light", (K) "providing light and being worn", (L) "being worn": the inventory's notes in brackets |
 
 ## Not supported (a problem message says so)
 

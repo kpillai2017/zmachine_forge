@@ -123,10 +123,15 @@
 <ROUTINE INVENTORY-STANDARD ()
     <INVENTORY-STANDARD-A>
     <MAP-CONTENTS (O ,PLAYER)
-        <TELL "  "> <SAY-A .O>
-        <COND (<FSET? .O ,WORNBIT> <TELL " (being worn)">)>
-        <CRLF>>
+        <TELL "  "> <SAY-A .O> <LIST-ANNOTATION .O> <CRLF>>
     <RFALSE>>
+
+<ROUTINE LIST-ANNOTATION (O)
+    ;"the list writer internal rule: '(providing light)', '(being worn)'"
+    <COND (<AND <FSET? .O ,LITBIT> <FSET? .O ,WORNBIT>>
+           <TELL " ("> <LIST-WRITER-K> <TELL ")">)
+          (<FSET? .O ,LITBIT> <TELL " ("> <LIST-WRITER-D> <TELL ")">)
+          (<FSET? .O ,WORNBIT> <TELL " ("> <LIST-WRITER-L> <TELL ")">)>>
 <ROUTINE ANY-THING? (O) <RTRUE>>
 
 ;"------------------------------------------ putting it on / inserting"

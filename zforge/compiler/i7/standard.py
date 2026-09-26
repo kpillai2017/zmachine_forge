@@ -205,8 +205,18 @@ del R
 
 # Every library rule by its Inform 7 name (a rule such as the carrying
 # requirements rule appears in several rulebooks: same routine, same name).
+# Rules that belong to no rulebook: the library calls them itself, and an
+# author may only edit their responses.  The list writer annotates each
+# line of an inventory: "a lamp (providing light)", "a cloak (being worn)".
+INTERNAL_RULES: tuple[LibraryRule, ...] = (
+    LibraryRule("list writer internal rule", "LIST-WRITER",
+                (("D", "providing light"), ("K", "providing light and being worn"),
+                 ("L", "being worn"))),
+)
+
 LIBRARY_RULES: dict[str, LibraryRule] = {
     rule.name: rule for action in ACTIONS for stage in action.rules.values() for rule in stage}
+LIBRARY_RULES.update({rule.name: rule for rule in INTERNAL_RULES})
 
 
 # (name, abbreviation, opposite): the twelve Inform 7 directions.

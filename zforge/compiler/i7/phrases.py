@@ -171,12 +171,19 @@ class PhraseLowerer:
             is_room = room is not None and self.L.m.is_a(room.kind, "room")
             test = f"<EQUAL? ,HERE {place}>" if is_room else f"<IN? ,PLAYER {place}>"
             return f"<NOT {test}>" if m.group(1) else test
-        m = re.match(r"^the player (?:is )?(carries|carrying|wears|wearing) (.+)$", t, re.I)
+        m = re.match(r"^the player (does not |is not )?(?:is )?"
+                     r"(carries|carry|carrying|wears|wear|wearing) (.+)$", t, re.I)
         if m:
-            obj = self.value(m.group(2), where)
-            if m.group(1).lower().startswith("wear"):
-                return f"<AND <IN? {obj} ,PLAYER> <FSET? {obj} ,WORNBIT>>"
-            return f"<IN? {obj} ,PLAYER>"
+            obj = self.value(m.group(3), where)
+            if m.group(2).lower().startswith("wear"):
+                test = f"<AND <IN? {obj} ,PLAYER> <FSET? {obj} ,WORNBIT>>"
+            else:
+                test = f"<IN? {obj} ,PLAYER>"
+            return f"<NOT {test}>" if m.group(1) else test
+        m = re.match(r"^(.+?) (?:is|are) (not )?held$", t, re.I)    # held: carried or worn
+        if m:
+            test = f"<IN? {self.value(m.group(1), where)} ,PLAYER>"
+            return f"<NOT {test}>" if m.group(2) else test
         m = re.match(r"^(something|nothing) is (?:in|on) (.+)$", t, re.I)
         if m:
             test = f"<FIRST? {self.value(m.group(2), where)}>"
@@ -349,6 +356,12 @@ class PhraseLowerer:
                 indents.append(line.indent)
         if flat and flat[-1].text.endswith("."):          # the rule's final full stop
             flat[-1].text = flat[-1].text[:-1].rstrip()   # ('say "Hi."' ends in a quote: kept)
+        for i, b in enumerate(flat[:-1]):
+            # 'if the player carries the rod,' with the phrase indented below it
+            # is Inform 7's other way of writing 'if the player carries the rod:'
+            if (b.text.endswith(",") and indents[i + 1] > indents[i]
+                    and re.match(r"^(if|otherwise if|else if|unless|while) ", b.text, re.I)):
+                b.text = b.text[:-1].rstrip() + ":"
         roots = self.nest(flat, indents)
         return self.blocks(roots)
 
@@ -410,11 +423,13 @@ class PhraseLowerer:
             target, amount = self.value(m.group(2), where), self.value(m.group(3), where)
             op = "+" if m.group(1).lower() == "increase" else "-"
             return [self.assign(target, f"<{op} {target} {amount}>", where, t)]
-        m = re.match(r"^move (.+?) to (.+)$", t, re.I)
+        m = re.match(r"^move (.+?) to (.+?)(, without printing a room description)?$", t, re.I)
         if m:
             obj, dest = self.value(m.group(1), where), self.value(m.group(2), where)
-            if obj == ",PLAYER":                              # the player goes somewhere
-                return [f"<MOVE-PLAYER-TO {dest}>"]
+            if obj == ",PLAYER":        # Inform 7 describes the new room, unless told not to
+                if m.group(3):
+                    return [f"<MOVE-PLAYER-TO {dest}>"]
+                return [f"<MOVE-PLAYER-TO {dest}>", "<DESCRIBE-ROOM>"]
             return [f"<MOVE {obj} {dest}>"]
         m = re.match(r"^remove (.+?) from play$", t, re.I)
         if m:
@@ -589,8 +604,10 @@ class PhraseLowerer:
     PRONOUNS = {"They": ("You", "They", "It"), "they": ("you", "they", "it"),
                 "them": ("you", "them", "it"), "Those": ("You", "Those", "That"),
                 "those": ("you", "those", "that")}
-    FIXED = {"here": "here", "Here": "Here", "now": "now", "Now": "Now",
-             "There": "There", "there": "there"}
+    FIXED = {"here": "here", "Here": "Here", "now": "now", "Now": "Now", "'": "'"}
+    # [can catch] [cannot carry] [might try]: a modal verb does not change
+    # with its subject, so with a fixed viewpoint it is printed as written
+    MODALS = r"(?:can|cannot|can't|could|couldn't|may|might|must|should|would|will|won't)"
 
     def adaptive(self, w: str, where: Location) -> str | None:
         """[We] [are] [regarding X] [They] and the story's own verbs ([flow])."""
@@ -602,6 +619,12 @@ class PhraseLowerer:
             return "<SAY-PRONOUN {} {} {}>".format(*(zil_string(x) for x in self.PRONOUNS[w]))
         if w in self.FIXED:
             return f"<TELL {zil_string(self.FIXED[w])}>"
+        if w in ("It", "it", "There", "there"):
+            # printed as written; what follows then agrees as a singular
+            # ('[We] [are] crawling ... [There] [are] a dim light': 'There is')
+            return f"<SAY-IT {zil_string(w)}>"
+        if re.match(rf"^{self.MODALS}(?: [a-z]+)?$", w, re.I):
+            return f"<TELL {zil_string(w)}>"
         if w.lower() in ("regarding it", "regarding nothing"):
             return "<SETG PRIOR-NAMED 0>"
         m = re.match(r"^regarding (.+)$", w, re.I)
