@@ -132,7 +132,6 @@ class CodeGenerator:
         return "0"
 
     def table(self, e: ast.Table) -> str:
-        name = f"$TABLE{len(self.arrays) + 1}"
         kind = "byte" if e.byte else "word"
         if e.kind == "ITABLE":
             count = self.constant_number(e.items[0]) if e.items else 0
@@ -142,6 +141,9 @@ class CodeGenerator:
             items = [self.data_token(i) for i in e.items]
             if e.kind == "LTABLE":
                 items = [str(len(items))] + items
+        # Named only now: the items may be tables themselves, and they must
+        # be numbered first or an inner table would get this table's name.
+        name = f"$TABLE{len(self.arrays) + 1}"
         self.arrays.append(f".array {name} {kind} {' '.join(items)}".rstrip())
         return name
 

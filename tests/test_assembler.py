@@ -34,3 +34,12 @@ def test_unknown_label_and_opcode_are_errors():
         assemble(".main GO\n.routine GO\n    jump nowhere\n.end\n")
     with pytest.raises(AsmError):
         assemble(".main GO\n.routine GO\n    frobnicate 1\n.end\n")
+
+
+def test_a_name_defined_twice_is_an_error():
+    import pytest
+    from zforge.asm.assembler import assemble
+    from zforge.common.errors import ZForgeError
+    src = ".array T word 1 2\n.array T word 3\n.routine main\n    quit\n.end\n.main main\n"
+    with pytest.raises(ZForgeError, match="T is defined twice"):
+        assemble(src, "dup.zas")

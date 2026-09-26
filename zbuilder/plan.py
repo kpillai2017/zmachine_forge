@@ -76,7 +76,7 @@ DEFAULT_PLAN: list[Task] = [
     Task("zil-grammar", 4, "SYNTAX / VERB-SYNONYM / PREP-SYNONYM as data, PROG / BIND, "
          "the lib/parser.zil library (pronouns, 'which do you mean?', asking for a "
          "missing object, search-option preferences) and the examples",
-         ["zforge/compiler/", "examples/lib/", "examples/cloak_syntax.zil",
+         ["zforge/compiler/", "zforge/lib/", "examples/cloak_syntax.zil",
           "examples/parser_demo.zil"], ["§13", "§12.4"],
          ["grammar-adventure-win", "grammar-parser-messages", "grammar-lose-in-dark",
           "prog-bind", "grammar-errors-reported", "parser-disambiguation",

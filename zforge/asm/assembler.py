@@ -162,12 +162,20 @@ class Assembler:
         if current:
             raise self.error(f"routine {current.name} has no .end", current.line)
 
+    def _check_new_name(self, name: str, line: int) -> None:
+        """A second definition must be an error: silently keeping one of
+        them turns a naming slip into a wrong address at run time."""
+        if name in self.globals or name in self.constants or name in self.arrays:
+            raise self.error(f"{name} is defined twice", line)
+
     def _directive(self, d: Directive) -> None:
         a = d.args
         need = {".global": 1, ".constant": 2, ".array": 2, ".buffer": 2, ".object": 2,
                 ".prop": 3, ".propb": 3, ".propdefault": 2, ".string": 2, ".main": 1}
         if len(a) < need.get(d.name, 0):
             raise self.error(f"{d.name} needs at least {need[d.name]} arguments", d.line)
+        if d.name in (".global", ".constant", ".array", ".buffer"):
+            self._check_new_name(a[0], d.line)
         if d.name == ".release":
             self.release = parse_number(a[0]) or 0
         elif d.name == ".serial":

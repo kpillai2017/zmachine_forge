@@ -69,3 +69,18 @@ def test_examples_compile():
     for name in ("hello.zil", "cloak.zil"):
         path = ROOT / "examples" / name
         assert compile_zil(path.read_text(), str(path)).story[:1] == b"\x05"
+
+
+def test_nested_table_literals_keep_their_own_addresses():
+    """<TABLE <LTABLE ...> <LTABLE ...>>: each inner table is its own array
+    (they used to share the outer table's name, giving a wrong address)."""
+    from zforge.compiler.driver import compile_zil
+    from zforge.vm.headless import play
+    src = """<VERSION 5>
+<GLOBAL RULES <TABLE <LTABLE 11 12> <LTABLE 21>>>
+<ROUTINE GO ()
+    <TELL N <GET <GET ,RULES 0> 0> " " N <GET <GET ,RULES 0> 2> " "
+          N <GET <GET ,RULES 1> 0> " " N <GET <GET ,RULES 1> 1> CR>
+    <QUIT>>"""
+    story = compile_zil(src, "nested.zil").story
+    assert "2 12 1 21" in play(story, []).transcript
