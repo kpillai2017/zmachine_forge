@@ -29,3 +29,23 @@ def test_scripted_play_of_the_example_game(tmp_path, capsys):
     script.write_text("w\nhang cloak\ne\ns\nread message\n")
     assert main(["run", str(out), "--ui", "plain", "--script", str(script)]) == 0
     assert "You have won" in capsys.readouterr().out
+
+
+def test_output_piped_into_head_does_not_crash(tmp_path):
+    """`zforge run game.z5 | head -3`: the reader closes the pipe early.
+    That is not our error, so no traceback and no 'Exception ignored'."""
+    import subprocess
+    import sys
+    story = tmp_path / "cloak.z5"
+    assert main(["compile", str(ROOT / "examples/cloak.zil"), "-o", str(story)]) == 0
+    script = tmp_path / "moves.txt"
+    script.write_text("look\n" * 200)                  # plenty of output
+    proc = subprocess.Popen([sys.executable, "-m", "zforge", "run", str(story), "--ui",
+                             "plain", "--script", str(script)], cwd=ROOT,
+                            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    proc.stdout.readline()
+    proc.stdout.close()                                 # like `head` exiting
+    err = proc.stderr.read().decode()
+    proc.wait(timeout=30)
+    assert "Traceback" not in err and "Exception ignored" not in err, err
+    assert proc.returncode == 0

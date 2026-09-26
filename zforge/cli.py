@@ -14,6 +14,7 @@ Errors are printed as one clear message (no Python traceback) unless
 from __future__ import annotations
 
 import argparse
+import os
 import pprint
 import sys
 from pathlib import Path
@@ -225,6 +226,14 @@ def main(argv: list[str] | None = None) -> int:
     except KeyboardInterrupt:
         print("\ninterrupted", file=sys.stderr)
         return 130
+    except BrokenPipeError:
+        # `zforge run game.z5 | head`: the reader stopped reading. That is not
+        # our error, so stop quietly. Pointing stdout at /dev/null stops
+        # Python's own final flush from failing again ("Exception ignored").
+        # (The recipe from the Python docs, "Note on SIGPIPE".)
+        devnull = os.open(os.devnull, os.O_WRONLY)
+        os.dup2(devnull, sys.stdout.fileno())
+        return 0
 
 
 if __name__ == "__main__":
