@@ -1,0 +1,47 @@
+{
+ "about": "zforge v1 outputs (target z5), recorded before the Tier 5 refactor",
+ "sources": {
+  "tests/samples/hello.zas": {
+   "size": 896,
+   "story": "f8fa35e794d6079dbaeb92d53f277af73811a836c0ae64039683d3139ed4e7fb",
+   "disasm": "9ede8ca75f3990dbda438a15353af25cb7a6619ea110149ca14751c7b4d8bb33",
+   "header": "ebd444034d1c022584894806c1a5b20ebbcf8c92361270a0fa7ad7ab99c5805e"
+  },
+  "examples/hello.zil": {
+   "size": 896,
+   "story": "e38799b665e20966abfad4568ad9d9ece1b5359aa86f27f248bc03d082688ca7",
+   "disasm": "0f495c7d16ee6cd850953c9b5d831f2e4674092ba9ce7ff413756cd7679c9336",
+   "header": "9d664bf0b738ee44a1360e2adab649dd9e3a529d8b591f6bbae7d5e5823158e2"
+  },
+  "examples/cloak.zil": {
+   "size": 4568,
+   "story": "3ac82c19b0675674429ae0b252d7b796d68c4c357d6b2e4c7dd41ce6da715e9c",
+   "disasm": "0714b971497eb32718ebc8af7a147f8c206f20fe979c4fd037f48743816fc1b7",
+   "header": "058cf5b3dd046f8557ee320558a44328e3de0de04b435cbdd915a8413edf2083"
+  },
+  "examples/cloak_syntax.zil": {
+   "size": 7560,
+   "story": "ef42d4af41d237ac17eebc3ba75494125bb70f3d893bf8b1af0604e53a29c0a2",
+   "disasm": "7a7b89ae510429b1a4f4abc9d67c15fd683680eff47bb5dc1ad6ef45abe6f922",
+   "header": "693d701da4be22fce42986a683d0b82d700dcdb5b92549662cdda0e54d90c481"
+  },
+  "examples/parser_demo.zil": {
+   "size": 5280,
+   "story": "c34c19efa51588bda6ee3d15eae1dfee7b706dc5edeac3ea7a656e8140ca30e4",
+   "disasm": "9946d429c23759555e7af24cec0c838b6ec6604b29a4aa2526469671628dd578",
+   "header": "4f57ad470b186ed359c290efa3edf6da96449df011f1436d34fa5431edbcf893"
+  },
+  "tests/samples/arith.zil": {
+   "size": 1088,
+   "story": "95287303a61c3ef0bfca6215be2f70f2b78589f74b4467e35772475eea78bd34",
+   "disasm": "b03d99f78b24b35ad9e2a306b26d9c494425d2a674dc510ddf2f76bdd47f0b1c",
+   "header": "6ea0e7addcc49f663457ac4912aa1f257decacdecfdc562abf0b95b4611191c1"
+  },
+  "tests/samples/prog.zil": {
+   "size": 1068,
+   "story": "4773cf60a3819853b13e9b35703f2143df8e45d838d076453c580b9418a7c2ab",
+   "disasm": "4a75f5c94a9ab3316fad74f3e00ba47aef14bf5432657e755ed465a4ce7a2560",
+   "header": "a2e1f4a55c505188549757a56f201bdc7af2120035e4e5d66a50e596d86c473d"
+  }
+ }
+}

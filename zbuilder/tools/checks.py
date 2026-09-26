@@ -35,8 +35,12 @@ def run_pytest(tests: list[str] | None = None, timeout: int = 600) -> dict:
     return _run([sys.executable, "-m", "pytest", "-q", *targets], timeout)
 
 
-def run_eval(case_ids: list[str] | None = None, timeout: int = 900) -> dict:
-    result = _run([sys.executable, "-m", "eval.run_eval", *(case_ids or [])], timeout)
+def run_eval(case_ids: list[str] | None = None, timeout: int = 900,
+             suite: str | None = None) -> dict:
+    """Run eval cases (ids are matched as substrings); `suite` = v1 | v2 | all."""
+    suite_args = ["--suite", suite] if suite else []
+    result = _run([sys.executable, "-m", "eval.run_eval", *suite_args, *(case_ids or [])],
+                  timeout)
     lines = result["tail"].splitlines()
     result["failed_cases"] = [ln.split()[1] for ln in lines if ln.startswith("FAIL")]
     return result

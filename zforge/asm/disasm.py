@@ -27,6 +27,7 @@ CALLS = {"call_1s", "call_1n", "call_2s", "call_2n", "call_vs", "call_vn",
 class Disassembler:
     def __init__(self, story: bytes):
         self.header = Header.parse(story)
+        self.profile = self.header.profile      # packed addresses (§1.2.3)
         self.mem = Memory(story, self.header.static_memory, self.header.high_memory)
         self.alphabets = Alphabets.default()
         self.unicode = UnicodeTable()
@@ -76,7 +77,7 @@ class Disassembler:
             elif i == 0 and ins.op.name in INDIRECT_FIRST:
                 parts.append(variable_name(o.value))     # a variable NUMBER (§6.3.4)
             elif i == 0 and ins.op.name in CALLS:
-                parts.append(f"routine@0x{o.value * 4:05x}")
+                parts.append(f"routine@0x{self.profile.unpack_routine(o.value):05x}")
             else:
                 parts.append(str(o.value))
         if ins.store is not None:

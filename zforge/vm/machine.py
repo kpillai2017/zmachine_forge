@@ -33,7 +33,7 @@ class ZMachine:
     def __init__(self, story: bytes, screen, seed: int | None = None,
                  transcript_path: str | None = None, trace_file=None, trace_depth: int = 20):
         self.story = bytes(story)                  # pristine copy (restart, verify, Quetzal)
-        self.header = H.Header.parse(self.story)   # raises for non-v5 files
+        self.header = H.Header.parse(self.story)   # raises for unsupported versions
         self.screen = screen
         self.rng = random.Random(seed)
         self.trace_file = trace_file
@@ -225,10 +225,12 @@ class ZMachine:
 
     # ------------------------------------------------------- calls & returns
     def unpack_routine(self, packed: int) -> int:
-        return packed * H.PACKED_ADDRESS_FACTOR_V5          # §1.2.3
+        """§1.2.3: packed routine address -> byte address (see VersionProfile)."""
+        return self.header.profile.unpack_routine(packed)
 
     def unpack_string(self, packed: int) -> int:
-        return packed * H.PACKED_ADDRESS_FACTOR_V5
+        """§1.2.3: packed string address -> byte address (see VersionProfile)."""
+        return self.header.profile.unpack_string(packed)
 
     def call_routine(self, packed: int, args: list[int], store_var: int | None) -> None:
         """§6.4: call the routine at packed address `packed`.

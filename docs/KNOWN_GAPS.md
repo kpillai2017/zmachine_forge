@@ -1,6 +1,8 @@
 # Known gaps (deliberate, for this version)
 
-- **Versions** other than 5 (ADR-001).
+- **Versions** other than 5 (ADR-001, now ADR-021): the code is version-aware
+  (`common/versions.py`), but only version 5 is registered until proforma v2
+  Tiers 6 (v7, v8) and 8 (v6) land.
 - **Timed input** (`aread`/`read_char` time + routine) is ignored (ADR-005).
 - **Sound** effects beyond a terminal beep; **font 3** character graphics;
   `set_true_colour` is accepted but has no visible effect.

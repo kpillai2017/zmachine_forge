@@ -10,10 +10,12 @@ Memory layout we produce (§1.1):
             arrays and buffers
     ------  static memory starts here (header 0x0E)
             dictionary                                          §13
-    ------  high memory starts here (header 0x04), 4-byte aligned
+    ------  high memory starts here (header 0x04), aligned (*)
             start stub:  call_vn main ; quit
-            routines (each 4-byte aligned, §1.2.3 packed addresses)
-            strings  (each 4-byte aligned)
+            routines (each aligned (*), §1.2.3 packed addresses)
+            strings  (each aligned (*))
+
+(*) to VersionProfile.code_alignment: 4 bytes in v5, so 4P can reach it.
 
 The file is padded to a multiple of 4 because v5 stores length / 4
 (§11.1.6), and the checksum is computed last.
@@ -24,6 +26,7 @@ from dataclasses import dataclass, field
 
 from zforge.common import header as H
 from zforge.common.text import encode_dictionary_word, encode_string, text_to_zscii, UnicodeTable
+from zforge.common.versions import VersionProfile
 
 GLOBAL_COUNT = 240
 ABBREVIATION_COUNT = 96
@@ -127,10 +130,10 @@ class HeaderFields:
     flags2: int = 0
 
 
-def write_header(story: bytearray, f: HeaderFields) -> None:
+def write_header(story: bytearray, f: HeaderFields, profile: VersionProfile) -> None:
     def w(offset, value):
         story[offset:offset + 2] = (value & 0xFFFF).to_bytes(2, "big")
-    story[H.H_VERSION] = H.SUPPORTED_VERSION
+    story[H.H_VERSION] = profile.version
     w(H.H_RELEASE, f.release)
     w(H.H_HIGH_MEMORY, f.high_memory)
     w(H.H_INITIAL_PC, f.initial_pc)
@@ -143,14 +146,17 @@ def write_header(story: bytearray, f: HeaderFields) -> None:
     w(H.H_ABBREVIATIONS, f.abbreviations)
 
 
-def finalise(story: bytearray) -> bytes:
-    """Pad to a multiple of 4, then write the length and checksum (§11.1.6)."""
-    while len(story) % H.FILE_LENGTH_DIVISOR_V5:
+def finalise(story: bytearray, profile: VersionProfile) -> bytes:
+    """Pad to a multiple of the file-length divisor (4 in v5), check the
+    size limit (§1.1.4), then write the length (§11.1.6) and checksum."""
+    divisor = profile.file_length_divisor
+    while len(story) % divisor:
         story.append(0)
-    if len(story) > 256 * 1024:
-        raise ValueError(f"story is {len(story)} bytes; v5 allows at most 256K")
+    if len(story) > profile.max_story_size:
+        raise ValueError(f"story is {len(story)} bytes; v{profile.version} allows at most "
+                         f"{profile.max_story_size // 1024}K")
     length = len(story)
-    story[H.H_FILE_LENGTH:H.H_FILE_LENGTH + 2] = (length // 4).to_bytes(2, "big")
+    story[H.H_FILE_LENGTH:H.H_FILE_LENGTH + 2] = (length // divisor).to_bytes(2, "big")
     checksum = H.compute_checksum(story, length)
     story[H.H_CHECKSUM:H.H_CHECKSUM + 2] = checksum.to_bytes(2, "big")
     return bytes(story)

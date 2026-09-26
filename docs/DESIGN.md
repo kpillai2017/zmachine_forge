@@ -14,7 +14,8 @@ can never disagree about an opcode or a z-string.
 
 ## Suggested study order
 
-1. `common/numbers.py`, `common/memory.py`, `common/header.py` - §1, §2, §11
+1. `common/numbers.py`, `common/memory.py`, `common/header.py` - §1, §2, §11;
+   `common/versions.py` - every rule that differs between versions (ADR-021)
 2. `common/text.py` - §3: z-characters, alphabets, ZSCII, Unicode
 3. `vm/decoder.py` - §4: the four instruction forms
 4. `vm/frames.py`, `vm/machine.py` - §5, §6: routines, the stack, the fetch-decode-execute loop

@@ -3,6 +3,11 @@ PASS / FAIL / SKIP line each. Exit status 1 if anything FAILED.
 
     python -m eval.run_eval            # all cases
     python -m eval.run_eval undo czech # only cases whose id contains a word
+    python -m eval.run_eval --suite v1 # only the zforge v1 cases (the regression gate)
+    python -m eval.run_eval --suite v2 # only the cases added by proforma v2
+
+A case without a "suite" key belongs to v1. "v1 suite still green" is a
+gate for every v2 tier: the v1 cases are a contract.
 
 Story-file cases SKIP (not fail) when the story isn't downloaded yet:
 run `python -m zbuilder stories` first.
@@ -11,6 +16,7 @@ from __future__ import annotations
 
 import inspect
 import json
+import subprocess
 import sys
 import tempfile
 from pathlib import Path
@@ -146,14 +152,42 @@ def run_spec_opcodes(case: dict) -> list[str]:
     return problems
 
 
+def run_golden(case: dict) -> list[str]:
+    """refactor-byte-identical: today's outputs == the recorded v1 outputs."""
+    from zbuilder.tools.golden import GOLDEN_FILE, check
+    if not GOLDEN_FILE.exists():
+        raise Skip("no golden hashes recorded (python -m zbuilder golden --record)")
+    return check()
+
+
+def run_pytest(case: dict) -> list[str]:
+    """Run a selection of unit tests as one eval case (no duplicated logic)."""
+    cmd = [sys.executable, "-m", "pytest", "-q", "-p", "no:cacheprovider", case["tests"]]
+    if case.get("select"):
+        cmd += ["-k", case["select"]]
+    done = subprocess.run(cmd, cwd=ROOT, capture_output=True, text=True, timeout=300)
+    if done.returncode == 0:
+        return []
+    failed = [line for line in done.stdout.splitlines() if line.startswith("FAILED")]
+    return failed or [done.stdout.strip().splitlines()[-1] if done.stdout.strip() else
+                      f"pytest exited {done.returncode}"]
+
+
 RUNNERS = {"story": run_story_case, "compile_run": run_compile_run, "screen": run_screen,
            "save_restore": run_save_restore, "compile_error": run_compile_error,
            "reject": run_reject, "reject_truncated": run_reject_truncated,
-           "disasm": run_disasm, "audit": run_audit, "spec_opcodes": run_spec_opcodes}
+           "disasm": run_disasm, "audit": run_audit, "spec_opcodes": run_spec_opcodes,
+           "golden": run_golden, "pytest": run_pytest}
 
 
 def main(argv: list[str]) -> int:
     cases = json.loads((ROOT / "eval" / "cases.json").read_text())["cases"]
+    if "--suite" in argv:
+        i = argv.index("--suite")
+        suite = argv[i + 1] if i + 1 < len(argv) else "all"
+        argv = argv[:i] + argv[i + 2:]
+        if suite != "all":
+            cases = [c for c in cases if c.get("suite", "v1") == suite]
     if argv:
         cases = [c for c in cases if any(word in c["id"] for word in argv)]
     failed = skipped = 0

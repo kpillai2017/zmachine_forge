@@ -9,6 +9,8 @@
     review [--task ID]    run the Reviewer's audit (+ LLM judge with a model)
     ask "QUESTION"        ask the Spec Analyst (answers cite §sections)
     status                show every task's state
+    golden --record|--check
+                          freeze / compare today's build outputs (refactor gate)
 """
 from __future__ import annotations
 
@@ -39,7 +41,19 @@ def main(argv: list[str] | None = None) -> int:
     a = sub.add_parser("ask")
     a.add_argument("question", nargs="+")
     sub.add_parser("status")
+    g = sub.add_parser("golden")
+    g.add_argument("--record", action="store_true", help="a human runs this once, before Tier 5")
+    g.add_argument("--check", action="store_true")
     args = p.parse_args(argv)
+
+    if args.command == "golden":
+        from zbuilder.tools import golden
+        if args.record:
+            print("\n".join(golden.record()))
+            return 0
+        problems = golden.check()
+        print("\n".join(problems) or "golden: all outputs byte-identical")
+        return 1 if problems else 0
 
     if args.command == "stories":
         from zbuilder.tools.fetch_stories import fetch_stories

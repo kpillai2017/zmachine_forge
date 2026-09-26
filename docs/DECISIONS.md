@@ -141,3 +141,28 @@ overwrites PARSEBUF), accepts a noun phrase optionally led by that
 preposition, and asks for object 2 next if both were missing. A reply that
 starts with a verb, or holds an unknown word, is parsed as a new command.
 
+
+## ADR-021: Versions 5-8 through one VersionProfile (supersedes ADR-001)
+*spec: §1.1.4, §1.2.3, §5.4, §5.5, §11.1.6* **Context.** Proforma v2 adds
+targets z6, z7 and z8 (and an I7-lite front end). ADR-001 kept v5-only code
+readable by avoiding `if version` branches everywhere. **Decision.** Every
+version-dependent rule lives in `zforge/common/versions.py` as data on a
+`VersionProfile` (packing scale and offsets, file-length divisor, size limit,
+start-up rule, opcode table). Other code asks the profile and never compares
+version numbers (a test enforces this; only `versions.py` and `opcodes.py`
+may). The refactor landed first with only `PROFILES[5]` registered, and it
+is proven behaviour-preserving by `tests/golden/v1_hashes.json` (byte-identical
+story files). v6/v7/v8 are accepted only once their tiers register a profile.
+The default target stays z5 for `.zil` sources.
+
+## ADR-022: Versions 7 and 8 use the version-5 opcode table
+*spec: §1, §14* **Context.** Reading §14's V column literally ("the last line
+whose V <= the target") gives v7 and v8 all 18 v6-only EXT opcodes and the
+v6 forms of seven others (e.g. `pull` storing a result). But §1 ends:
+"Versions 7 and 8 are identical to Version 5 except as stated at 1.1.4 and
+1.2.3" (size limit and packed addresses only). **Decision.** The extractor
+maps v7/v8 to the v5 table (`TABLE_VERSION` in `opcode_table.py`), and
+`opcodes.table_for(7|8)` returns the v5 table. The counts are 98 / 116 / 98 / 98
+for v5 / v6 / v7 / v8. **Note for Tier 8.** In v6, EXT:29 is `buffer_screen`
+(Standard 1.1), so ADR-002's "unknown EXT >= 29 is skipped" rule must become
+per-version.

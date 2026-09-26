@@ -3,7 +3,7 @@ a model. The LLM is only used to DIAGNOSE a failure into a fix brief."""
 from __future__ import annotations
 
 from zbuilder.agents.base import Agent
-from zbuilder.plan import Task
+from zbuilder.plan import V2_FIRST_TIER, Task
 from zbuilder.tools.checks import run_eval, run_pytest, run_ruff
 
 
@@ -16,6 +16,8 @@ class Verifier(Agent):
             checks.append(run_pytest(task.tests))
         if task.eval_cases:
             checks.append(run_eval(task.eval_cases))
+        if task.tier >= V2_FIRST_TIER:              # v2 must not break v1 (proforma 1b A)
+            checks.append(run_eval(suite="v1"))
         passed = all(c["passed"] for c in checks)
         self.log.event(self.role, task.id, "verify", passed=passed,
                        checks=[{k: c[k] for k in ("command", "exit_code", "passed")}

@@ -7,7 +7,8 @@ from pathlib import Path
 
 from zbuilder.paths import PROJECT_ROOT
 
-FORBIDDEN = ("spec/cache", "stories", ".env", ".git", "build/state.json")
+FORBIDDEN = ("spec/cache", "stories", ".env", ".git", "build/state.json",
+             "tests/golden")        # golden hashes: humans only (zbuilder golden --record)
 
 
 class FileToolError(Exception):

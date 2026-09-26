@@ -1,5 +1,8 @@
-"""§14 The complete table of version-5 opcodes - the SINGLE source of truth
+"""§14 The opcode tables of versions 5-8 - the SINGLE source of truth
 shared by the decoder, the disassembler and the assembler.
+
+OPCODES is the version-5 table (also used by versions 7 and 8, §1);
+V6_OPCODES holds what version 6 adds or changes; table_for(v) combines them.
 
 GENERATED once from spec/opcodes.json (built by zbuilder from the spec's
 §14 HTML tables) and then committed as plain, readable Python.
@@ -139,3 +142,53 @@ BY_NAME: dict[str, Op] = {op.name: op for op in OPCODES}
 
 # call_vs2 and call_vn2 take up to 8 operands: they have TWO operand-type bytes (§4.4.3.1)
 DOUBLE_TYPE_BYTE = {"call_vs2", "call_vn2"}
+
+# ---------------------------------------------------------------- version 6
+# The v6 opcode set = the v5 set above, with these entries ADDED or
+# REPLACING the v5 meaning (§14: lines whose V column says 6). Generated from
+# spec/opcodes.json "all_versions" (entries valid in [6] only). Most
+# replacements only gain an operand (a window number); VAR:9 pull is the one
+# whose FORM changes: in v6 it takes a user stack and STORES (§15 pull).
+V6_OPCODES: list[Op] = [
+    Op('2OP', 27, 'set_colour', store=False, branch=False, text=False),  # set_colour foreground background window
+    Op('VAR',  9, 'pull', store=True, branch=False, text=False),  # pull stack -> (result)
+    Op('VAR', 14, 'erase_line', store=False, branch=False, text=False),  # erase_line pixels
+    Op('VAR', 15, 'set_cursor', store=False, branch=False, text=False),  # set_cursor line column window
+    Op('VAR', 19, 'output_stream', store=False, branch=False, text=False),  # output_stream number table width
+    Op('EXT',  4, 'set_font', store=True, branch=False, text=False),  # set_font font window -> (result)
+    Op('EXT',  5, 'draw_picture', store=False, branch=False, text=False),  # draw_picture picture-number y x
+    Op('EXT',  6, 'picture_data', store=False, branch=True, text=False),  # picture_data picture-number array ?(label)
+    Op('EXT',  7, 'erase_picture', store=False, branch=False, text=False),  # erase_picture picture-number y x
+    Op('EXT',  8, 'set_margins', store=False, branch=False, text=False),  # set_margins left right window
+    Op('EXT', 13, 'set_true_colour', store=False, branch=False, text=False),  # set_true_colour foreground background window
+    Op('EXT', 16, 'move_window', store=False, branch=False, text=False),  # move_window window y x
+    Op('EXT', 17, 'window_size', store=False, branch=False, text=False),  # window_size window y x
+    Op('EXT', 18, 'window_style', store=False, branch=False, text=False),  # window_style window flags operation
+    Op('EXT', 19, 'get_wind_prop', store=True, branch=False, text=False),  # get_wind_prop window property-number -> (result)
+    Op('EXT', 20, 'scroll_window', store=False, branch=False, text=False),  # scroll_window window pixels
+    Op('EXT', 21, 'pop_stack', store=False, branch=False, text=False),  # pop_stack items stack
+    Op('EXT', 22, 'read_mouse', store=False, branch=False, text=False),  # read_mouse array
+    Op('EXT', 23, 'mouse_window', store=False, branch=False, text=False),  # mouse_window window
+    Op('EXT', 24, 'push_stack', store=False, branch=True, text=False),  # push_stack value stack ?(label)
+    Op('EXT', 25, 'put_wind_prop', store=False, branch=False, text=False),  # put_wind_prop window property-number value
+    Op('EXT', 26, 'print_form', store=False, branch=False, text=False),  # print_form formatted-table
+    Op('EXT', 27, 'make_menu', store=False, branch=True, text=False),  # make_menu number table ?(label)
+    Op('EXT', 28, 'picture_table', store=False, branch=False, text=False),  # picture_table table
+    Op('EXT', 29, 'buffer_screen', store=True, branch=False, text=False),  # buffer_screen mode -> (result)
+]
+
+# §1: "Versions 7 and 8 are identical to Version 5 except as stated at 1.1.4
+# and 1.2.3" - so they share the v5 table. (Tested against spec/opcodes.json.)
+_V5 = {(op.kind, op.number): op for op in OPCODES}
+_V6 = {**_V5, **{(op.kind, op.number): op for op in V6_OPCODES}}
+TABLES: dict[int, dict[tuple[str, int], Op]] = {5: _V5, 6: _V6, 7: _V5, 8: _V5}
+
+
+def table_for(version: int) -> dict[tuple[str, int], Op]:
+    """The (kind, number) -> Op table of one story-file version (5-8)."""
+    return TABLES[version]
+
+
+def names_for(version: int) -> dict[str, Op]:
+    """The name -> Op table the assembler uses for one version."""
+    return {op.name: op for op in TABLES[version].values()}

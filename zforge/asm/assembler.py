@@ -1,4 +1,8 @@
-"""The assembler: .zas text -> a version-5 story file.
+"""The assembler: .zas text -> a story file (version 5 by default).
+
+Every version-dependent choice (packed addresses, alignment, header
+version byte, file-length divisor) comes from a VersionProfile
+(common/versions.py).
 
 Passes:
   1. collect   - read directives: globals, constants, objects, arrays,
@@ -25,6 +29,7 @@ from zforge.asm.syntax import AsmError, AsmInstruction, Directive, Label, parse,
 from zforge.common import header as H
 from zforge.common.opcodes import BY_NAME, DOUBLE_TYPE_BYTE, Op
 from zforge.common.text import encode_string
+from zforge.common.versions import DEFAULT_VERSION, profile_for
 from zforge.vm.decoder import OperandType
 
 # Opcodes whose first operand is a variable NUMBER (§6.3.4 indirect reference)
@@ -100,8 +105,9 @@ class Layout:
 
 
 class Assembler:
-    def __init__(self, source: str = "<zas>"):
+    def __init__(self, source: str = "<zas>", version: int = DEFAULT_VERSION):
         self.source = source
+        self.profile = profile_for(version)                # §1.2.3, §11.1.6, ...
         self.release, self.serial = 1, "000000"
         self.globals: dict[str, tuple[int, str]] = {}      # name -> (var number, init)
         self.constants: dict[str, int] = {}
@@ -386,8 +392,8 @@ class Assembler:
             initial_pc=layout.stub, dictionary=layout.static_memory,
             objects=layout.object_table, globals=layout.globals_table,
             static_memory=layout.static_memory, abbreviations=layout.abbreviations,
-            flags2=H.F2_UNDO if self.want_undo else 0))
-        return linker.finalise(story)
+            flags2=H.F2_UNDO if self.want_undo else 0), self.profile)
+        return linker.finalise(story, self.profile)
 
     def _layout_dynamic(self, story: bytearray, layout: "Layout") -> None:
         """Dynamic memory: abbreviations, object table, globals, arrays."""
@@ -419,20 +425,21 @@ class Assembler:
         story += dict_bytes
 
     def _layout_high(self, story: bytearray, layout: "Layout", routines) -> None:
-        """High memory: start stub, routines, then strings - each 4-aligned
-        so it has a packed address (§1.2.3)."""
-        story += bytes(align(len(story)) - len(story))
+        """High memory: start stub, routines, then strings - each aligned
+        so it has a packed address (§1.2.3; 4 bytes in v5)."""
+        boundary = self.profile.code_alignment
+        story += bytes(align(len(story), boundary) - len(story))
         layout.high_memory = layout.stub = len(story)
         story += bytes(8)                      # call_vn main (4 bytes) + quit + padding
         for routine, encoded, labels in routines:
-            story += bytes(align(len(story)) - len(story))
+            story += bytes(align(len(story), boundary) - len(story))
             address = len(story)
             self.addresses["routine:" + routine.name] = address
             size = 1 + sum(e.size() for e in encoded if isinstance(e, Encoded))
             layout.routine_places.append((address, routine, encoded, labels))
             story += bytes(size)
         for name, text in self.strings.items():  # interned while encoding: laid out last
-            story += bytes(align(len(story)) - len(story))
+            story += bytes(align(len(story), boundary) - len(story))
             self.addresses["string:" + name] = len(story)
             data = encode_string(text)
             layout.string_places.append((len(story), data))
@@ -461,7 +468,7 @@ class Assembler:
 
     def _fill_code(self, story: bytearray, layout: "Layout") -> None:
         """Pass 4b: the start stub, every routine body and every string."""
-        main_packed = self.addresses["routine:" + self.main] // 4
+        main_packed = self.profile.pack_routine(self.addresses["routine:" + self.main])
         story[layout.stub:layout.stub + 5] = bytes(
             [0xF9, 0x3F, *main_packed.to_bytes(2, "big"), 0xBA])   # call_vn main; quit
         for address, routine, encoded, labels in layout.routine_places:
@@ -515,15 +522,15 @@ class Assembler:
 
     def resolve_symbol(self, token: str, line: int) -> int:
         if "routine:" + token in self.addresses:
-            return self.addresses["routine:" + token] // 4          # packed (§1.2.3)
+            return self.profile.pack_routine(self.addresses["routine:" + token])  # §1.2.3
         if "string:" + token in self.addresses:
-            return self.addresses["string:" + token] // 4
+            return self.profile.pack_string(self.addresses["string:" + token])
         if "array:" + token in self.addresses:
             return self.addresses["array:" + token]
         raise self.error(f"unknown symbol '{token}'", line)
 
     def packed(self, string_name: str, line: int) -> int:
-        return self.addresses["string:" + string_name] // 4
+        return self.profile.pack_string(self.addresses["string:" + string_name])
 
     def dict_address(self, word: str, line: int) -> int:
         return self.dict_addresses[word]
@@ -588,5 +595,5 @@ class Assembler:
         return bytes(out)
 
 
-def assemble(text: str, source: str = "<zas>") -> bytes:
-    return Assembler(source).assemble(text)
+def assemble(text: str, source: str = "<zas>", version: int = DEFAULT_VERSION) -> bytes:
+    return Assembler(source, version).assemble(text)

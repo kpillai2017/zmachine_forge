@@ -96,8 +96,44 @@ def opcodes_for_version(lines: list[OpcodeLine], version: int) -> list[OpcodeLin
     return [op for op in chosen.values() if not op.illegal]
 
 
+# §1 (end of section): "Throughout the specification, Versions 7 and 8 are
+# identical to Version 5 except as stated at 1.1.4 and 1.2.3" - i.e. only
+# the size limit and packed addresses differ, NOT the opcode set. Reading
+# §14's V column literally ("last line with V <= target") would wrongly give
+# v7/v8 every v6-only opcode, so v7/v8 read the table AS version 5.
+SUPPORTED_VERSIONS = (5, 6, 7, 8)
+TABLE_VERSION = {5: 5, 6: 6, 7: 5, 8: 5}
+
+
+def opcodes_for_zversion(lines: list[OpcodeLine], version: int) -> list[OpcodeLine]:
+    """The opcode set of a story-file version, applying the §1 rule above."""
+    ops = opcodes_for_version(lines, TABLE_VERSION[version])
+    ops.sort(key=lambda o: (list(KIND_BASE).index(o.kind), o.number))
+    return ops
+
+
+def merge_versions(lines: list[OpcodeLine]) -> list[dict]:
+    """One entry per distinct opcode SPECIFICATION, with the versions it is
+    valid in. An opcode whose meaning changes (e.g. VAR:9 pull, which stores
+    a result only in v6) appears twice, once per meaning."""
+    merged: dict[tuple, dict] = {}
+    for version in SUPPORTED_VERSIONS:
+        for op in opcodes_for_zversion(lines, version):
+            key = (op.kind, op.number, op.syntax)
+            entry = merged.setdefault(key, {**asdict(op), "versions": []})
+            entry["versions"].append(version)
+    return sorted(merged.values(), key=lambda e: (list(KIND_BASE).index(e["kind"]),
+                                                  e["number"], e["versions"]))
+
+
 def build_opcode_json(sect14_path: Path, out_path: Path, version: int = 5,
                       fingerprint: str = "") -> dict:
+    """Write spec/opcodes.json.
+
+    "opcodes" is the v5 view exactly as zforge v1 used it (unchanged keys
+    and order). "all_versions" adds every opcode of versions 5-8 with a
+    `versions` list, and "counts" gives the size of each version's set.
+    """
     lines = parse_opcode_lines(sect14_path.read_text(encoding="latin-1"))
     ops = opcodes_for_version(lines, version)
     ops.sort(key=lambda o: (list(KIND_BASE).index(o.kind), o.number))
@@ -108,6 +144,9 @@ def build_opcode_json(sect14_path: Path, out_path: Path, version: int = 5,
         "all_lines": len(lines),
         "count": len(ops),
         "opcodes": [asdict(o) for o in ops],
+        "version_rule": "§1: versions 7 and 8 use the version-5 opcode set",
+        "counts": {str(v): len(opcodes_for_zversion(lines, v)) for v in SUPPORTED_VERSIONS},
+        "all_versions": merge_versions(lines),
     }
     out_path.write_text(json.dumps(data, indent=1))
     return data

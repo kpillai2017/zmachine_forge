@@ -16,4 +16,9 @@ when a student can follow it with the Z-Machine Standard open beside it.
        ruff check .
        pytest -q
        python -m eval.run_eval
+       python -m zbuilder golden --check
        python -m zbuilder --provider brief review
+
+   **The v1 suite and the golden hashes are a contract.** `python -m
+   eval.run_eval --suite v1` must stay green and `zbuilder golden --check`
+   byte-identical. Re-recording golden hashes (`--record`) needs an ADR.

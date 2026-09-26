@@ -7,7 +7,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from zforge.common.errors import StoryFileError, UnsupportedVersion
+from zforge.common.errors import StoryFileError
+from zforge.common.versions import VersionProfile, profile_for
 
 HEADER_SIZE = 64
 
@@ -65,9 +66,8 @@ HX_MOUSE_Y = 2
 HX_UNICODE_TABLE = 3
 HX_FLAGS3 = 4
 
-FILE_LENGTH_DIVISOR_V5 = 4      # §11.1.6
-PACKED_ADDRESS_FACTOR_V5 = 4    # §1.2.3: v4-5 packed address P -> 4P
-SUPPORTED_VERSION = 5
+# The version-dependent rules (file-length divisor §11.1.6, packed
+# addresses §1.2.3, ...) live in zforge/common/versions.py.
 
 
 def word(data: bytes | bytearray, offset: int) -> int:
@@ -98,11 +98,7 @@ class Header:
         if len(data) < HEADER_SIZE:
             raise StoryFileError("Not a valid story file: shorter than the 64-byte header")
         version = data[H_VERSION]
-        if version != SUPPORTED_VERSION:
-            if 1 <= version <= 8:
-                raise UnsupportedVersion(
-                    f"Unsupported story version {version}: zforge implements version 5 only")
-            raise StoryFileError(f"Not a valid story file: version byte is {version}")
+        profile = profile_for(version)         # raises for unsupported versions
         h = cls(
             version=version,
             release=word(data, H_RELEASE),
@@ -113,7 +109,7 @@ class Header:
             globals=word(data, H_GLOBALS),
             static_memory=word(data, H_STATIC_MEMORY),
             abbreviations=word(data, H_ABBREVIATIONS),
-            file_length=word(data, H_FILE_LENGTH) * FILE_LENGTH_DIVISOR_V5,
+            file_length=word(data, H_FILE_LENGTH) * profile.file_length_divisor,
             checksum=word(data, H_CHECKSUM),
             serial=bytes(data[H_SERIAL:H_SERIAL + 6]).decode("latin-1"),
             alphabet_table=word(data, H_ALPHABET_TABLE),
@@ -122,6 +118,11 @@ class Header:
         )
         h.validate(len(data))
         return h
+
+    @property
+    def profile(self) -> VersionProfile:
+        """The version rules for this story file (common/versions.py)."""
+        return profile_for(self.version)
 
     def validate(self, actual_size: int) -> None:
         if self.static_memory < HEADER_SIZE or self.static_memory > actual_size:

@@ -431,6 +431,28 @@
         "You take the rusty key.",
         "(the rusty key)\nYou drop the rusty key."
       ]
+    },
+    {
+      "id": "refactor-byte-identical",
+      "suite": "v2",
+      "type": "golden",
+      "expect": "hello.zas and every golden .zil build byte-identical to tests/golden/v1_hashes.json (story, disasm and header report)"
+    },
+    {
+      "id": "version-profile",
+      "suite": "v2",
+      "type": "pytest",
+      "tests": "tests/test_versions.py",
+      "select": "profile or pack or offsets or unsupported or divisor or comparisons",
+      "expect": "VersionProfile follows §1.2.3 / §1.1.4 / §11.1.6 / §5.4-5 (checked against the spec text); no version tests outside versions.py/opcodes.py"
+    },
+    {
+      "id": "spec-opcode-versions",
+      "suite": "v2",
+      "type": "pytest",
+      "tests": "tests/test_versions.py",
+      "select": "opcode or v6 or v7 or v5_table",
+      "expect": "per-version opcode sets match §14 (98/116/98/98); v7/v8 use the v5 table (§1); v6 pull stores; the v5 table is unchanged"
     }
   ]
 }

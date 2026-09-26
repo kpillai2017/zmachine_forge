@@ -1279,5 +1279,2269 @@
    "illegal": false,
    "anchor": "sect15.html#set_true_colour"
   }
+ ],
+ "version_rule": "\u00a71: versions 7 and 8 use the version-5 opcode set",
+ "counts": {
+  "5": 98,
+  "6": 116,
+  "7": 98,
+  "8": 98
+ },
+ "all_versions": [
+  {
+   "kind": "2OP",
+   "number": 1,
+   "decimal": 1,
+   "version": 1,
+   "name": "je",
+   "syntax": "je a b ?(label)",
+   "store": false,
+   "branch": true,
+   "text": false,
+   "illegal": false,
+   "anchor": "sect15.html#je",
+   "versions": [
+    5,
+    6,
+    7,
+    8
+   ]
+  },
+  {
+   "kind": "2OP",
+   "number": 2,
+   "decimal": 2,
+   "version": 1,
+   "name": "jl",
+   "syntax": "jl a b ?(label)",
+   "store": false,
+   "branch": true,
+   "text": false,
+   "illegal": false,
+   "anchor": "sect15.html#jl",
+   "versions": [
+    5,
+    6,
+    7,
+    8
+   ]
+  },
+  {
+   "kind": "2OP",
+   "number": 3,
+   "decimal": 3,
+   "version": 1,
+   "name": "jg",
+   "syntax": "jg a b ?(label)",
+   "store": false,
+   "branch": true,
+   "text": false,
+   "illegal": false,
+   "anchor": "sect15.html#jg",
+   "versions": [
+    5,
+    6,
+    7,
+    8
+   ]
+  },
+  {
+   "kind": "2OP",
+   "number": 4,
+   "decimal": 4,
+   "version": 1,
+   "name": "dec_chk",
+   "syntax": "dec_chk (variable) value ?(label)",
+   "store": false,
+   "branch": true,
+   "text": false,
+   "illegal": false,
+   "anchor": "sect15.html#dec_chk",
+   "versions": [
+    5,
+    6,
+    7,
+    8
+   ]
+  },
+  {
+   "kind": "2OP",
+   "number": 5,
+   "decimal": 5,
+   "version": 1,
+   "name": "inc_chk",
+   "syntax": "inc_chk (variable) value ?(label)",
+   "store": false,
+   "branch": true,
+   "text": false,
+   "illegal": false,
+   "anchor": "sect15.html#inc_chk",
+   "versions": [
+    5,
+    6,
+    7,
+    8
+   ]
+  },
+  {
+   "kind": "2OP",
+   "number": 6,
+   "decimal": 6,
+   "version": 1,
+   "name": "jin",
+   "syntax": "jin obj1 obj2 ?(label)",
+   "store": false,
+   "branch": true,
+   "text": false,
+   "illegal": false,
+   "anchor": "sect15.html#jin",
+   "versions": [
+    5,
+    6,
+    7,
+    8
+   ]
+  },
+  {
+   "kind": "2OP",
+   "number": 7,
+   "decimal": 7,
+   "version": 1,
+   "name": "test",
+   "syntax": "test bitmap flags ?(label)",
+   "store": false,
+   "branch": true,
+   "text": false,
+   "illegal": false,
+   "anchor": "sect15.html#test",
+   "versions": [
+    5,
+    6,
+    7,
+    8
+   ]
+  },
+  {
+   "kind": "2OP",
+   "number": 8,
+   "decimal": 8,
+   "version": 1,
+   "name": "or",
+   "syntax": "or a b -> (result)",
+   "store": true,
+   "branch": false,
+   "text": false,
+   "illegal": false,
+   "anchor": "sect15.html#or",
+   "versions": [
+    5,
+    6,
+    7,
+    8
+   ]
+  },
+  {
+   "kind": "2OP",
+   "number": 9,
+   "decimal": 9,
+   "version": 1,
+   "name": "and",
+   "syntax": "and a b -> (result)",
+   "store": true,
+   "branch": false,
+   "text": false,
+   "illegal": false,
+   "anchor": "sect15.html#and",
+   "versions": [
+    5,
+    6,
+    7,
+    8
+   ]
+  },
+  {
+   "kind": "2OP",
+   "number": 10,
+   "decimal": 10,
+   "version": 1,
+   "name": "test_attr",
+   "syntax": "test_attr object attribute ?(label)",
+   "store": false,
+   "branch": true,
+   "text": false,
+   "illegal": false,
+   "anchor": "sect15.html#test_attr",
+   "versions": [
+    5,
+    6,
+    7,
+    8
+   ]
+  },
+  {
+   "kind": "2OP",
+   "number": 11,
+   "decimal": 11,
+   "version": 1,
+   "name": "set_attr",
+   "syntax": "set_attr object attribute",
+   "store": false,
+   "branch": false,
+   "text": false,
+   "illegal": false,
+   "anchor": "sect15.html#set_attr",
+   "versions": [
+    5,
+    6,
+    7,
+    8
+   ]
+  },
+  {
+   "kind": "2OP",
+   "number": 12,
+   "decimal": 12,
+   "version": 1,
+   "name": "clear_attr",
+   "syntax": "clear_attr object attribute",
+   "store": false,
+   "branch": false,
+   "text": false,
+   "illegal": false,
+   "anchor": "sect15.html#clear_attr",
+   "versions": [
+    5,
+    6,
+    7,
+    8
+   ]
+  },
+  {
+   "kind": "2OP",
+   "number": 13,
+   "decimal": 13,
+   "version": 1,
+   "name": "store",
+   "syntax": "store (variable) value",
+   "store": false,
+   "branch": false,
+   "text": false,
+   "illegal": false,
+   "anchor": "sect15.html#store",
+   "versions": [
+    5,
+    6,
+    7,
+    8
+   ]
+  },
+  {
+   "kind": "2OP",
+   "number": 14,
+   "decimal": 14,
+   "version": 1,
+   "name": "insert_obj",
+   "syntax": "insert_obj object destination",
+   "store": false,
+   "branch": false,
+   "text": false,
+   "illegal": false,
+   "anchor": "sect15.html#insert_obj",
+   "versions": [
+    5,
+    6,
+    7,
+    8
+   ]
+  },
+  {
+   "kind": "2OP",
+   "number": 15,
+   "decimal": 15,
+   "version": 1,
+   "name": "loadw",
+   "syntax": "loadw array word-index -> (result)",
+   "store": true,
+   "branch": false,
+   "text": false,
+   "illegal": false,
+   "anchor": "sect15.html#loadw",
+   "versions": [
+    5,
+    6,
+    7,
+    8
+   ]
+  },
+  {
+   "kind": "2OP",
+   "number": 16,
+   "decimal": 16,
+   "version": 1,
+   "name": "loadb",
+   "syntax": "loadb array byte-index -> (result)",
+   "store": true,
+   "branch": false,
+   "text": false,
+   "illegal": false,
+   "anchor": "sect15.html#loadb",
+   "versions": [
+    5,
+    6,
+    7,
+    8
+   ]
+  },
+  {
+   "kind": "2OP",
+   "number": 17,
+   "decimal": 17,
+   "version": 1,
+   "name": "get_prop",
+   "syntax": "get_prop object property -> (result)",
+   "store": true,
+   "branch": false,
+   "text": false,
+   "illegal": false,
+   "anchor": "sect15.html#get_prop",
+   "versions": [
+    5,
+    6,
+    7,
+    8
+   ]
+  },
+  {
+   "kind": "2OP",
+   "number": 18,
+   "decimal": 18,
+   "version": 1,
+   "name": "get_prop_addr",
+   "syntax": "get_prop_addr object property -> (result)",
+   "store": true,
+   "branch": false,
+   "text": false,
+   "illegal": false,
+   "anchor": "sect15.html#get_prop_addr",
+   "versions": [
+    5,
+    6,
+    7,
+    8
+   ]
+  },
+  {
+   "kind": "2OP",
+   "number": 19,
+   "decimal": 19,
+   "version": 1,
+   "name": "get_next_prop",
+   "syntax": "get_next_prop object property -> (result)",
+   "store": true,
+   "branch": false,
+   "text": false,
+   "illegal": false,
+   "anchor": "sect15.html#get_next_prop",
+   "versions": [
+    5,
+    6,
+    7,
+    8
+   ]
+  },
+  {
+   "kind": "2OP",
+   "number": 20,
+   "decimal": 20,
+   "version": 1,
+   "name": "add",
+   "syntax": "add a b -> (result)",
+   "store": true,
+   "branch": false,
+   "text": false,
+   "illegal": false,
+   "anchor": "sect15.html#add",
+   "versions": [
+    5,
+    6,
+    7,
+    8
+   ]
+  },
+  {
+   "kind": "2OP",
+   "number": 21,
+   "decimal": 21,
+   "version": 1,
+   "name": "sub",
+   "syntax": "sub a b -> (result)",
+   "store": true,
+   "branch": false,
+   "text": false,
+   "illegal": false,
+   "anchor": "sect15.html#sub",
+   "versions": [
+    5,
+    6,
+    7,
+    8
+   ]
+  },
+  {
+   "kind": "2OP",
+   "number": 22,
+   "decimal": 22,
+   "version": 1,
+   "name": "mul",
+   "syntax": "mul a b -> (result)",
+   "store": true,
+   "branch": false,
+   "text": false,
+   "illegal": false,
+   "anchor": "sect15.html#mul",
+   "versions": [
+    5,
+    6,
+    7,
+    8
+   ]
+  },
+  {
+   "kind": "2OP",
+   "number": 23,
+   "decimal": 23,
+   "version": 1,
+   "name": "div",
+   "syntax": "div a b -> (result)",
+   "store": true,
+   "branch": false,
+   "text": false,
+   "illegal": false,
+   "anchor": "sect15.html#div",
+   "versions": [
+    5,
+    6,
+    7,
+    8
+   ]
+  },
+  {
+   "kind": "2OP",
+   "number": 24,
+   "decimal": 24,
+   "version": 1,
+   "name": "mod",
+   "syntax": "mod a b -> (result)",
+   "store": true,
+   "branch": false,
+   "text": false,
+   "illegal": false,
+   "anchor": "sect15.html#mod",
+   "versions": [
+    5,
+    6,
+    7,
+    8
+   ]
+  },
+  {
+   "kind": "2OP",
+   "number": 25,
+   "decimal": 25,
+   "version": 4,
+   "name": "call_2s",
+   "syntax": "call_2s routine arg1 -> (result)",
+   "store": true,
+   "branch": false,
+   "text": false,
+   "illegal": false,
+   "anchor": "sect15.html#call_2s",
+   "versions": [
+    5,
+    6,
+    7,
+    8
+   ]
+  },
+  {
+   "kind": "2OP",
+   "number": 26,
+   "decimal": 26,
+   "version": 5,
+   "name": "call_2n",
+   "syntax": "call_2n routine arg1",
+   "store": false,
+   "branch": false,
+   "text": false,
+   "illegal": false,
+   "anchor": "sect15.html#call_2n",
+   "versions": [
+    5,
+    6,
+    7,
+    8
+   ]
+  },
+  {
+   "kind": "2OP",
+   "number": 27,
+   "decimal": 27,
+   "version": 5,
+   "name": "set_colour",
+   "syntax": "set_colour foreground background",
+   "store": false,
+   "branch": false,
+   "text": false,
+   "illegal": false,
+   "anchor": "sect15.html#set_colour",
+   "versions": [
+    5,
+    7,
+    8
+   ]
+  },
+  {
+   "kind": "2OP",
+   "number": 27,
+   "decimal": 27,
+   "version": 6,
+   "name": "set_colour",
+   "syntax": "set_colour foreground background window",
+   "store": false,
+   "branch": false,
+   "text": false,
+   "illegal": false,
+   "anchor": "sect15.html#set_colour",
+   "versions": [
+    6
+   ]
+  },
+  {
+   "kind": "2OP",
+   "number": 28,
+   "decimal": 28,
+   "version": 5,
+   "name": "throw",
+   "syntax": "throw value stack-frame",
+   "store": false,
+   "branch": false,
+   "text": false,
+   "illegal": false,
+   "anchor": "sect15.html#throw",
+   "versions": [
+    5,
+    6,
+    7,
+    8
+   ]
+  },
+  {
+   "kind": "1OP",
+   "number": 0,
+   "decimal": 128,
+   "version": 1,
+   "name": "jz",
+   "syntax": "jz a ?(label)",
+   "store": false,
+   "branch": true,
+   "text": false,
+   "illegal": false,
+   "anchor": "sect15.html#jz",
+   "versions": [
+    5,
+    6,
+    7,
+    8
+   ]
+  },
+  {
+   "kind": "1OP",
+   "number": 1,
+   "decimal": 129,
+   "version": 1,
+   "name": "get_sibling",
+   "syntax": "get_sibling object -> (result) ?(label)",
+   "store": true,
+   "branch": true,
+   "text": false,
+   "illegal": false,
+   "anchor": "sect15.html#get_sibling",
+   "versions": [
+    5,
+    6,
+    7,
+    8
+   ]
+  },
+  {
+   "kind": "1OP",
+   "number": 2,
+   "decimal": 130,
+   "version": 1,
+   "name": "get_child",
+   "syntax": "get_child object -> (result) ?(label)",
+   "store": true,
+   "branch": true,
+   "text": false,
+   "illegal": false,
+   "anchor": "sect15.html#get_child",
+   "versions": [
+    5,
+    6,
+    7,
+    8
+   ]
+  },
+  {
+   "kind": "1OP",
+   "number": 3,
+   "decimal": 131,
+   "version": 1,
+   "name": "get_parent",
+   "syntax": "get_parent object -> (result)",
+   "store": true,
+   "branch": false,
+   "text": false,
+   "illegal": false,
+   "anchor": "sect15.html#get_parent",
+   "versions": [
+    5,
+    6,
+    7,
+    8
+   ]
+  },
+  {
+   "kind": "1OP",
+   "number": 4,
+   "decimal": 132,
+   "version": 1,
+   "name": "get_prop_len",
+   "syntax": "get_prop_len property-address -> (result)",
+   "store": true,
+   "branch": false,
+   "text": false,
+   "illegal": false,
+   "anchor": "sect15.html#get_prop_len",
+   "versions": [
+    5,
+    6,
+    7,
+    8
+   ]
+  },
+  {
+   "kind": "1OP",
+   "number": 5,
+   "decimal": 133,
+   "version": 1,
+   "name": "inc",
+   "syntax": "inc (variable)",
+   "store": false,
+   "branch": false,
+   "text": false,
+   "illegal": false,
+   "anchor": "sect15.html#inc",
+   "versions": [
+    5,
+    6,
+    7,
+    8
+   ]
+  },
+  {
+   "kind": "1OP",
+   "number": 6,
+   "decimal": 134,
+   "version": 1,
+   "name": "dec",
+   "syntax": "dec (variable)",
+   "store": false,
+   "branch": false,
+   "text": false,
+   "illegal": false,
+   "anchor": "sect15.html#dec",
+   "versions": [
+    5,
+    6,
+    7,
+    8
+   ]
+  },
+  {
+   "kind": "1OP",
+   "number": 7,
+   "decimal": 135,
+   "version": 1,
+   "name": "print_addr",
+   "syntax": "print_addr byte-address-of-string",
+   "store": false,
+   "branch": false,
+   "text": false,
+   "illegal": false,
+   "anchor": "sect15.html#print_addr",
+   "versions": [
+    5,
+    6,
+    7,
+    8
+   ]
+  },
+  {
+   "kind": "1OP",
+   "number": 8,
+   "decimal": 136,
+   "version": 4,
+   "name": "call_1s",
+   "syntax": "call_1s routine -> (result)",
+   "store": true,
+   "branch": false,
+   "text": false,
+   "illegal": false,
+   "anchor": "sect15.html#call_1s",
+   "versions": [
+    5,
+    6,
+    7,
+    8
+   ]
+  },
+  {
+   "kind": "1OP",
+   "number": 9,
+   "decimal": 137,
+   "version": 1,
+   "name": "remove_obj",
+   "syntax": "remove_obj object",
+   "store": false,
+   "branch": false,
+   "text": false,
+   "illegal": false,
+   "anchor": "sect15.html#remove_obj",
+   "versions": [
+    5,
+    6,
+    7,
+    8
+   ]
+  },
+  {
+   "kind": "1OP",
+   "number": 10,
+   "decimal": 138,
+   "version": 1,
+   "name": "print_obj",
+   "syntax": "print_obj object",
+   "store": false,
+   "branch": false,
+   "text": false,
+   "illegal": false,
+   "anchor": "sect15.html#print_obj",
+   "versions": [
+    5,
+    6,
+    7,
+    8
+   ]
+  },
+  {
+   "kind": "1OP",
+   "number": 11,
+   "decimal": 139,
+   "version": 1,
+   "name": "ret",
+   "syntax": "ret value",
+   "store": false,
+   "branch": false,
+   "text": false,
+   "illegal": false,
+   "anchor": "sect15.html#ret",
+   "versions": [
+    5,
+    6,
+    7,
+    8
+   ]
+  },
+  {
+   "kind": "1OP",
+   "number": 12,
+   "decimal": 140,
+   "version": 1,
+   "name": "jump",
+   "syntax": "jump ?(label)",
+   "store": false,
+   "branch": false,
+   "text": false,
+   "illegal": false,
+   "anchor": "sect15.html#jump",
+   "versions": [
+    5,
+    6,
+    7,
+    8
+   ]
+  },
+  {
+   "kind": "1OP",
+   "number": 13,
+   "decimal": 141,
+   "version": 1,
+   "name": "print_paddr",
+   "syntax": "print_paddr packed-address-of-string",
+   "store": false,
+   "branch": false,
+   "text": false,
+   "illegal": false,
+   "anchor": "sect15.html#print_paddr",
+   "versions": [
+    5,
+    6,
+    7,
+    8
+   ]
+  },
+  {
+   "kind": "1OP",
+   "number": 14,
+   "decimal": 142,
+   "version": 1,
+   "name": "load",
+   "syntax": "load (variable) -> (result)",
+   "store": true,
+   "branch": false,
+   "text": false,
+   "illegal": false,
+   "anchor": "sect15.html#load",
+   "versions": [
+    5,
+    6,
+    7,
+    8
+   ]
+  },
+  {
+   "kind": "1OP",
+   "number": 15,
+   "decimal": 143,
+   "version": 5,
+   "name": "call_1n",
+   "syntax": "call_1n routine",
+   "store": false,
+   "branch": false,
+   "text": false,
+   "illegal": false,
+   "anchor": "sect15.html#call_1n",
+   "versions": [
+    5,
+    6,
+    7,
+    8
+   ]
+  },
+  {
+   "kind": "0OP",
+   "number": 0,
+   "decimal": 176,
+   "version": 1,
+   "name": "rtrue",
+   "syntax": "rtrue",
+   "store": false,
+   "branch": false,
+   "text": false,
+   "illegal": false,
+   "anchor": "sect15.html#rtrue",
+   "versions": [
+    5,
+    6,
+    7,
+    8
+   ]
+  },
+  {
+   "kind": "0OP",
+   "number": 1,
+   "decimal": 177,
+   "version": 1,
+   "name": "rfalse",
+   "syntax": "rfalse",
+   "store": false,
+   "branch": false,
+   "text": false,
+   "illegal": false,
+   "anchor": "sect15.html#rfalse",
+   "versions": [
+    5,
+    6,
+    7,
+    8
+   ]
+  },
+  {
+   "kind": "0OP",
+   "number": 2,
+   "decimal": 178,
+   "version": 1,
+   "name": "print",
+   "syntax": "print (literal-string)",
+   "store": false,
+   "branch": false,
+   "text": true,
+   "illegal": false,
+   "anchor": "sect15.html#print",
+   "versions": [
+    5,
+    6,
+    7,
+    8
+   ]
+  },
+  {
+   "kind": "0OP",
+   "number": 3,
+   "decimal": 179,
+   "version": 1,
+   "name": "print_ret",
+   "syntax": "print_ret (literal-string)",
+   "store": false,
+   "branch": false,
+   "text": true,
+   "illegal": false,
+   "anchor": "sect15.html#print_ret",
+   "versions": [
+    5,
+    6,
+    7,
+    8
+   ]
+  },
+  {
+   "kind": "0OP",
+   "number": 4,
+   "decimal": 180,
+   "version": 1,
+   "name": "nop",
+   "syntax": "nop",
+   "store": false,
+   "branch": false,
+   "text": false,
+   "illegal": false,
+   "anchor": "sect15.html#nop",
+   "versions": [
+    5,
+    6,
+    7,
+    8
+   ]
+  },
+  {
+   "kind": "0OP",
+   "number": 7,
+   "decimal": 183,
+   "version": 1,
+   "name": "restart",
+   "syntax": "restart",
+   "store": false,
+   "branch": false,
+   "text": false,
+   "illegal": false,
+   "anchor": "sect15.html#restart",
+   "versions": [
+    5,
+    6,
+    7,
+    8
+   ]
+  },
+  {
+   "kind": "0OP",
+   "number": 8,
+   "decimal": 184,
+   "version": 1,
+   "name": "ret_popped",
+   "syntax": "ret_popped",
+   "store": false,
+   "branch": false,
+   "text": false,
+   "illegal": false,
+   "anchor": "sect15.html#ret_popped",
+   "versions": [
+    5,
+    6,
+    7,
+    8
+   ]
+  },
+  {
+   "kind": "0OP",
+   "number": 9,
+   "decimal": 185,
+   "version": 5,
+   "name": "catch",
+   "syntax": "catch -> (result)",
+   "store": true,
+   "branch": false,
+   "text": false,
+   "illegal": false,
+   "anchor": "sect15.html#catch",
+   "versions": [
+    5,
+    6,
+    7,
+    8
+   ]
+  },
+  {
+   "kind": "0OP",
+   "number": 10,
+   "decimal": 186,
+   "version": 1,
+   "name": "quit",
+   "syntax": "quit",
+   "store": false,
+   "branch": false,
+   "text": false,
+   "illegal": false,
+   "anchor": "sect15.html#quit",
+   "versions": [
+    5,
+    6,
+    7,
+    8
+   ]
+  },
+  {
+   "kind": "0OP",
+   "number": 11,
+   "decimal": 187,
+   "version": 1,
+   "name": "new_line",
+   "syntax": "new_line",
+   "store": false,
+   "branch": false,
+   "text": false,
+   "illegal": false,
+   "anchor": "sect15.html#new_line",
+   "versions": [
+    5,
+    6,
+    7,
+    8
+   ]
+  },
+  {
+   "kind": "0OP",
+   "number": 13,
+   "decimal": 189,
+   "version": 3,
+   "name": "verify",
+   "syntax": "verify ?(label)",
+   "store": false,
+   "branch": true,
+   "text": false,
+   "illegal": false,
+   "anchor": "sect15.html#verify",
+   "versions": [
+    5,
+    6,
+    7,
+    8
+   ]
+  },
+  {
+   "kind": "0OP",
+   "number": 15,
+   "decimal": 191,
+   "version": 5,
+   "name": "piracy",
+   "syntax": "piracy ?(label)",
+   "store": false,
+   "branch": true,
+   "text": false,
+   "illegal": false,
+   "anchor": "sect15.html#piracy",
+   "versions": [
+    5,
+    6,
+    7,
+    8
+   ]
+  },
+  {
+   "kind": "VAR",
+   "number": 0,
+   "decimal": 224,
+   "version": 4,
+   "name": "call_vs",
+   "syntax": "call_vs routine ...0 to 3 args... -> (result)",
+   "store": true,
+   "branch": false,
+   "text": false,
+   "illegal": false,
+   "anchor": "sect15.html#call_vs",
+   "versions": [
+    5,
+    6,
+    7,
+    8
+   ]
+  },
+  {
+   "kind": "VAR",
+   "number": 1,
+   "decimal": 225,
+   "version": 1,
+   "name": "storew",
+   "syntax": "storew array word-index value",
+   "store": false,
+   "branch": false,
+   "text": false,
+   "illegal": false,
+   "anchor": "sect15.html#storew",
+   "versions": [
+    5,
+    6,
+    7,
+    8
+   ]
+  },
+  {
+   "kind": "VAR",
+   "number": 2,
+   "decimal": 226,
+   "version": 1,
+   "name": "storeb",
+   "syntax": "storeb array byte-index value",
+   "store": false,
+   "branch": false,
+   "text": false,
+   "illegal": false,
+   "anchor": "sect15.html#storeb",
+   "versions": [
+    5,
+    6,
+    7,
+    8
+   ]
+  },
+  {
+   "kind": "VAR",
+   "number": 3,
+   "decimal": 227,
+   "version": 1,
+   "name": "put_prop",
+   "syntax": "put_prop object property value",
+   "store": false,
+   "branch": false,
+   "text": false,
+   "illegal": false,
+   "anchor": "sect15.html#put_prop",
+   "versions": [
+    5,
+    6,
+    7,
+    8
+   ]
+  },
+  {
+   "kind": "VAR",
+   "number": 4,
+   "decimal": 228,
+   "version": 5,
+   "name": "aread",
+   "syntax": "aread text parse time routine -> (result)",
+   "store": true,
+   "branch": false,
+   "text": false,
+   "illegal": false,
+   "anchor": "sect15.html#aread",
+   "versions": [
+    5,
+    6,
+    7,
+    8
+   ]
+  },
+  {
+   "kind": "VAR",
+   "number": 5,
+   "decimal": 229,
+   "version": 1,
+   "name": "print_char",
+   "syntax": "print_char output-character-code",
+   "store": false,
+   "branch": false,
+   "text": false,
+   "illegal": false,
+   "anchor": "sect15.html#print_char",
+   "versions": [
+    5,
+    6,
+    7,
+    8
+   ]
+  },
+  {
+   "kind": "VAR",
+   "number": 6,
+   "decimal": 230,
+   "version": 1,
+   "name": "print_num",
+   "syntax": "print_num value",
+   "store": false,
+   "branch": false,
+   "text": false,
+   "illegal": false,
+   "anchor": "sect15.html#print_num",
+   "versions": [
+    5,
+    6,
+    7,
+    8
+   ]
+  },
+  {
+   "kind": "VAR",
+   "number": 7,
+   "decimal": 231,
+   "version": 1,
+   "name": "random",
+   "syntax": "random range -> (result)",
+   "store": true,
+   "branch": false,
+   "text": false,
+   "illegal": false,
+   "anchor": "sect15.html#random",
+   "versions": [
+    5,
+    6,
+    7,
+    8
+   ]
+  },
+  {
+   "kind": "VAR",
+   "number": 8,
+   "decimal": 232,
+   "version": 1,
+   "name": "push",
+   "syntax": "push value",
+   "store": false,
+   "branch": false,
+   "text": false,
+   "illegal": false,
+   "anchor": "sect15.html#push",
+   "versions": [
+    5,
+    6,
+    7,
+    8
+   ]
+  },
+  {
+   "kind": "VAR",
+   "number": 9,
+   "decimal": 233,
+   "version": 1,
+   "name": "pull",
+   "syntax": "pull (variable)",
+   "store": false,
+   "branch": false,
+   "text": false,
+   "illegal": false,
+   "anchor": "sect15.html#pull",
+   "versions": [
+    5,
+    7,
+    8
+   ]
+  },
+  {
+   "kind": "VAR",
+   "number": 9,
+   "decimal": 233,
+   "version": 6,
+   "name": "pull",
+   "syntax": "pull stack -> (result)",
+   "store": true,
+   "branch": false,
+   "text": false,
+   "illegal": false,
+   "anchor": "sect15.html#pull",
+   "versions": [
+    6
+   ]
+  },
+  {
+   "kind": "VAR",
+   "number": 10,
+   "decimal": 234,
+   "version": 3,
+   "name": "split_window",
+   "syntax": "split_window lines",
+   "store": false,
+   "branch": false,
+   "text": false,
+   "illegal": false,
+   "anchor": "sect15.html#split_window",
+   "versions": [
+    5,
+    6,
+    7,
+    8
+   ]
+  },
+  {
+   "kind": "VAR",
+   "number": 11,
+   "decimal": 235,
+   "version": 3,
+   "name": "set_window",
+   "syntax": "set_window window",
+   "store": false,
+   "branch": false,
+   "text": false,
+   "illegal": false,
+   "anchor": "sect15.html#set_window",
+   "versions": [
+    5,
+    6,
+    7,
+    8
+   ]
+  },
+  {
+   "kind": "VAR",
+   "number": 12,
+   "decimal": 236,
+   "version": 4,
+   "name": "call_vs2",
+   "syntax": "call_vs2 routine ...0 to 7 args... -> (result)",
+   "store": true,
+   "branch": false,
+   "text": false,
+   "illegal": false,
+   "anchor": "sect15.html#call_vs2",
+   "versions": [
+    5,
+    6,
+    7,
+    8
+   ]
+  },
+  {
+   "kind": "VAR",
+   "number": 13,
+   "decimal": 237,
+   "version": 4,
+   "name": "erase_window",
+   "syntax": "erase_window window",
+   "store": false,
+   "branch": false,
+   "text": false,
+   "illegal": false,
+   "anchor": "sect15.html#erase_window",
+   "versions": [
+    5,
+    6,
+    7,
+    8
+   ]
+  },
+  {
+   "kind": "VAR",
+   "number": 14,
+   "decimal": 238,
+   "version": 4,
+   "name": "erase_line",
+   "syntax": "erase_line value",
+   "store": false,
+   "branch": false,
+   "text": false,
+   "illegal": false,
+   "anchor": "sect15.html#erase_line",
+   "versions": [
+    5,
+    7,
+    8
+   ]
+  },
+  {
+   "kind": "VAR",
+   "number": 14,
+   "decimal": 238,
+   "version": 6,
+   "name": "erase_line",
+   "syntax": "erase_line pixels",
+   "store": false,
+   "branch": false,
+   "text": false,
+   "illegal": false,
+   "anchor": "sect15.html#erase_line",
+   "versions": [
+    6
+   ]
+  },
+  {
+   "kind": "VAR",
+   "number": 15,
+   "decimal": 239,
+   "version": 4,
+   "name": "set_cursor",
+   "syntax": "set_cursor line column",
+   "store": false,
+   "branch": false,
+   "text": false,
+   "illegal": false,
+   "anchor": "sect15.html#set_cursor",
+   "versions": [
+    5,
+    7,
+    8
+   ]
+  },
+  {
+   "kind": "VAR",
+   "number": 15,
+   "decimal": 239,
+   "version": 6,
+   "name": "set_cursor",
+   "syntax": "set_cursor line column window",
+   "store": false,
+   "branch": false,
+   "text": false,
+   "illegal": false,
+   "anchor": "sect15.html#set_cursor",
+   "versions": [
+    6
+   ]
+  },
+  {
+   "kind": "VAR",
+   "number": 16,
+   "decimal": 240,
+   "version": 4,
+   "name": "get_cursor",
+   "syntax": "get_cursor array",
+   "store": false,
+   "branch": false,
+   "text": false,
+   "illegal": false,
+   "anchor": "sect15.html#get_cursor",
+   "versions": [
+    5,
+    6,
+    7,
+    8
+   ]
+  },
+  {
+   "kind": "VAR",
+   "number": 17,
+   "decimal": 241,
+   "version": 4,
+   "name": "set_text_style",
+   "syntax": "set_text_style style",
+   "store": false,
+   "branch": false,
+   "text": false,
+   "illegal": false,
+   "anchor": "sect15.html#set_text_style",
+   "versions": [
+    5,
+    6,
+    7,
+    8
+   ]
+  },
+  {
+   "kind": "VAR",
+   "number": 18,
+   "decimal": 242,
+   "version": 4,
+   "name": "buffer_mode",
+   "syntax": "buffer_mode flag",
+   "store": false,
+   "branch": false,
+   "text": false,
+   "illegal": false,
+   "anchor": "sect15.html#buffer_mode",
+   "versions": [
+    5,
+    6,
+    7,
+    8
+   ]
+  },
+  {
+   "kind": "VAR",
+   "number": 19,
+   "decimal": 243,
+   "version": 5,
+   "name": "output_stream",
+   "syntax": "output_stream number table",
+   "store": false,
+   "branch": false,
+   "text": false,
+   "illegal": false,
+   "anchor": "sect15.html#output_stream",
+   "versions": [
+    5,
+    7,
+    8
+   ]
+  },
+  {
+   "kind": "VAR",
+   "number": 19,
+   "decimal": 243,
+   "version": 6,
+   "name": "output_stream",
+   "syntax": "output_stream number table width",
+   "store": false,
+   "branch": false,
+   "text": false,
+   "illegal": false,
+   "anchor": "sect15.html#output_stream",
+   "versions": [
+    6
+   ]
+  },
+  {
+   "kind": "VAR",
+   "number": 20,
+   "decimal": 244,
+   "version": 3,
+   "name": "input_stream",
+   "syntax": "input_stream number",
+   "store": false,
+   "branch": false,
+   "text": false,
+   "illegal": false,
+   "anchor": "sect15.html#input_stream",
+   "versions": [
+    5,
+    6,
+    7,
+    8
+   ]
+  },
+  {
+   "kind": "VAR",
+   "number": 21,
+   "decimal": 245,
+   "version": 5,
+   "name": "sound_effect",
+   "syntax": "sound_effect number effect volume routine",
+   "store": false,
+   "branch": false,
+   "text": false,
+   "illegal": false,
+   "anchor": "sect15.html#sound_effect",
+   "versions": [
+    5,
+    6,
+    7,
+    8
+   ]
+  },
+  {
+   "kind": "VAR",
+   "number": 22,
+   "decimal": 246,
+   "version": 4,
+   "name": "read_char",
+   "syntax": "read_char 1 time routine -> (result)",
+   "store": true,
+   "branch": false,
+   "text": false,
+   "illegal": false,
+   "anchor": "sect15.html#read_char",
+   "versions": [
+    5,
+    6,
+    7,
+    8
+   ]
+  },
+  {
+   "kind": "VAR",
+   "number": 23,
+   "decimal": 247,
+   "version": 4,
+   "name": "scan_table",
+   "syntax": "scan_table x table len form -> (result)",
+   "store": true,
+   "branch": true,
+   "text": false,
+   "illegal": false,
+   "anchor": "sect15.html#scan_table",
+   "versions": [
+    5,
+    6,
+    7,
+    8
+   ]
+  },
+  {
+   "kind": "VAR",
+   "number": 24,
+   "decimal": 248,
+   "version": 5,
+   "name": "not",
+   "syntax": "not value -> (result)",
+   "store": true,
+   "branch": false,
+   "text": false,
+   "illegal": false,
+   "anchor": "sect15.html#not",
+   "versions": [
+    5,
+    6,
+    7,
+    8
+   ]
+  },
+  {
+   "kind": "VAR",
+   "number": 25,
+   "decimal": 249,
+   "version": 5,
+   "name": "call_vn",
+   "syntax": "call_vn routine ...up to 3 args...",
+   "store": false,
+   "branch": false,
+   "text": false,
+   "illegal": false,
+   "anchor": "sect15.html#call_vn",
+   "versions": [
+    5,
+    6,
+    7,
+    8
+   ]
+  },
+  {
+   "kind": "VAR",
+   "number": 26,
+   "decimal": 250,
+   "version": 5,
+   "name": "call_vn2",
+   "syntax": "call_vn2 routine ...up to 7 args...",
+   "store": false,
+   "branch": false,
+   "text": false,
+   "illegal": false,
+   "anchor": "sect15.html#call_vn2",
+   "versions": [
+    5,
+    6,
+    7,
+    8
+   ]
+  },
+  {
+   "kind": "VAR",
+   "number": 27,
+   "decimal": 251,
+   "version": 5,
+   "name": "tokenise",
+   "syntax": "tokenise text parse dictionary flag",
+   "store": false,
+   "branch": false,
+   "text": false,
+   "illegal": false,
+   "anchor": "sect15.html#tokenise",
+   "versions": [
+    5,
+    6,
+    7,
+    8
+   ]
+  },
+  {
+   "kind": "VAR",
+   "number": 28,
+   "decimal": 252,
+   "version": 5,
+   "name": "encode_text",
+   "syntax": "encode_text zscii-text length from coded-text",
+   "store": false,
+   "branch": false,
+   "text": false,
+   "illegal": false,
+   "anchor": "sect15.html#encode_text",
+   "versions": [
+    5,
+    6,
+    7,
+    8
+   ]
+  },
+  {
+   "kind": "VAR",
+   "number": 29,
+   "decimal": 253,
+   "version": 5,
+   "name": "copy_table",
+   "syntax": "copy_table first second size",
+   "store": false,
+   "branch": false,
+   "text": false,
+   "illegal": false,
+   "anchor": "sect15.html#copy_table",
+   "versions": [
+    5,
+    6,
+    7,
+    8
+   ]
+  },
+  {
+   "kind": "VAR",
+   "number": 30,
+   "decimal": 254,
+   "version": 5,
+   "name": "print_table",
+   "syntax": "print_table zscii-text width height skip",
+   "store": false,
+   "branch": false,
+   "text": false,
+   "illegal": false,
+   "anchor": "sect15.html#print_table",
+   "versions": [
+    5,
+    6,
+    7,
+    8
+   ]
+  },
+  {
+   "kind": "VAR",
+   "number": 31,
+   "decimal": 255,
+   "version": 5,
+   "name": "check_arg_count",
+   "syntax": "check_arg_count argument-number",
+   "store": false,
+   "branch": true,
+   "text": false,
+   "illegal": false,
+   "anchor": "sect15.html#check_arg_count",
+   "versions": [
+    5,
+    6,
+    7,
+    8
+   ]
+  },
+  {
+   "kind": "EXT",
+   "number": 0,
+   "decimal": 0,
+   "version": 5,
+   "name": "save",
+   "syntax": "save table bytes name prompt -> (result)",
+   "store": true,
+   "branch": false,
+   "text": false,
+   "illegal": false,
+   "anchor": "sect15.html#save",
+   "versions": [
+    5,
+    6,
+    7,
+    8
+   ]
+  },
+  {
+   "kind": "EXT",
+   "number": 1,
+   "decimal": 1,
+   "version": 5,
+   "name": "restore",
+   "syntax": "restore table bytes name prompt -> (result)",
+   "store": true,
+   "branch": false,
+   "text": false,
+   "illegal": false,
+   "anchor": "sect15.html#restore",
+   "versions": [
+    5,
+    6,
+    7,
+    8
+   ]
+  },
+  {
+   "kind": "EXT",
+   "number": 2,
+   "decimal": 2,
+   "version": 5,
+   "name": "log_shift",
+   "syntax": "log_shift number places -> (result)",
+   "store": true,
+   "branch": false,
+   "text": false,
+   "illegal": false,
+   "anchor": "sect15.html#log_shift",
+   "versions": [
+    5,
+    6,
+    7,
+    8
+   ]
+  },
+  {
+   "kind": "EXT",
+   "number": 3,
+   "decimal": 3,
+   "version": 5,
+   "name": "art_shift",
+   "syntax": "art_shift number places -> (result)",
+   "store": true,
+   "branch": false,
+   "text": false,
+   "illegal": false,
+   "anchor": "sect15.html#art_shift",
+   "versions": [
+    5,
+    6,
+    7,
+    8
+   ]
+  },
+  {
+   "kind": "EXT",
+   "number": 4,
+   "decimal": 4,
+   "version": 5,
+   "name": "set_font",
+   "syntax": "set_font font -> (result)",
+   "store": true,
+   "branch": false,
+   "text": false,
+   "illegal": false,
+   "anchor": "sect15.html#set_font",
+   "versions": [
+    5,
+    7,
+    8
+   ]
+  },
+  {
+   "kind": "EXT",
+   "number": 4,
+   "decimal": 4,
+   "version": 6,
+   "name": "set_font",
+   "syntax": "set_font font window -> (result)",
+   "store": true,
+   "branch": false,
+   "text": false,
+   "illegal": false,
+   "anchor": "sect15.html#set_font",
+   "versions": [
+    6
+   ]
+  },
+  {
+   "kind": "EXT",
+   "number": 5,
+   "decimal": 5,
+   "version": 6,
+   "name": "draw_picture",
+   "syntax": "draw_picture picture-number y x",
+   "store": false,
+   "branch": false,
+   "text": false,
+   "illegal": false,
+   "anchor": "sect15.html#draw_picture",
+   "versions": [
+    6
+   ]
+  },
+  {
+   "kind": "EXT",
+   "number": 6,
+   "decimal": 6,
+   "version": 6,
+   "name": "picture_data",
+   "syntax": "picture_data picture-number array ?(label)",
+   "store": false,
+   "branch": true,
+   "text": false,
+   "illegal": false,
+   "anchor": "sect15.html#picture_data",
+   "versions": [
+    6
+   ]
+  },
+  {
+   "kind": "EXT",
+   "number": 7,
+   "decimal": 7,
+   "version": 6,
+   "name": "erase_picture",
+   "syntax": "erase_picture picture-number y x",
+   "store": false,
+   "branch": false,
+   "text": false,
+   "illegal": false,
+   "anchor": "sect15.html#erase_picture",
+   "versions": [
+    6
+   ]
+  },
+  {
+   "kind": "EXT",
+   "number": 8,
+   "decimal": 8,
+   "version": 6,
+   "name": "set_margins",
+   "syntax": "set_margins left right window",
+   "store": false,
+   "branch": false,
+   "text": false,
+   "illegal": false,
+   "anchor": "sect15.html#set_margins",
+   "versions": [
+    6
+   ]
+  },
+  {
+   "kind": "EXT",
+   "number": 9,
+   "decimal": 9,
+   "version": 5,
+   "name": "save_undo",
+   "syntax": "save_undo -> (result)",
+   "store": true,
+   "branch": false,
+   "text": false,
+   "illegal": false,
+   "anchor": "sect15.html#save_undo",
+   "versions": [
+    5,
+    6,
+    7,
+    8
+   ]
+  },
+  {
+   "kind": "EXT",
+   "number": 10,
+   "decimal": 10,
+   "version": 5,
+   "name": "restore_undo",
+   "syntax": "restore_undo -> (result)",
+   "store": true,
+   "branch": false,
+   "text": false,
+   "illegal": false,
+   "anchor": "sect15.html#restore_undo",
+   "versions": [
+    5,
+    6,
+    7,
+    8
+   ]
+  },
+  {
+   "kind": "EXT",
+   "number": 11,
+   "decimal": 11,
+   "version": 5,
+   "name": "print_unicode",
+   "syntax": "print_unicode char-number",
+   "store": false,
+   "branch": false,
+   "text": false,
+   "illegal": false,
+   "anchor": "sect15.html#print_unicode",
+   "versions": [
+    5,
+    6,
+    7,
+    8
+   ]
+  },
+  {
+   "kind": "EXT",
+   "number": 12,
+   "decimal": 12,
+   "version": 5,
+   "name": "check_unicode",
+   "syntax": "check_unicode char-number -> (result)",
+   "store": true,
+   "branch": false,
+   "text": false,
+   "illegal": false,
+   "anchor": "sect15.html#check_unicode",
+   "versions": [
+    5,
+    6,
+    7,
+    8
+   ]
+  },
+  {
+   "kind": "EXT",
+   "number": 13,
+   "decimal": 13,
+   "version": 5,
+   "name": "set_true_colour",
+   "syntax": "set_true_colour foreground background",
+   "store": false,
+   "branch": false,
+   "text": false,
+   "illegal": false,
+   "anchor": "sect15.html#set_true_colour",
+   "versions": [
+    5,
+    7,
+    8
+   ]
+  },
+  {
+   "kind": "EXT",
+   "number": 13,
+   "decimal": 13,
+   "version": 6,
+   "name": "set_true_colour",
+   "syntax": "set_true_colour foreground background window",
+   "store": false,
+   "branch": false,
+   "text": false,
+   "illegal": false,
+   "anchor": "sect15.html#set_true_colour",
+   "versions": [
+    6
+   ]
+  },
+  {
+   "kind": "EXT",
+   "number": 16,
+   "decimal": 16,
+   "version": 6,
+   "name": "move_window",
+   "syntax": "move_window window y x",
+   "store": false,
+   "branch": false,
+   "text": false,
+   "illegal": false,
+   "anchor": "sect15.html#move_window",
+   "versions": [
+    6
+   ]
+  },
+  {
+   "kind": "EXT",
+   "number": 17,
+   "decimal": 17,
+   "version": 6,
+   "name": "window_size",
+   "syntax": "window_size window y x",
+   "store": false,
+   "branch": false,
+   "text": false,
+   "illegal": false,
+   "anchor": "sect15.html#window_size",
+   "versions": [
+    6
+   ]
+  },
+  {
+   "kind": "EXT",
+   "number": 18,
+   "decimal": 18,
+   "version": 6,
+   "name": "window_style",
+   "syntax": "window_style window flags operation",
+   "store": false,
+   "branch": false,
+   "text": false,
+   "illegal": false,
+   "anchor": "sect15.html#window_style",
+   "versions": [
+    6
+   ]
+  },
+  {
+   "kind": "EXT",
+   "number": 19,
+   "decimal": 19,
+   "version": 6,
+   "name": "get_wind_prop",
+   "syntax": "get_wind_prop window property-number -> (result)",
+   "store": true,
+   "branch": false,
+   "text": false,
+   "illegal": false,
+   "anchor": "sect15.html#get_wind_prop",
+   "versions": [
+    6
+   ]
+  },
+  {
+   "kind": "EXT",
+   "number": 20,
+   "decimal": 20,
+   "version": 6,
+   "name": "scroll_window",
+   "syntax": "scroll_window window pixels",
+   "store": false,
+   "branch": false,
+   "text": false,
+   "illegal": false,
+   "anchor": "sect15.html#scroll_window",
+   "versions": [
+    6
+   ]
+  },
+  {
+   "kind": "EXT",
+   "number": 21,
+   "decimal": 21,
+   "version": 6,
+   "name": "pop_stack",
+   "syntax": "pop_stack items stack",
+   "store": false,
+   "branch": false,
+   "text": false,
+   "illegal": false,
+   "anchor": "sect15.html#pop_stack",
+   "versions": [
+    6
+   ]
+  },
+  {
+   "kind": "EXT",
+   "number": 22,
+   "decimal": 22,
+   "version": 6,
+   "name": "read_mouse",
+   "syntax": "read_mouse array",
+   "store": false,
+   "branch": false,
+   "text": false,
+   "illegal": false,
+   "anchor": "sect15.html#read_mouse",
+   "versions": [
+    6
+   ]
+  },
+  {
+   "kind": "EXT",
+   "number": 23,
+   "decimal": 23,
+   "version": 6,
+   "name": "mouse_window",
+   "syntax": "mouse_window window",
+   "store": false,
+   "branch": false,
+   "text": false,
+   "illegal": false,
+   "anchor": "sect15.html#mouse_window",
+   "versions": [
+    6
+   ]
+  },
+  {
+   "kind": "EXT",
+   "number": 24,
+   "decimal": 24,
+   "version": 6,
+   "name": "push_stack",
+   "syntax": "push_stack value stack ?(label)",
+   "store": false,
+   "branch": true,
+   "text": false,
+   "illegal": false,
+   "anchor": "sect15.html#push_stack",
+   "versions": [
+    6
+   ]
+  },
+  {
+   "kind": "EXT",
+   "number": 25,
+   "decimal": 25,
+   "version": 6,
+   "name": "put_wind_prop",
+   "syntax": "put_wind_prop window property-number value",
+   "store": false,
+   "branch": false,
+   "text": false,
+   "illegal": false,
+   "anchor": "sect15.html#put_wind_prop",
+   "versions": [
+    6
+   ]
+  },
+  {
+   "kind": "EXT",
+   "number": 26,
+   "decimal": 26,
+   "version": 6,
+   "name": "print_form",
+   "syntax": "print_form formatted-table",
+   "store": false,
+   "branch": false,
+   "text": false,
+   "illegal": false,
+   "anchor": "sect15.html#print_form",
+   "versions": [
+    6
+   ]
+  },
+  {
+   "kind": "EXT",
+   "number": 27,
+   "decimal": 27,
+   "version": 6,
+   "name": "make_menu",
+   "syntax": "make_menu number table ?(label)",
+   "store": false,
+   "branch": true,
+   "text": false,
+   "illegal": false,
+   "anchor": "sect15.html#make_menu",
+   "versions": [
+    6
+   ]
+  },
+  {
+   "kind": "EXT",
+   "number": 28,
+   "decimal": 28,
+   "version": 6,
+   "name": "picture_table",
+   "syntax": "picture_table table",
+   "store": false,
+   "branch": false,
+   "text": false,
+   "illegal": false,
+   "anchor": "sect15.html#picture_table",
+   "versions": [
+    6
+   ]
+  },
+  {
+   "kind": "EXT",
+   "number": 29,
+   "decimal": 29,
+   "version": 6,
+   "name": "buffer_screen",
+   "syntax": "buffer_screen mode -> (result)",
+   "store": true,
+   "branch": false,
+   "text": false,
+   "illegal": false,
+   "anchor": "sect15.html#buffer_screen",
+   "versions": [
+    6
+   ]
+  }
  ]
 }

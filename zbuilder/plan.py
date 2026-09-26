@@ -25,6 +25,10 @@ class Task:
         return asdict(self)
 
 
+# Tiers from here on belong to proforma v2; their tasks must ALSO keep the
+# whole v1 eval suite green (the v1 cases are a contract).
+V2_FIRST_TIER = 5
+
 DEFAULT_PLAN: list[Task] = [
     # ---- Tier 0: walking skeleton
     Task("spec-grounding", 0, "Fetch + index the spec; extract the §14 opcode table",
@@ -79,6 +83,25 @@ DEFAULT_PLAN: list[Task] = [
           "parser-reply-is-new-command", "parser-pronouns", "parser-pronoun-out-of-scope",
           "parser-orphan-object", "parser-orphan-not-here", "parser-prefers-context"],
          ["tests/test_grammar.py"]),
+    # ================================================================ v2
+    # Proforma v2 (agentic_ai_proforma_v2_inform7_zmachine_filled.txt):
+    # I7-lite -> ZIL-lite -> z5/z6/z7/z8. Tiers continue the v1 numbering;
+    # every v2 tier ALSO requires the v1 eval suite to stay green.
+    # ---- Tier 5: version-aware refactor with ZERO behaviour change
+    # (V2_FIRST_TIER below: from here on the Verifier also runs the v1 suite)
+    Task("v2-golden-baseline", 5, "Freeze today's build outputs (zbuilder golden)",
+         ["zbuilder/tools/golden.py", "tests/golden/v1_hashes.json"], [],
+         ["refactor-byte-identical"], []),
+    Task("v2-opcode-versions", 5, "opcodes.json + opcodes.py per version (v7/v8 = v5 table, §1)",
+         ["zbuilder/tools/opcode_table.py", "zforge/common/opcodes.py", "spec/opcodes.json"],
+         ["§14", "§1", "§15 pull"], ["spec-opcode-versions", "spec-grounding"],
+         ["tests/test_versions.py", "tests/test_opcode_table.py"]),
+    Task("v2-version-profile", 5, "VersionProfile(5); route every v5 hard-code through it",
+         ["zforge/common/versions.py", "zforge/common/header.py", "zforge/vm/machine.py",
+          "zforge/asm/assembler.py", "zforge/asm/linker.py", "zforge/asm/disasm.py"],
+         ["§1.1.4", "§1.2.3", "§5.4", "§5.5", "§11.1.6"],
+         ["version-profile", "refactor-byte-identical", "reject-non-v5"],
+         ["tests/test_versions.py"]),
 ]
 
 
