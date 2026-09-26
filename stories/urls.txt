@@ -15,3 +15,6 @@ https://ifarchive.org/if-archive/infocom/interpreters/tools/strictz.z5 2a15122ed
 https://ifarchive.org/if-archive/games/zcode/Advent_Crowther.z8 93be8c77302b7931567995ef1246b3739086d0b3e2e02a2bd751ec83cd0fdc19
 #   Jigsaw, by Graham Nelson (1995), release 3
 https://ifarchive.org/if-archive/games/zcode/Jigsaw.z8 1776c051db9cc3ceccd876e0cc8808188494db06957c231a9f27bc61e3f16fcf
+#   ...and its Inform 7 SOURCE (a real-world reference for the I7-lite subset;
+#   see docs/I7_SURVEY.md)
+https://ifarchive.org/if-archive/games/source/inform/Advent_Crowther_source.txt 4a0ec6dc6c0cfe11689f623fd4bb7d987f7d500868a2737df24ef2904efeca27
