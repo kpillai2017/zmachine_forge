@@ -23,6 +23,7 @@ from zforge.vm.frames import MAX_LOCALS, Frame
 from zforge.vm.lexer import Dictionary
 from zforge.vm.objects import ObjectTable
 from zforge.vm.streams import OutputStreams
+from zforge.common.opcodes import table_for
 
 INTERPRETER_NUMBER = 6          # §11.1.3: "IBM PC" is a common neutral choice
 INTERPRETER_VERSION = ord("Z")  # an ASCII letter in v4-5
@@ -34,6 +35,7 @@ class ZMachine:
                  transcript_path: str | None = None, trace_file=None, trace_depth: int = 20):
         self.story = bytes(story)                  # pristine copy (restart, verify, Quetzal)
         self.header = H.Header.parse(self.story)   # raises for unsupported versions
+        self.opcode_table = table_for(self.header.version)   # §14, per version
         self.screen = screen
         self.rng = random.Random(seed)
         self.trace_file = trace_file
@@ -170,7 +172,8 @@ class ZMachine:
 
     def step(self) -> None:
         from zforge.vm.ops import HANDLERS           # the explicit opcode table
-        ins = decode(self.mem.read_byte, self.pc, self.skip_text)
+        ins = decode(self.mem.read_byte, self.pc, self.skip_text, self.opcode_table,
+                     self.header.version)
         self.current = ins
         self.pc = ins.next_address
         self.steps += 1
@@ -226,11 +229,11 @@ class ZMachine:
     # ------------------------------------------------------- calls & returns
     def unpack_routine(self, packed: int) -> int:
         """§1.2.3: packed routine address -> byte address (see VersionProfile)."""
-        return self.header.profile.unpack_routine(packed)
+        return self.header.profile.unpack_routine(packed, self.header.routines_offset)
 
     def unpack_string(self, packed: int) -> int:
         """§1.2.3: packed string address -> byte address (see VersionProfile)."""
-        return self.header.profile.unpack_string(packed)
+        return self.header.profile.unpack_string(packed, self.header.strings_offset)
 
     def call_routine(self, packed: int, args: list[int], store_var: int | None) -> None:
         """§6.4: call the routine at packed address `packed`.

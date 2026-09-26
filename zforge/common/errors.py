@@ -13,7 +13,16 @@ class StoryFileError(ZForgeError):
 
 
 class UnsupportedVersion(StoryFileError):
-    """zforge implements version 5 only."""
+    """A story-file version zforge does not run (see common/versions.py)."""
+
+
+class LayoutError(ZForgeError, ValueError):
+    """The story cannot be laid out for this version: too big (§1.1.4), or
+    an address a packed address cannot reach (§1.2.3)."""
+
+
+class UnsupportedTarget(ZForgeError):
+    """A --target / zforge.toml / ZFORGE_TARGET value zforge cannot build."""
 
 
 class ZMachineError(ZForgeError):

@@ -15,7 +15,10 @@ from zforge.compiler import reader as r
 from zforge.compiler.diagnostics import Diagnostics
 from zforge.compiler.grammar import OPTION_BITS
 
-SUPPORTED_VERSIONS = {"5": 5, "EZIP": 5, "XZIP": 5}   # we only generate version 5
+# <VERSION ...> names the version a source is WRITTEN for. EZIP is kept as
+# 5 for v1 compatibility (ZILF uses ZIP=3, EZIP=4, XZIP=5, YZIP=6).
+# --target may still pick a version with the same opcode set (driver.py).
+SUPPORTED_VERSIONS = {"5": 5, "EZIP": 5, "XZIP": 5, "7": 7, "8": 8}
 
 
 class FormParser:
@@ -58,7 +61,10 @@ class FormParser:
         key = str(args[0].value) if args and isinstance(args[0], r.Number) else \
             (args[0].name if args and isinstance(args[0], r.Atom) else "")
         if key not in SUPPORTED_VERSIONS:
-            self.error(form, f"only <VERSION 5> (EZIP/XZIP) is supported, not {key or '?'}")
+            self.error(form, f"only <VERSION 5> (EZIP/XZIP), <VERSION 7> or <VERSION 8> "
+                             f"is supported, not {key or '?'}")
+            return
+        self.program.version = SUPPORTED_VERSIONS[key]
 
     def _name(self, form, args, what: str) -> str | None:
         if not args or not isinstance(args[0], r.Atom):

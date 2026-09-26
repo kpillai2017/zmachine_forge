@@ -23,6 +23,10 @@ def header_report(story: bytes) -> str:
             ("Abbreviations", f"0x{h.abbreviations:04x}"),
             ("File length", f"{h.file_length} bytes"),
             ("Checksum", f"0x{h.checksum:04x} ({'ok' if ok else 'MISMATCH'})")]
+    if h.profile.uses_packing_offsets:                # §1.2.3: v6/v7 only
+        for label, offset in (("Routines offset", h.routines_offset),
+                              ("Strings offset", h.strings_offset)):
+            rows.append((label, f"0x{offset:04x} (x8 = 0x{8 * offset:05x})"))
     return "\n".join(f"  {k:<15} {v}" for k, v in rows)
 
 

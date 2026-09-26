@@ -28,6 +28,8 @@ from enum import IntEnum
 from zforge.common.errors import ZMachineError
 from zforge.common.opcodes import BY_KIND_NUMBER, DOUBLE_TYPE_BYTE, Op
 
+OpcodeTable = dict[tuple[str, int], Op]
+
 EXTENDED_PREFIX = 0xBE
 
 
@@ -80,22 +82,26 @@ def _types_from_byte(byte: int) -> list[OperandType]:
     return types
 
 
-def decode(read_byte, address: int, skip_text=None) -> Instruction:
+def decode(read_byte, address: int, skip_text=None, table: OpcodeTable | None = None,
+           version: int = 5) -> Instruction:
     """Decode the instruction at `address`, in the order of §4.1:
 
         opcode (1-2 bytes) | operand types | operands | store | branch | text
 
     read_byte(addr) -> int reads memory.  skip_text(addr) -> addr returns the
     address after a z-string (needed to find the end of print/print_ret).
+    `table` is the opcode set of the story's version (opcodes.table_for);
+    it defaults to version 5's.
     """
-    form, kind, number, types, pc = _decode_opcode(read_byte, address)
-    op = BY_KIND_NUMBER.get((kind, number))
+    table = table if table is not None else BY_KIND_NUMBER
+    form, kind, number, types, pc = _decode_opcode(read_byte, address, table)
+    op = table.get((kind, number))
     if op is None:
         if kind == "EXT" and number >= 29:
             # §14.2.1: unknown EXT opcodes from 29 up are ignored, not fatal
             op = Op("EXT", number, f"ext_unknown_{number}")
         else:
-            raise ZMachineError(f"Illegal opcode {kind}:{number} "
+            raise ZMachineError(f"Illegal opcode {kind}:{number} for version {version} "
                                 f"(byte 0x{read_byte(address):02x}) (§14)", address)
     operands, pc = _read_operands(read_byte, pc, types)
     ins = Instruction(address, op, form, operands)
@@ -111,7 +117,7 @@ def decode(read_byte, address: int, skip_text=None) -> Instruction:
     return ins
 
 
-def _decode_opcode(read_byte, pc: int):
+def _decode_opcode(read_byte, pc: int, table: OpcodeTable):
     """§4.3: the top two bits of the first byte choose the FORM, which says
     where the opcode number and the operand types are."""
     first = read_byte(pc)
@@ -125,7 +131,7 @@ def _decode_opcode(read_byte, pc: int):
         number = first & 0x1F
         types = _types_from_byte(read_byte(pc))
         pc += 1
-        op = BY_KIND_NUMBER.get((kind, number))
+        op = table.get((kind, number))
         if op is not None and op.name in DOUBLE_TYPE_BYTE:
             types += _types_from_byte(read_byte(pc))    # §4.4.3.1
             pc += 1

@@ -20,14 +20,14 @@ The rules, as the Standard states them:
 1.1.4 and 1.2.3" - which is why v7/v8 differ from v5 only in the first four
 rows.
 
-Tier 5 registers version 5 ONLY, so zforge's behaviour does not change.
-Later tiers add 7, 8 and 6 to PROFILES.
+Registered so far: 5 (Tier 5), 7 and 8 (Tier 6). Version 6 comes in Tier 8,
+with its window model.
 """
 from __future__ import annotations
 
 from dataclasses import dataclass
 
-from zforge.common.errors import StoryFileError, UnsupportedVersion
+from zforge.common.errors import LayoutError, StoryFileError, UnsupportedVersion
 
 
 @dataclass(frozen=True)
@@ -63,20 +63,45 @@ class VersionProfile:
         a multiple of the packing scale (§1.2.3)."""
         return self.packed_scale
 
+    @property
+    def area_alignment(self) -> int:
+        """Where the routine area and the string area begin. With offsets
+        (v6/v7) each area starts at 8 * R_O or 8 * S_O, so on a multiple of 8."""
+        return 8 if self.uses_packing_offsets else self.code_alignment
+
     def _offset(self, header_offset: int) -> int:
         return 8 * header_offset if self.uses_packing_offsets else 0
 
     def _pack(self, address: int, header_offset: int) -> int:
         relative = address - self._offset(header_offset)
         if relative < 0 or relative % self.packed_scale:
-            raise ValueError(f"address 0x{address:x} cannot be packed in version "
-                             f"{self.version} (scale {self.packed_scale})")
-        return relative // self.packed_scale
+            raise LayoutError(f"address 0x{address:x} cannot be packed in version "
+                              f"{self.version} (scale {self.packed_scale})")
+        packed = relative // self.packed_scale
+        if packed > 0xFFFF:              # a packed address is one 16-bit word
+            raise LayoutError(f"address 0x{address:x} is out of reach of a packed address "
+                              f"in version {self.version} (it can reach "
+                              f"{self.packed_scale * 0x10000 // 1024}K past its offset)")
+        return packed
+
+    def larger_versions(self) -> list[int]:
+        """Registered versions with the same opcode set that allow bigger
+        stories - what to suggest when a story is too large."""
+        return [v for v, p in sorted(PROFILES.items())
+                if p.opcode_table == self.opcode_table and p.max_story_size > self.max_story_size]
 
 
 PROFILES: dict[int, VersionProfile] = {
     5: VersionProfile(version=5, packed_scale=4, uses_packing_offsets=False,
                       file_length_divisor=4, max_story_size=256 * 1024,
+                      starts_with_main_routine=False, opcode_table=5),
+    # §1: "Versions 7 and 8 are identical to Version 5 except as stated at
+    # 1.1.4 and 1.2.3" - only the size limit and the packed addresses.
+    7: VersionProfile(version=7, packed_scale=4, uses_packing_offsets=True,
+                      file_length_divisor=8, max_story_size=512 * 1024,
+                      starts_with_main_routine=False, opcode_table=5),
+    8: VersionProfile(version=8, packed_scale=8, uses_packing_offsets=False,
+                      file_length_divisor=8, max_story_size=512 * 1024,
                       starts_with_main_routine=False, opcode_table=5),
 }
 

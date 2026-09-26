@@ -24,7 +24,7 @@ H_STATIC_MEMORY = 0x0E    # Base of static memory
 H_FLAGS2 = 0x10           # Flags 2 (word)
 H_SERIAL = 0x12           # Serial code: 6 ASCII characters
 H_ABBREVIATIONS = 0x18    # Location of abbreviations table
-H_FILE_LENGTH = 0x1A      # Length of file, divided by 4 in v4-5 (§11.1.6)
+H_FILE_LENGTH = 0x1A      # Length of file / 4 (v4-5) or / 8 (v6+) (§11.1.6)
 H_CHECKSUM = 0x1C         # Checksum of file
 H_INTERPRETER_NUMBER = 0x1E
 H_INTERPRETER_VERSION = 0x1F
@@ -34,6 +34,8 @@ H_SCREEN_WIDTH_UNITS = 0x22    # word
 H_SCREEN_HEIGHT_UNITS = 0x24   # word
 H_FONT_WIDTH_UNITS = 0x26      # v5: width of '0'
 H_FONT_HEIGHT_UNITS = 0x27     # v5
+H_ROUTINES_OFFSET = 0x28       # v6-7: R_O, packed routine addresses (§1.2.3)
+H_STRINGS_OFFSET = 0x2A        # v6-7: S_O, packed string addresses (§1.2.3)
 H_DEFAULT_BACKGROUND = 0x2C
 H_DEFAULT_FOREGROUND = 0x2D
 H_TERMINATING_CHARS = 0x2E     # address of terminating characters table
@@ -92,6 +94,8 @@ class Header:
     alphabet_table: int
     extension_table: int
     terminating_chars: int
+    routines_offset: int = 0         # R_O: only read where §1.2.3 uses it
+    strings_offset: int = 0          # S_O
 
     @classmethod
     def parse(cls, data: bytes | bytearray) -> "Header":
@@ -115,6 +119,8 @@ class Header:
             alphabet_table=word(data, H_ALPHABET_TABLE),
             extension_table=word(data, H_EXTENSION_TABLE),
             terminating_chars=word(data, H_TERMINATING_CHARS),
+            routines_offset=word(data, H_ROUTINES_OFFSET) if profile.uses_packing_offsets else 0,
+            strings_offset=word(data, H_STRINGS_OFFSET) if profile.uses_packing_offsets else 0,
         )
         h.validate(len(data))
         return h

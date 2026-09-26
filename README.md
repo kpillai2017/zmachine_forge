@@ -2,13 +2,13 @@
 
 ![CI](https://github.com/OWNER/zmachine_forge/actions/workflows/ci.yml/badge.svg)
 
-A **study-friendly Z-machine v5 toolchain** in plain Python, built from the
+A **study-friendly Z-machine toolchain (versions 5, 7 and 8)** in plain Python, built from the
 [Z-Machine Standards Document 1.1](https://inform-fiction.org/zmachine/standards/z1point1/index.html):
 
 | | |
 |---|---|
-| **interpreter** | every v5 opcode, object tree, dictionary, output streams, the upper/lower window screen model, Quetzal save/restore, undo. Passes `czech.z5` (406/406) and `praxix.z5` |
-| **compiler** | ZIL-lite (a documented subset of Infocom's ZIL, incl. SYNTAX grammar and PROG/BIND) -> `.zas` assembly -> `.z5` |
+| **interpreter** | versions 5, 7 and 8 (every rule that differs lives in `zforge/common/versions.py`); every v5 opcode, object tree, dictionary, output streams, the upper/lower window screen model, Quetzal save/restore, undo. Passes `czech.z5` (406/406) and `praxix.z5` |
+| **compiler** | ZIL-lite (a documented subset of Infocom's ZIL, incl. SYNTAX grammar and PROG/BIND) -> `.zas` assembly -> `.z5`, `.z7` or `.z8` (`--target`) |
 | **assembler / disassembler** | readable `.zas` text, branch relaxation, linker, checksum; recursive-descent disassembler and `info` dumps |
 | **CLI** | curses terminal UI (status line, reverse video, colours) or plain text for pipes |
 | **zbuilder** | the agentic workflow that plans, briefs, verifies and reviews the build |
@@ -41,8 +41,20 @@ python -m zforge compile examples/cloak.zil -o build/cloak.z5 --emit-asm --emit-
 python -m zforge compile examples/cloak_syntax.zil -o build/cloak_syntax.z5 --emit-asm   # SYNTAX + lib/parser
 python -m zforge compile examples/parser_demo.zil -o build/parser_demo.z5 && python -m zforge run build/parser_demo.z5
 python -m zforge asm tests/samples/hello.zas -o build/hello.z5
+python -m zforge compile examples/cloak.zil --target z8 -o build/cloak.z8   # or z7; see below
 python -m zforge disasm build/cloak.z5
 python -m zforge info build/cloak.z5 --objects
+```
+
+**Choosing the version.** `--target z5|z7|z8`, else `target = "z8"` in a
+`zforge.toml` in the current directory, else the `ZFORGE_TARGET` environment
+variable, else the source's own `<VERSION>` (z5 for `.zas`). The build line
+says which one applied, e.g. `target z8 from --target`. Versions 7 and 8 differ
+from 5 only in story size and packed addresses (Standard §1), so every v5
+program builds for all three: `python -m eval.run_eval cross-version` checks
+that `cloak.zil` tells the same story on each.
+
+```bash
 python -m zforge spec print_char            # or: 3.8.5.3, "packed address"
 ```
 

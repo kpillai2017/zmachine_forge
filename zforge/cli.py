@@ -19,7 +19,9 @@ import pprint
 import sys
 from pathlib import Path
 
-from zforge.common.errors import ZForgeError
+from zforge.common.errors import UnsupportedTarget, UnsupportedVersion, ZForgeError
+from zforge.common.versions import DEFAULT_VERSION
+from zforge.config import Target, resolve_target
 
 
 def _read_story(path: str) -> bytes:
@@ -84,14 +86,22 @@ def _curses_available() -> bool:
 
 
 # ------------------------------------------------------------ compile
+def _explicit_target(args) -> Target | None:
+    """--target, zforge.toml or ZFORGE_TARGET; None lets the source decide."""
+    target = resolve_target(args.target, source_default=0)
+    return None if target.origin == "the source" else target
+
+
 def cmd_compile(args) -> int:
     from zforge.compiler.driver import compile_zil
 
     src = Path(args.source)
     if not src.exists():
         raise ZForgeError(f"{args.source}: no such file")
-    result = compile_zil(src.read_text(), str(src))
-    out = Path(args.output) if args.output else src.with_suffix(".z5")
+    target = _explicit_target(args)
+    result = compile_zil(src.read_text(), str(src), target.version if target else None)
+    origin = target.origin if target else "the source"
+    out = Path(args.output) if args.output else src.with_suffix(f".z{result.version}")
     out.write_bytes(result.story)
     extras = []
     if args.emit_asm:
@@ -106,7 +116,8 @@ def cmd_compile(args) -> int:
         out.with_suffix(".ast").write_text(pprint.pformat(result.program, width=100) + "\n")
         extras.append(out.with_suffix(".ast").name)
     also = f" (+ {', '.join(extras)})" if extras else ""
-    print(f"compiled {src} -> {out}  ({len(result.story)} bytes){also}")
+    print(f"compiled {src} -> {out}  ({len(result.story)} bytes, "
+          f"target z{result.version} from {origin}){also}")
     return 0
 
 
@@ -116,10 +127,11 @@ def cmd_asm(args) -> int:
     src = Path(args.source)
     if not src.exists():
         raise ZForgeError(f"{args.source}: no such file")
-    story = assemble(src.read_text(), str(src))
-    out = Path(args.output) if args.output else src.with_suffix(".z5")
+    target = resolve_target(args.target, DEFAULT_VERSION)
+    story = assemble(src.read_text(), str(src), target.version)
+    out = Path(args.output) if args.output else src.with_suffix(f".z{target.version}")
     out.write_bytes(story)
-    print(f"assembled {src} -> {out}  ({len(story)} bytes)")
+    print(f"assembled {src} -> {out}  ({len(story)} bytes, {target.describe()})")
     return 0
 
 
@@ -182,17 +194,20 @@ def build_parser() -> argparse.ArgumentParser:
     r.add_argument("-v", "--verbose", action="store_true", help="print VM warnings")
     r.set_defaults(func=cmd_run)
 
-    c = sub.add_parser("compile", help="compile ZIL-lite source to .z5")
+    c = sub.add_parser("compile", help="compile ZIL-lite source to a story file")
     c.add_argument("source")
     c.add_argument("-o", "--output")
+    c.add_argument("--target", help="z5, z7 or z8 (default: zforge.toml, $ZFORGE_TARGET, "
+                                    "then the source's <VERSION>)")
     c.add_argument("--emit-asm", action="store_true", help="also write the .zas assembly")
     c.add_argument("--emit-tokens", action="store_true", help="also write the token stream")
     c.add_argument("--emit-ast", action="store_true", help="also write the AST")
     c.set_defaults(func=cmd_compile)
 
-    a = sub.add_parser("asm", help="assemble .zas to .z5")
+    a = sub.add_parser("asm", help="assemble .zas to a story file")
     a.add_argument("source")
     a.add_argument("-o", "--output")
+    a.add_argument("--target", help="z5, z7 or z8 (default: zforge.toml, $ZFORGE_TARGET, z5)")
     a.set_defaults(func=cmd_asm)
 
     d = sub.add_parser("disasm", help="disassemble a story file")
@@ -218,6 +233,11 @@ def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     try:
         return args.func(args)
+    except (UnsupportedVersion, UnsupportedTarget) as exc:
+        if args.debug:                    # exit 2: the INPUT is not something zforge handles
+            raise
+        print(f"zforge: {exc}", file=sys.stderr)
+        return 2
     except ZForgeError as exc:
         if args.debug:
             raise

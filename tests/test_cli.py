@@ -17,9 +17,11 @@ def test_errors_are_one_line_and_nonzero(tmp_path, capsys):
     assert main(["run", str(tmp_path / "missing.z5")]) == 1
     bad = tmp_path / "v3.z5"
     bad.write_bytes(b"\x03" + bytes(100))
-    assert main(["run", str(bad), "--ui", "plain"]) == 1
+    # exit 2 = "not something zforge handles" (ADR-023; was 1 in zforge v1)
+    assert main(["run", str(bad), "--ui", "plain"]) == 2
     err = capsys.readouterr().err
     assert "Traceback" not in err and "version 3" in err
+    assert "zforge runs versions 5, 7 and 8" in err
 
 
 def test_scripted_play_of_the_example_game(tmp_path, capsys):

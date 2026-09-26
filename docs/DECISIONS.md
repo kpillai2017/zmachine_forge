@@ -166,3 +166,32 @@ maps v7/v8 to the v5 table (`TABLE_VERSION` in `opcode_table.py`), and
 for v5 / v6 / v7 / v8. **Note for Tier 8.** In v6, EXT:29 is `buffer_screen`
 (Standard 1.1), so ADR-002's "unknown EXT >= 29 is skipped" rule must become
 per-version.
+
+## ADR-023: Versions 7 and 8; choosing R_O/S_O; the target setting
+*spec: §1, §1.1.4, §1.2.3, §6.4.3, §11.1.6* **Context.** Tier 6 adds v7 and
+v8, which §1 calls "identical to Version 5 except as stated at 1.1.4 and
+1.2.3". **Decisions.**
+1. *Profiles.* v7: 4P + 8·R_O / 4P + 8·S_O, divisor 8, 512K. v8: 8P,
+   divisor 8, 512K. Both use the v5 opcode table and screen model.
+2. *R_O and S_O (v7).* The assembler starts the routine area and the string
+   area on multiples of 8 and sets each offset ONE 8-byte step before its
+   area, so the first routine or string packs to P = 2. Pointing the offset
+   exactly at the area makes the first routine P = 0, and §6.4.3 says a
+   call to packed address 0 does nothing (found in testing: `hello.z7`
+   silently printed nothing). Each area can reach 256K past its offset;
+   packing refuses anything further, rather than silently wrapping.
+3. *Size limit.* It is checked right after layout, before any packing, so an
+   oversized story gets "v5 allows at most 256K (§1.1.4) - try --target z7
+   or z8", not an "out of reach" message.
+4. *Target setting.* `--target` > `zforge.toml` > `ZFORGE_TARGET` > the
+   source (`<VERSION>` for .zil, z5 for .zas). The banner names the origin.
+   A ZIL-lite source written for version N builds for any version with the
+   same opcode set (`compatible_targets`: 5, 7, 8). `<VERSION 7>` and
+   `<VERSION 8>` are accepted; EZIP stays 5 for v1 compatibility.
+5. *Exit code 2* for an unsupported story version or target (the input is
+   not something zforge handles); 1 stays for everything else. This changes
+   one v1 test (a v3 story used to exit 1). `reject-non-v5` still passes
+   unchanged; `reject-below-v5` adds the exit code and the new wording.
+6. *czech.z8.* czech 0.8 ships only `czech.z5` plus `czech.inf` and the
+   expected outputs `czech.out3/4/5/8`, so `czech.z8` must be compiled with
+   Inform 6. Until then `czech-conformance-z8` SKIPS with that instruction.

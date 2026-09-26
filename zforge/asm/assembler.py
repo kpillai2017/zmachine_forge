@@ -27,7 +27,7 @@ from zforge.asm import linker
 from zforge.asm.linker import ObjectDef, align
 from zforge.asm.syntax import AsmError, AsmInstruction, Directive, Label, parse, unquote
 from zforge.common import header as H
-from zforge.common.opcodes import BY_NAME, DOUBLE_TYPE_BYTE, Op
+from zforge.common.opcodes import DOUBLE_TYPE_BYTE, Op, names_for
 from zforge.common.text import encode_string
 from zforge.common.versions import DEFAULT_VERSION, profile_for
 from zforge.vm.decoder import OperandType
@@ -108,6 +108,11 @@ class Assembler:
     def __init__(self, source: str = "<zas>", version: int = DEFAULT_VERSION):
         self.source = source
         self.profile = profile_for(version)                # §1.2.3, §11.1.6, ...
+        self.opcodes = names_for(version)                  # §14: this version's set
+        # §1.2.3: in v6/v7 a packed address P means 4P + 8*R_O (routines) or
+        # 4P + 8*S_O (strings). _start_area() chooses them; 0 elsewhere.
+        self.routines_offset = 0
+        self.strings_offset = 0
         self.release, self.serial = 1, "000000"
         self.globals: dict[str, tuple[int, str]] = {}      # name -> (var number, init)
         self.constants: dict[str, int] = {}
@@ -284,7 +289,7 @@ class Assembler:
         return encoded, self.relax(encoded, routine)
 
     def encode_instruction(self, ins: AsmInstruction, routine: RoutineDef) -> Encoded:
-        op = BY_NAME.get(ins.opcode)
+        op = self.opcodes.get(ins.opcode)
         if op is None:
             raise self.error(f"unknown opcode '{ins.opcode}' (see §14)", ins.line)
         operands = []
@@ -384,6 +389,7 @@ class Assembler:
         self._layout_dynamic(story, layout)
         self._layout_static(story, layout)
         self._layout_high(story, layout, routines)
+        linker.check_size(len(story), self.profile)   # before packing anything (§1.1.4)
         self.resolving = True                       # pass 4: every address is known
         self._fill_data(story, layout)
         self._fill_code(story, layout)
@@ -392,7 +398,8 @@ class Assembler:
             initial_pc=layout.stub, dictionary=layout.static_memory,
             objects=layout.object_table, globals=layout.globals_table,
             static_memory=layout.static_memory, abbreviations=layout.abbreviations,
-            flags2=H.F2_UNDO if self.want_undo else 0), self.profile)
+            flags2=H.F2_UNDO if self.want_undo else 0,
+            routines_offset=self.routines_offset, strings_offset=self.strings_offset), self.profile)
         return linker.finalise(story, self.profile)
 
     def _layout_dynamic(self, story: bytearray, layout: "Layout") -> None:
@@ -431,6 +438,7 @@ class Assembler:
         story += bytes(align(len(story), boundary) - len(story))
         layout.high_memory = layout.stub = len(story)
         story += bytes(8)                      # call_vn main (4 bytes) + quit + padding
+        self.routines_offset = self._start_area(story)
         for routine, encoded, labels in routines:
             story += bytes(align(len(story), boundary) - len(story))
             address = len(story)
@@ -438,12 +446,26 @@ class Assembler:
             size = 1 + sum(e.size() for e in encoded if isinstance(e, Encoded))
             layout.routine_places.append((address, routine, encoded, labels))
             story += bytes(size)
+        self.strings_offset = self._start_area(story)
         for name, text in self.strings.items():  # interned while encoding: laid out last
             story += bytes(align(len(story), boundary) - len(story))
             self.addresses["string:" + name] = len(story)
             data = encode_string(text)
             layout.string_places.append((len(story), data))
             story += data
+
+    def _start_area(self, story: bytearray) -> int:
+        """Begin the routine or string area and return its offset (R_O or S_O).
+
+        With packing offsets (v6/v7) the area starts on a multiple of 8, and
+        the offset points ONE 8-byte step before it, so the first routine or
+        string packs to P = 2, never to 0. Packed 0 is special: calling it
+        does nothing and returns false (§6.4.3), and 0 in a property or
+        table means "none". In the other versions the offset is 0."""
+        if not self.profile.uses_packing_offsets:
+            return 0
+        story += bytes(align(len(story), self.profile.area_alignment) - len(story))
+        return len(story) // 8 - 1
 
     def _fill_data(self, story: bytearray, layout: "Layout") -> None:
         """Pass 4a: objects, globals and arrays now that addresses exist."""
@@ -468,7 +490,7 @@ class Assembler:
 
     def _fill_code(self, story: bytearray, layout: "Layout") -> None:
         """Pass 4b: the start stub, every routine body and every string."""
-        main_packed = self.profile.pack_routine(self.addresses["routine:" + self.main])
+        main_packed = self.pack_routine(self.main)
         story[layout.stub:layout.stub + 5] = bytes(
             [0xF9, 0x3F, *main_packed.to_bytes(2, "big"), 0xBA])   # call_vn main; quit
         for address, routine, encoded, labels in layout.routine_places:
@@ -522,15 +544,21 @@ class Assembler:
 
     def resolve_symbol(self, token: str, line: int) -> int:
         if "routine:" + token in self.addresses:
-            return self.profile.pack_routine(self.addresses["routine:" + token])  # §1.2.3
+            return self.pack_routine(token)                            # §1.2.3
         if "string:" + token in self.addresses:
-            return self.profile.pack_string(self.addresses["string:" + token])
+            return self.pack_string(token)
         if "array:" + token in self.addresses:
             return self.addresses["array:" + token]
         raise self.error(f"unknown symbol '{token}'", line)
 
     def packed(self, string_name: str, line: int) -> int:
-        return self.profile.pack_string(self.addresses["string:" + string_name])
+        return self.pack_string(string_name)
+
+    def pack_routine(self, name: str) -> int:
+        return self.profile.pack_routine(self.addresses["routine:" + name], self.routines_offset)
+
+    def pack_string(self, name: str) -> int:
+        return self.profile.pack_string(self.addresses["string:" + name], self.strings_offset)
 
     def dict_address(self, word: str, line: int) -> int:
         return self.dict_addresses[word]

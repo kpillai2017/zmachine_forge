@@ -453,6 +453,170 @@
       "tests": "tests/test_versions.py",
       "select": "opcode or v6 or v7 or v5_table",
       "expect": "per-version opcode sets match §14 (98/116/98/98); v7/v8 use the v5 table (§1); v6 pull stores; the v5 table is unchanged"
+    },
+    {
+      "id": "hello-asm-per-target",
+      "suite": "v2",
+      "type": "asm_run",
+      "targets": [
+        5,
+        7,
+        8
+      ],
+      "source": "tests/samples/hello.zas",
+      "must_contain": [
+        "Hello, world!"
+      ],
+      "disasm_contains": [
+        "print",
+        "'Hello, world!'"
+      ],
+      "expect": "hello.zas assembles for each target: right version byte, checksum ok, runs, disassembles (§1.2.3 packing, §11.1.6 length)"
+    },
+    {
+      "id": "compile-arith-per-target",
+      "suite": "v2",
+      "type": "compile_run",
+      "targets": [
+        7,
+        8
+      ],
+      "source": "tests/samples/arith.zil",
+      "script": [],
+      "must_contain_lines": [
+        "-3",
+        "-1",
+        "1",
+        "-32768",
+        "24464",
+        "-5",
+        "10",
+        "3",
+        "8",
+        "14",
+        "-1",
+        "logic ok",
+        "equal? chain ok"
+      ],
+      "expect": "the compile-arith-edges output, unchanged, on v7 and v8"
+    },
+    {
+      "id": "status-line-per-target",
+      "suite": "v2",
+      "type": "screen",
+      "targets": [
+        7,
+        8
+      ],
+      "source": "examples/cloak.zil",
+      "script": [
+        "w"
+      ],
+      "row0_contains": [
+        "Cloakroom",
+        "Score: 0",
+        "Moves: 1"
+      ],
+      "row0_reverse": true,
+      "expect": "v7/v8 use the v5 screen model (§1): the same reverse-video status line"
+    },
+    {
+      "id": "save-restore-per-target",
+      "suite": "v2",
+      "type": "save_restore",
+      "targets": [
+        7,
+        8
+      ],
+      "source": "examples/cloak.zil",
+      "script": [
+        "w",
+        "hang cloak",
+        "save",
+        "{save_file}",
+        "e",
+        "restore",
+        "{save_file}",
+        "i"
+      ],
+      "must_contain": [
+        "Saved.",
+        "Restored.",
+        "A velvet cloak hangs on the brass hook.",
+        "You are empty-handed."
+      ],
+      "expect": "the save-restore-quetzal case, unchanged, on v7 and v8"
+    },
+    {
+      "id": "cross-version-cloak-zil",
+      "suite": "v2",
+      "type": "cross_version",
+      "source": "examples/cloak.zil",
+      "versions": [
+        5,
+        7,
+        8
+      ],
+      "script": [
+        "w",
+        "hang cloak",
+        "e",
+        "s",
+        "read message"
+      ],
+      "must_contain": [
+        "*** You have won ***"
+      ],
+      "expect": "cloak.zil built for z5, z7 and z8 plays byte-identical transcripts"
+    },
+    {
+      "id": "reject-below-v5",
+      "suite": "v2",
+      "type": "reject_cli",
+      "version_byte": 3,
+      "exit_code": 2,
+      "expect": "Unsupported story version 3: zforge runs versions 5, 7 and 8"
+    },
+    {
+      "id": "illegal-opcode-per-version",
+      "suite": "v2",
+      "type": "illegal_opcode",
+      "targets": [
+        5,
+        8
+      ],
+      "ext_number": 18,
+      "expect": "Illegal opcode EXT:18 for version"
+    },
+    {
+      "id": "czech-conformance-z8",
+      "suite": "v2",
+      "type": "story",
+      "story": "stories/czech.z8",
+      "script": [],
+      "must_contain": [
+        "Failed: 0"
+      ],
+      "must_not_contain": [
+        "error:"
+      ],
+      "skip_hint": "stories/czech.z8 needs compiling: czech 0.8 ships only czech.z5 + czech.inf; run `inform6 -v8 stories/czech.inf stories/czech.z8` (expected output: stories/czech.out8)",
+      "expect": "the czech conformance suite, compiled for v8, reports 0 failures"
+    },
+    {
+      "id": "target-setting",
+      "suite": "v2",
+      "type": "pytest",
+      "tests": "tests/test_config.py",
+      "expect": "--target > zforge.toml > ZFORGE_TARGET > the source's <VERSION>; z3/z6 refused with exit 2; banner names the origin"
+    },
+    {
+      "id": "story-size-limits",
+      "suite": "v2",
+      "type": "pytest",
+      "tests": "tests/test_versions.py",
+      "select": "size_limit",
+      "expect": "§1.1.4: a >256K story is refused for z5 with a clear message and builds for z8 (and z7, with offsets)"
     }
   ]
 }

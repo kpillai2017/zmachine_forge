@@ -1,7 +1,7 @@
 # Test stories fetched by `python -m zbuilder stories` into ./stories/
 # (never committed - check each licence before redistributing).
 # Format: URL [sha256]   - add the sha256 after the first download to pin it.
-# Zip archives are unpacked; only *.z5 / *.inf files are kept.
+# Zip archives are unpacked; only *.z5 / *.z7 / *.z8 / *.inf files are kept.
 https://ifarchive.org/if-archive/infocom/interpreters/tools/czech_0_8.zip d0795723e98563050575c4d3c08fdd29ade2543e132d8190255763e3bf6fef6a
 https://ifarchive.org/if-archive/infocom/interpreters/tools/praxix.zip c654d656fb426ae1b386e5ab9c44cc5062eade4a8c3bce69c9e61191221501ad
 https://ifarchive.org/if-archive/infocom/interpreters/tools/strictz.z5 2a15122eded657266ea2df07880663c7462d20f263170ede655826d6a52d1cfb

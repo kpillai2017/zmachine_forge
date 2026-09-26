@@ -11,7 +11,7 @@ from pathlib import Path
 from zbuilder.paths import STORIES_DIR
 from zbuilder.tools.fetch_spec import _download
 
-KEEP_SUFFIXES = (".z5", ".inf")
+KEEP_SUFFIXES = (".z5", ".z7", ".z8", ".inf", ".out5", ".out8")  # stories, sources, expected output
 
 
 def read_url_list(path: Path) -> list[tuple[str, str | None]]:

@@ -26,6 +26,7 @@ from dataclasses import dataclass, field
 
 from zforge.common import header as H
 from zforge.common.text import encode_dictionary_word, encode_string, text_to_zscii, UnicodeTable
+from zforge.common.errors import LayoutError
 from zforge.common.versions import VersionProfile
 
 GLOBAL_COUNT = 240
@@ -128,6 +129,8 @@ class HeaderFields:
     static_memory: int
     abbreviations: int
     flags2: int = 0
+    routines_offset: int = 0     # R_O and S_O: v6/v7 only (§1.2.3, header $28/$2a)
+    strings_offset: int = 0
 
 
 def write_header(story: bytearray, f: HeaderFields, profile: VersionProfile) -> None:
@@ -143,7 +146,21 @@ def write_header(story: bytearray, f: HeaderFields, profile: VersionProfile) -> 
     w(H.H_STATIC_MEMORY, f.static_memory)
     w(H.H_FLAGS2, f.flags2)
     story[H.H_SERIAL:H.H_SERIAL + 6] = f.serial.encode("ascii")[:6].ljust(6, b"0")
+    if profile.uses_packing_offsets:
+        w(H.H_ROUTINES_OFFSET, f.routines_offset)
+        w(H.H_STRINGS_OFFSET, f.strings_offset)
     w(H.H_ABBREVIATIONS, f.abbreviations)
+
+
+def check_size(size: int, profile: VersionProfile) -> None:
+    """§1.1.4: the largest story file each version allows. The assembler calls
+    this as soon as the layout is known, so an oversized story gets THIS
+    message rather than a confusing "out of reach" one from packing."""
+    if size > profile.max_story_size:
+        bigger = " or ".join(f"z{v}" for v in profile.larger_versions())
+        hint = f" - try --target {bigger}" if bigger else ""
+        raise LayoutError(f"story is {size} bytes; v{profile.version} allows at most "
+                          f"{profile.max_story_size // 1024}K (§1.1.4){hint}")
 
 
 def finalise(story: bytearray, profile: VersionProfile) -> bytes:
@@ -152,9 +169,7 @@ def finalise(story: bytearray, profile: VersionProfile) -> bytes:
     divisor = profile.file_length_divisor
     while len(story) % divisor:
         story.append(0)
-    if len(story) > profile.max_story_size:
-        raise ValueError(f"story is {len(story)} bytes; v{profile.version} allows at most "
-                         f"{profile.max_story_size // 1024}K")
+    check_size(len(story), profile)
     length = len(story)
     story[H.H_FILE_LENGTH:H.H_FILE_LENGTH + 2] = (length // divisor).to_bytes(2, "big")
     checksum = H.compute_checksum(story, length)

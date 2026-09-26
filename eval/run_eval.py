@@ -33,9 +33,9 @@ class Skip(Exception):
     pass
 
 
-def _compile(path: str) -> bytes:
+def _compile(path: str, target: int | None = None) -> bytes:
     src = ROOT / path            # absolute, so INSERT-FILE resolves from any cwd
-    return compile_zil(src.read_text(), str(src)).story
+    return compile_zil(src.read_text(), str(src), target).story
 
 
 def _check_text(case: dict, text: str) -> list[str]:
@@ -52,18 +52,19 @@ def _check_text(case: dict, text: str) -> list[str]:
 def run_story_case(case: dict) -> list[str]:
     path = ROOT / case["story"]
     if not path.exists():
-        raise Skip(f"{case['story']} not downloaded (python -m zbuilder stories)")
+        raise Skip(case.get("skip_hint") or
+                   f"{case['story']} not downloaded (python -m zbuilder stories)")
     result = play(path.read_bytes(), case.get("script", []))
     return _check_text(case, result.transcript + "\n" + result.reason)
 
 
 def run_compile_run(case: dict) -> list[str]:
-    result = play(_compile(case["source"]), case.get("script", []))
+    result = play(_compile(case["source"], case.get("target")), case.get("script", []))
     return _check_text(case, result.transcript + "\n" + result.reason)
 
 
 def run_screen(case: dict) -> list[str]:
-    result = play(_compile(case["source"]), case.get("script", []))
+    result = play(_compile(case["source"], case.get("target")), case.get("script", []))
     rows = result.screen.rows
     row0 = "".join(c.char for c in rows[0])
     problems = [f"status row lacks {s!r}: {row0!r}" for s in case["row0_contains"] if s not in row0]
@@ -74,7 +75,7 @@ def run_screen(case: dict) -> list[str]:
 
 def run_save_restore(case: dict) -> list[str]:
     """Real §15 save/restore opcodes through the game's SAVE/RESTORE verbs."""
-    story = _compile(case["source"])
+    story = _compile(case["source"], case.get("target"))
     with tempfile.TemporaryDirectory() as tmp:
         save_file = str(Path(tmp) / "game.qzl")
         script = [line.replace("{save_file}", save_file) for line in case["script"]]
@@ -173,11 +174,95 @@ def run_pytest(case: dict) -> list[str]:
                       f"pytest exited {done.returncode}"]
 
 
+# ------------------------------------------------ proforma v2, Tier 6 runners
+def run_asm_run(case: dict) -> list[str]:
+    """hello-asm per target: assemble, check the header, run, disassemble."""
+    from zforge.asm.assembler import assemble
+    from zforge.asm.disasm import disassemble
+    from zforge.asm.info import header_report
+    src = ROOT / case["source"]
+    story = assemble(src.read_text(), str(src), case["target"])
+    problems = []
+    if story[0] != case["target"]:
+        problems.append(f"header version byte is {story[0]}")
+    if "(ok)" not in header_report(story):
+        problems.append("checksum does not match")
+    problems += [f"disasm lacks {s!r}" for s in case.get("disasm_contains", [])
+                 if s not in disassemble(story)]
+    result = play(story, case.get("script", []))
+    return problems + _check_text(case, result.transcript + "\n" + result.reason)
+
+
+def run_reject_cli(case: dict) -> list[str]:
+    """The CLI refuses a story of an unsupported version: message + exit code."""
+    import contextlib
+    import io
+    from zforge.cli import main as zforge_main
+    story = bytearray(_compile("examples/hello.zil"))
+    story[0] = case["version_byte"]
+    with tempfile.TemporaryDirectory() as tmp:
+        path = Path(tmp) / "old.z3"
+        path.write_bytes(bytes(story))
+        err = io.StringIO()
+        with contextlib.redirect_stderr(err), contextlib.redirect_stdout(io.StringIO()):
+            code = zforge_main(["run", str(path), "--ui", "plain"])
+    problems = [] if case["expect"] in err.getvalue() else [f"message was {err.getvalue()!r}"]
+    if code != case["exit_code"]:
+        problems.append(f"exit code {code}, expected {case['exit_code']}")
+    if "Traceback" in err.getvalue():
+        problems.append("traceback")
+    return problems
+
+
+def run_illegal_opcode(case: dict) -> list[str]:
+    """Patch the first instruction of main into an opcode the version lacks."""
+    from zforge.common.header import Header
+    from zforge.vm.machine import ZMachine
+    from zforge.vm.screen.virtual import VirtualScreen
+    story = bytearray(_compile("examples/hello.zil", case["target"]))
+    h = Header.parse(story)
+    main = h.profile.unpack_routine(int.from_bytes(story[h.initial_pc + 2:h.initial_pc + 4],
+                                                   "big"), h.routines_offset)
+    first = main + 1                                   # after the locals count (v5+)
+    story[first:first + 3] = bytes([0xBE, case["ext_number"], 0xFF])  # EXT n, no operands
+    try:
+        ZMachine(bytes(story), VirtualScreen()).run()
+    except ZForgeError as exc:
+        return [] if case["expect"] in str(exc) else [f"message was {exc}"]
+    return ["the illegal opcode was executed"]
+
+
+def run_cross_version(case: dict) -> list[str]:
+    """The same source, built for several versions, must tell the same story."""
+    transcripts = {t: play(_compile(case["source"], t), case["script"]).transcript
+                   for t in case["versions"]}
+    first = case["versions"][0]
+    problems = []
+    for t, text in transcripts.items():
+        if text != transcripts[first]:
+            a, b = transcripts[first].splitlines(), text.splitlines()
+            pairs = enumerate(zip(a, b, strict=False))        # stop at the shorter one
+            n = next((i for i, (x, y) in pairs if x != y), min(len(a), len(b)))
+            problems.append(f"z{t} differs from z{first} at line {n + 1}")
+    return problems + _check_text(case, transcripts[first])
+
+
 RUNNERS = {"story": run_story_case, "compile_run": run_compile_run, "screen": run_screen,
            "save_restore": run_save_restore, "compile_error": run_compile_error,
            "reject": run_reject, "reject_truncated": run_reject_truncated,
            "disasm": run_disasm, "audit": run_audit, "spec_opcodes": run_spec_opcodes,
-           "golden": run_golden, "pytest": run_pytest}
+           "golden": run_golden, "pytest": run_pytest, "asm_run": run_asm_run,
+           "reject_cli": run_reject_cli, "illegal_opcode": run_illegal_opcode,
+           "cross_version": run_cross_version}
+
+
+def expand_targets(cases: list[dict]) -> list[dict]:
+    """A case with "targets": [5, 7, 8] runs once per target, as id[z7] etc."""
+    out = []
+    for case in cases:
+        for t in case.get("targets", [None]):
+            out.append(case if t is None else {**case, "target": t, "id": f"{case['id']}[z{t}]"})
+    return out
 
 
 def main(argv: list[str]) -> int:
@@ -191,6 +276,7 @@ def main(argv: list[str]) -> int:
     if argv:
         cases = [c for c in cases if any(word in c["id"] for word in argv)]
     failed = skipped = 0
+    cases = expand_targets(cases)
     for case in cases:
         try:
             problems = RUNNERS[case["type"]](case)

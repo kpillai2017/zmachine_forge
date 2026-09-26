@@ -1,8 +1,9 @@
 # Known gaps (deliberate, for this version)
 
-- **Versions** other than 5 (ADR-001, now ADR-021): the code is version-aware
-  (`common/versions.py`), but only version 5 is registered until proforma v2
-  Tiers 6 (v7, v8) and 8 (v6) land.
+- **Versions**: 5, 7 and 8 are supported (ADR-021, ADR-023); version 6 comes
+  with proforma v2 Tier 8, and versions 1-4 are refused (exit 2).
+- **czech.z8** is not tested until you compile it: `inform6 -v8
+  stories/czech.inf stories/czech.z8` (czech 0.8 ships only the v5 binary).
 - **Timed input** (`aread`/`read_char` time + routine) is ignored (ADR-005).
 - **Sound** effects beyond a terminal beep; **font 3** character graphics;
   `set_true_colour` is accepted but has no visible effect.

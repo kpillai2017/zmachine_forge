@@ -16,6 +16,7 @@ from zforge.common.numbers import to_signed
 from zforge.common.text import Alphabets, UnicodeTable, decode_zchars, unpack_zchars
 from zforge.vm.decoder import OperandType, decode
 from zforge.vm.machine import variable_name
+from zforge.common.opcodes import table_for
 
 ENDS_ROUTINE = {"rtrue", "rfalse", "ret", "ret_popped", "print_ret", "quit", "jump",
                 "restart", "throw"}
@@ -28,6 +29,7 @@ class Disassembler:
     def __init__(self, story: bytes):
         self.header = Header.parse(story)
         self.profile = self.header.profile      # packed addresses (§1.2.3)
+        self.opcodes = table_for(self.header.version)   # §14
         self.mem = Memory(story, self.header.static_memory, self.header.high_memory)
         self.alphabets = Alphabets.default()
         self.unicode = UnicodeTable()
@@ -55,7 +57,8 @@ class Disassembler:
             pc += 1
         furthest = pc
         while True:
-            ins = decode(self.mem.read_byte, pc, self.skip_text)
+            ins = decode(self.mem.read_byte, pc, self.skip_text, self.opcodes,
+                         self.header.version)
             lines.append(self.format(ins))
             target = ins.branch_target()
             if ins.op.name == "jump":
@@ -77,7 +80,8 @@ class Disassembler:
             elif i == 0 and ins.op.name in INDIRECT_FIRST:
                 parts.append(variable_name(o.value))     # a variable NUMBER (§6.3.4)
             elif i == 0 and ins.op.name in CALLS:
-                parts.append(f"routine@0x{self.profile.unpack_routine(o.value):05x}")
+                address = self.profile.unpack_routine(o.value, self.header.routines_offset)
+                parts.append(f"routine@0x{address:05x}")
             else:
                 parts.append(str(o.value))
         if ins.store is not None:

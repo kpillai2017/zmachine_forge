@@ -102,6 +102,28 @@ DEFAULT_PLAN: list[Task] = [
          ["§1.1.4", "§1.2.3", "§5.4", "§5.5", "§11.1.6"],
          ["version-profile", "refactor-byte-identical", "reject-non-v5"],
          ["tests/test_versions.py"]),
+    # ---- Tier 6: versions 7 and 8 (§1: "identical to Version 5 except
+    # as stated at 1.1.4 and 1.2.3")
+    Task("v2-profiles-7-8", 6, "VersionProfile(7), (8); header R_O/S_O; VM unpacking",
+         ["zforge/common/versions.py", "zforge/common/header.py", "zforge/vm/machine.py",
+          "zforge/asm/disasm.py", "zforge/asm/info.py"],
+         ["§1", "§1.1.4", "§1.2.3", "§11.1.6"],
+         ["version-profile", "status-line-per-target", "save-restore-per-target"],
+         ["tests/test_versions.py"]),
+    Task("v2-assemble-7-8", 6, "Assembler/linker: offsets, alignment, size check, --target",
+         ["zforge/asm/assembler.py", "zforge/asm/linker.py", "zforge/config.py",
+          "zforge/cli.py", "zforge/compiler/driver.py", "zforge/compiler/forms.py"],
+         ["§1.1.4", "§1.2.3", "§6.4.3"],
+         ["hello-asm-per-target", "compile-arith-per-target", "cross-version-cloak-zil",
+          "target-setting", "story-size-limits"],
+         ["tests/test_versions.py", "tests/test_config.py"]),
+    Task("v2-decoder-per-version", 6, "Decoder uses table_for(version); reject v1-4 (exit 2)",
+         ["zforge/vm/decoder.py", "zforge/cli.py"], ["§14", "§11.1.1"],
+         ["illegal-opcode-per-version", "reject-below-v5", "reject-non-v5"],
+         ["tests/test_cli.py"]),
+    Task("v2-conformance-z8", 6, "czech.z8 conformance (skips until compiled)",
+         ["zbuilder/tools/fetch_stories.py", "stories/urls.txt"], ["§1"],
+         ["czech-conformance-z8"], []),
 ]
 
 

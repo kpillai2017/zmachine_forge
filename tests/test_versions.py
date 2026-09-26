@@ -137,3 +137,72 @@ def test_no_version_comparisons_outside_the_profile():
             if pattern.search(code):
                 offenders.append(f"zforge/{rel}:{n}: {line.strip()}")
     assert not offenders, "version logic belongs in VersionProfile:\n" + "\n".join(offenders)
+
+
+# ------------------------------------------------ Tier 6: v7/v8 layouts
+def _big_story_source(n: int = 200, chars: int = 1000) -> str:
+    """n routines, each holding ~chars of INLINE text (routine area) and
+    printing a distinct ~chars STRING (string area): ~270K in total."""
+    lines = [".main MAIN", ".routine MAIN", f"    call_vn R{n - 1}", "    quit", ".end"]
+    for k in range(n):
+        body = f"routine {k} " + "abcdefghij " * (chars // 11)
+        text = f"string {k} " + "klmnopqrst " * (chars // 11)
+        lines += [f".routine R{k}", f'    print "{body}"', f'    print_paddr "{text}"',
+                  "    rtrue", ".end"]
+    return "\n".join(lines) + "\n"
+
+
+def test_size_limit_v5_refuses_a_big_story_with_a_hint():
+    from zforge.asm.assembler import assemble
+    from zforge.common.errors import LayoutError
+    with pytest.raises(LayoutError, match=r"v5 allows at most 256K \(§1.1.4\) - try --target z7"):
+        assemble(_big_story_source(), "big.zas", 5)
+
+
+@pytest.mark.parametrize("version", [7, 8])
+def test_size_limit_v7_v8_build_and_reach_the_far_end(version):
+    """§1.1.4: 512K. The last routine and its string lie beyond 256K, so
+    they are reachable only through 8P (v8) or the offsets (v7)."""
+    from zforge.asm.assembler import assemble
+    from zforge.vm.machine import ZMachine
+    from zforge.vm.screen.virtual import VirtualScreen
+    story = assemble(_big_story_source(), "big.zas", version)
+    assert len(story) > 256 * 1024
+    screen = VirtualScreen()
+    ZMachine(story, screen).run()
+    text = "".join(screen.transcript)
+    assert "routine 199 abcdefghij" in text and "string 199 klmnopqrst" in text
+
+
+def test_a_packed_address_must_fit_in_16_bits():
+    from zforge.common.errors import LayoutError
+    with pytest.raises(LayoutError, match="out of reach"):
+        profile_for(5).pack_routine(4 * 0x10000)
+
+
+def test_v7_offsets_never_pack_anything_to_zero():
+    """§6.4.3: calling packed address 0 does nothing, so R_O/S_O are chosen
+    one 8-byte step before each area and the first item packs to P = 2."""
+    from zforge.asm.assembler import assemble
+    from zforge.common.header import Header
+    story = assemble((ROOT / "tests/samples/hello.zas").read_text(), "hello.zas", 7)
+    h = Header.parse(story)
+    assert h.routines_offset and h.strings_offset
+    main_packed = int.from_bytes(story[h.initial_pc + 2:h.initial_pc + 4], "big")
+    assert main_packed == 2
+    assert h.profile.unpack_routine(main_packed, h.routines_offset) % 4 == 0
+
+
+def test_v8_aligns_routines_and_strings_to_8():
+    from zforge.asm.assembler import assemble
+    from zforge.common.header import Header
+    story = assemble((ROOT / "tests/samples/hello.zas").read_text(), "hello.zas", 8)
+    h = Header.parse(story)
+    main_packed = int.from_bytes(story[h.initial_pc + 2:h.initial_pc + 4], "big")
+    assert h.profile.unpack_routine(main_packed) % 8 == 0
+    assert len(story) % 8 == 0 and h.file_length == len(story)      # §11.1.6
+
+
+def test_zil_sources_build_for_compatible_targets_only():
+    from zforge.compiler.driver import compatible_targets
+    assert compatible_targets(5) == [5, 7, 8]         # §1: 7 and 8 are "identical to 5"
