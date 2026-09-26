@@ -15,6 +15,9 @@ from zforge.compiler import reader as r
 from zforge.compiler.diagnostics import Diagnostics
 from zforge.compiler.grammar import OPTION_BITS
 
+# The zforge package directory: INSERT-FILE falls back to the libraries in it.
+LIBRARY_ROOT = Path(__file__).resolve().parent.parent
+
 # <VERSION ...> names the version a source is WRITTEN for. EZIP is kept as
 # 5 for v1 compatibility (ZILF uses ZIP=3, EZIP=4, XZIP=5, YZIP=6).
 # --target may still pick a version with the same opcode set (driver.py).
@@ -99,16 +102,22 @@ class FormParser:
                 self.error(a, "DIRECTIONS takes atoms, e.g. <DIRECTIONS NORTH SOUTH>")
 
     def insert_file(self, form, args) -> None:
-        """<INSERT-FILE "name">: textually include name.zil (same directory)."""
+        """<INSERT-FILE "name">: textually include name.zil.
+
+        Looked for next to the including source first, then in the zforge
+        package, which ships the libraries: "lib/parser" -> zforge/lib/parser.zil,
+        "lib/i7/runtime" -> zforge/lib/i7/runtime.zil."""
         from zforge.compiler.driver import read_source   # avoid an import cycle
         if not args or not isinstance(args[0], r.String):
             self.error(form, 'INSERT-FILE needs a "file name"')
             return
-        path = self.base_dir / args[0].value
-        if path.suffix == "":
-            path = path.with_suffix(".zil")
-        if not path.exists():
-            self.error(form, f"INSERT-FILE: {path} not found")
+        name = args[0].value
+        candidates = [folder / name for folder in (self.base_dir, LIBRARY_ROOT)]
+        candidates = [p.with_suffix(".zil") if p.suffix == "" else p for p in candidates]
+        path = next((p for p in candidates if p.exists()), None)
+        if path is None:
+            self.error(form, f"INSERT-FILE: {name} not found (looked in "
+                             f"{self.base_dir} and {LIBRARY_ROOT})")
             return
         for datum in read_source(path.read_text(), self.diag):
             self.top_level(datum)

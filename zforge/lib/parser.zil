@@ -1,4 +1,4 @@
-"lib/parser.zil - a small SYNTAX-driven parser, written in ZIL-lite.
+"zforge/lib/parser.zil - a small SYNTAX-driven parser, written in ZIL-lite.
 
  Include it with <INSERT-FILE \"lib/parser\">. The compiler turns every
  <SYNTAX ...> line into a row of SYNTAX-TABLE (see zforge/compiler/grammar.py);

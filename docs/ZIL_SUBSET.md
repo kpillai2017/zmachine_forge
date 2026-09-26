@@ -7,7 +7,7 @@ story file. No MDL macros (DEFMAC) and no compile-time evaluation.
 Two ways to write a game's parser:
 * by hand in ZIL, as `examples/cloak.zil` does, or
 * Infocom-style: `SYNTAX` lines (compiled to a table) plus the small parser
-  library `examples/lib/parser.zil`, as `examples/cloak_syntax.zil` does.
+  library `zforge/lib/parser.zil`, as `examples/cloak_syntax.zil` does.
 
 ## Syntax (lexer.py, reader.py)
 

@@ -5,7 +5,7 @@ Infocom's compiler did not "understand" English. A SYNTAX line such as
     <SYNTAX PUT OBJECT IN OBJECT = V-PUT-IN>
 
 only produced a table row; the parser in the game's own ZIL code (see
-examples/lib/parser.zil) walked that table at run time. We do the same, by
+zforge/lib/parser.zil) walked that table at run time. We do the same, by
 DESUGARING the grammar into ordinary declarations the later stages already
 know how to compile:
 

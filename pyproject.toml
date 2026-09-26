@@ -22,6 +22,9 @@ zbuilder = "zbuilder.__main__:main"
 [tool.setuptools.packages.find]
 include = ["zforge*", "zbuilder*"]
 
+[tool.setuptools.package-data]
+zforge = ["lib/*.zil", "lib/i7/*.zil"]   # the ZIL-lite libraries INSERT-FILE finds
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 

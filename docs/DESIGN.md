@@ -25,7 +25,7 @@ can never disagree about an opcode or a z-string.
 8. `vm/quetzal.py` - Appendix C save files and undo
 9. `asm/syntax.py` → `asm/assembler.py` → `asm/linker.py` - text to bytes
 10. `compiler/lexer.py` → `reader.py` → `forms.py` → `grammar.py` → `semantic.py` → `codegen.py`
-11. `examples/lib/parser.zil` + `examples/cloak_syntax.zil` - the run-time half of SYNTAX;
+11. `zforge/lib/parser.zil` + `examples/cloak_syntax.zil` - the run-time half of SYNTAX;
     `examples/parser_demo.zil` exercises pronouns and "which do you mean?"
 
 Run anything with `--trace FILE` (interpreter) or `--emit-asm --emit-tokens

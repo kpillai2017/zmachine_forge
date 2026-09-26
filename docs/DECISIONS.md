@@ -94,7 +94,7 @@ field offsets) and one `SYNTAX-TABLE` global (count, then 9-word rows:
 verb, #objects, prep1, prep2, find1, find2, action, routine, preaction).
 Later stages need no grammar knowledge, and the table is readable in the
 `.zas`. Synonyms are expanded into extra rows (simple and small for demo
-sized games). `examples/lib/parser.zil` is the run-time matcher.
+sized games). `zforge/lib/parser.zil` is the run-time matcher.
 
 ## ADR-017: PROG/BIND bindings are hidden locals; no shadowing
 **Context.** MDL gives every PROG/BIND a fresh environment; a Z-machine
