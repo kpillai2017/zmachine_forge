@@ -14,6 +14,7 @@
  the world) the Every turn rules and the turn count. Out-of-world actions
  (saving, quitting, the score) take no time."
 
+<COMPILATION-FLAG I7 T>             ;"the parser's errors go to Inform 7's activity"
 <INSERT-FILE "lib/parser">
 <INSERT-FILE "lib/i7/say">
 <INSERT-FILE "lib/i7/world">

@@ -504,8 +504,8 @@ This is the quiet body text rule:
 
 def test_activity_problems_are_clear():
     for src, message in (
-            ("Rule for printing a parser error: say \"Eh?\".",
-             "'printing a parser error' activity"),
+            ("Rule for supplying a missing noun: say \"Eh?\".",
+             "'supplying a missing noun' activity"),
             ("Rule for tickling the lamp: say \"Hee.\".", "I know no activity by that name"),
             ("Rule for printing the name: say \"x\".", None),
             ("Rule for printing the name about the lamp: say \"x\".",

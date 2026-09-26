@@ -43,11 +43,21 @@
   a real Inform 7 game with scoring (Advent uses no scoring).
 - **I7 undo** after an out-of-world command (e.g. "score") undoes nothing:
   the snapshot is taken every turn; Inform 7 undoes the last turn in the world.
-- **I7 phrases**: no phrases with parameters, no "To decide which ...", no
-  'let' / repeat / while yet; adaptive text and the survey additions (doors,
-  devices, 'try', 'is usually' ...) are Tier 7b/7c.
-- **I7 activities** (ADR-031): five are supported. The announcements of
-  darkness and light, parser errors, supplying a missing noun and choosing
+- **I7 phrases** (ADR-034): phrases take texts, numbers, truth states and
+  objects; there is no "To decide which/what ...", no "repeat with X running
+  through ...", and a text given to a phrase cannot use the names of the
+  rule or phrase giving it (Inform 7 would substitute it there and then; a
+  problem message says so). `let` names last to the end of the rule or
+  phrase, not the end of their block. A rule must begin a line.
+- **I7 parser errors** (ADR-034): the parser makes six of Inform 7's errors
+  (the others can be named but never happen); their responses cannot be
+  edited (write a rule for printing a parser error); "take lamp and keys and",
+  "inventory foo" and the like are "I didn't understand that sentence." where
+  Inform 7 says more ("I only understood you as far as ..."). Two messages
+  come from Inform 6's library and are not checked against a game: 'it' gone
+  ("You can't see 'it' (the lamp) at the moment.") and "didn't understand".
+- **I7 activities** (ADR-031): six are supported. The announcements of
+  darkness and light, supplying a missing noun and choosing
   notable locale objects are refused: their Inform 7 defaults could not be
   checked against a real game (Advent overrides them all), and the last two
   need parser changes. A *writing a paragraph* rule counts as having "said

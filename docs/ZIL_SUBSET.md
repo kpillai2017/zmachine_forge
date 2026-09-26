@@ -32,6 +32,9 @@ Two ways to write a game's parser:
 | `<OBJECT NAME clauses...>` `<ROOM ...>` | see below |
 | `<ROUTINE NAME (args "OPT" (x d) "AUX" (y d) z) body...>` | at most 15 locals |
 | `<INSERT-FILE "name">` | textual include of name.zil |
+| `<COMPILATION-FLAG NAME T>` / `<COMPILATION-FLAG NAME <>>` | set a compile-time flag (ZILF) |
+| `<COMPILATION-FLAG-DEFAULT NAME T>` | set it only if not set already |
+| `<IFFLAG (NAME forms...) (ELSE forms...)>` | anywhere: replaced, as the source is read, by the forms of the first clause whose flag is true; an unknown flag is an error (ADR-034) |
 | `<SYNTAX verb ... = ACTION [PREACTION]>` | a grammar line (see *Grammar* below) |
 | `<VERB-SYNONYM TAKE GET>` `<PREP-SYNONYM ON ONTO>` | extra words for a verb / preposition |
 

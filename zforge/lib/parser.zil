@@ -67,6 +67,12 @@
   runtime sets 1 for Inform 7's wording (\"You can't see any such thing.\")"
 <GLOBAL P-I7-STYLE 0>
 
+;"A game compiled from Inform 7 sets <COMPILATION-FLAG I7 T> before
+  including this file: its parser errors then go to the runtime's
+  I7-PARSER-ERROR, which runs Inform 7's 'printing a parser error' activity.
+  ZIL games compile exactly as before."
+<COMPILATION-FLAG-DEFAULT I7 <>>
+
 "------------------------------------------------------------ reading"
 
 <ROUTINE PARSER ()
@@ -79,7 +85,10 @@
     <PUTB ,PARSEBUF 0 12>         ;"§13.6.3: room for 12 words"
     <READ ,READBUF ,PARSEBUF>
     <SETG P-LEN <GETB ,PARSEBUF 1>>
-    <COND (<ZERO? ,P-LEN> <TELL "I beg your pardon?" CR> <RFALSE>)>
+    <COND (<ZERO? ,P-LEN>
+           <IFFLAG (I7 <I7-PARSER-ERROR ,PE-PARDON>)
+                   (ELSE <TELL "I beg your pardon?" CR>)>
+           <RFALSE>)>
     <RTRUE>>
 
 <ROUTINE PARSE-COMMAND ("AUX" ROW FOUND ORPHAN)
@@ -91,9 +100,12 @@
     <SETG P-ERROR 0>
     <DO (I 1 ,P-LEN)
         <COND (<ZERO? <WORD-AT .I>>
+               <IFFLAG (I7 <COND (<EQUAL? .I 1> <I7-PARSER-ERROR ,PE-NOT-A-VERB>)
+                                 (ELSE <I7-PARSER-ERROR ,PE-CANT-SEE>)>)
+                       (ELSE
                <COND (<AND ,P-I7-STYLE <EQUAL? .I 1>> <TELL "That's not a verb I recognise." CR>)
                      (,P-I7-STYLE <TELL "You can't see any such thing." CR>)
-                     (ELSE <TELL "I don't know the word \""> <PRINT-WORD .I> <TELL "\"." CR>)>
+                     (ELSE <TELL "I don't know the word \""> <PRINT-WORD .I> <TELL "\"." CR>)>)>
                <RFALSE>)>>
     <SET ROW <+ ,SYNTAX-TABLE 2>>              ;"word 0 is the row count"
     <DO (I 1 <GET ,SYNTAX-TABLE 0>)
@@ -108,6 +120,13 @@
     <RFALSE>>
 
 <ROUTINE PARSE-ERROR (VERB-KNOWN)
+    <IFFLAG (I7
+    <I7-PARSER-ERROR <COND (<NOT .VERB-KNOWN> ,PE-NOT-A-VERB)
+                           (<EQUAL? ,P-ERROR ,P-ERR-NO-IT> ,PE-NOT-SURE)
+                           (<EQUAL? ,P-ERROR ,P-ERR-IT-GONE> ,PE-CANT-SEE-IT)
+                           (<EQUAL? ,P-ERROR ,P-ERR-NOT-FOUND> ,PE-CANT-SEE)
+                           (ELSE ,PE-DIDNT-UNDERSTAND)>>)
+    (ELSE
     <COND (<NOT .VERB-KNOWN> <TELL "That's not a verb I recognise." CR>)
           (<EQUAL? ,P-ERROR ,P-ERR-NO-IT>
            <TELL "I'm not sure what \"">
@@ -120,7 +139,7 @@
            <TELL "You can't see any ">
            <PRINT-WORD ,P-ERROR-WORD>
            <TELL " here." CR>)
-          (ELSE <TELL "I didn't understand that sentence." CR>)>>
+          (ELSE <TELL "I didn't understand that sentence." CR>)>)>>
 
 <ROUTINE WORD-AT (I)
     ;"§13.6.3: word I (from 1) is a 4-byte block; its first WORD is the
@@ -229,7 +248,10 @@
            <SETG P-ERROR ,P-ERR-NO-IT>
            <SETG P-ERROR-WORD .I>
            <RFALSE>)
-          (<NOT <IN-SCOPE? ,P-IT>> <SETG P-ERROR ,P-ERR-IT-GONE> <RFALSE>)
+          (<NOT <IN-SCOPE? ,P-IT>>
+           <SETG P-ERROR ,P-ERR-IT-GONE>
+           <IFFLAG (I7 <SETG P-ERROR-WORD .I>) (ELSE)>    ;"Inform 7 names the word"
+           <RFALSE>)
           (ELSE ,P-IT)>>
 
 "-------------------------------------------------------------- scope"

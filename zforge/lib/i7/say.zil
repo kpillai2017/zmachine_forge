@@ -37,6 +37,10 @@
 
 <GLOBAL PRIOR-NAMED 0>
 
+<OBJECT SOME-THINGS                ;"never anywhere: '[regarding them]' names it,"
+    (DESC "them")                  ;"so what follows agrees as a plural"
+    (FLAGS PLURALBIT)>
+
 <ROUTINE PRIOR-PLURAL? ()
     ;"do verbs take their plural form? (for 'you', and plural-named things)"
     <OR <EQUAL? ,PRIOR-NAMED ,PLAYER> <AND ,PRIOR-NAMED <FSET? ,PRIOR-NAMED ,PLURALBIT>>>>

@@ -22,7 +22,8 @@ from zforge.compiler.i7.problems import Location
 HEADING = re.compile(r"^(volume|book|part|chapter|section)\b", re.IGNORECASE)
 TITLE = re.compile(r'^"[^"]+"(\s+by\s+.+)?\.?$')
 RULE_START = re.compile(
-    r"^(when play begins|when play ends|every turn|instead of|before|after|check|"
+    r"^((the |a )?(first|last) )?"                  # 'The first after ... rule:'
+    r"(when play begins|when play ends|every turn|instead of|before|after|check|"
     r"carry out|report|rule for |to |this is the )", re.IGNORECASE)
 
 
@@ -124,6 +125,23 @@ def split_sentences(text: str, where: Location) -> list[Sentence]:
     return out
 
 
+def is_continuation(line: str) -> bool:
+    """A preamble too long for one line goes on in lines that start with a
+    space or three (Inform 7's way; a body line is indented a tab or 4 spaces):
+        To pose the question (proposition - a text)
+         with affirmative response (hint text - a text):"""
+    return line.startswith(" ") and bool(line.strip()) and indent_of(line) == 0
+
+
+def join_continuations(lines: list[str], i: int, text: str) -> tuple[str, int]:
+    """TEXT (line I) with the continuation lines after it; and the next line."""
+    j = i + 1
+    while j < len(lines) and is_continuation(lines[j]):
+        text += " " + lines[j].strip()
+        j += 1
+    return text, j
+
+
 def read_sentences(source: str) -> list[Sentence]:
     """The whole source as sentences, in order; rules carry their bodies."""
     lines = strip_comments(source).replace("\r\n", "\n").split("\n")
@@ -144,13 +162,20 @@ def read_sentences(source: str) -> list[Sentence]:
             continue
         where = Location(i + 1, len(raw) - len(raw.lstrip()) + 1)
         colon = colon_outside_quotes(text)
-        if RULE_START.match(text) and colon >= 0:
-            i = read_rule(lines, i, text, colon, where, out)
-            continue
         comma = comma_outside_quotes(text)
+        body_from = i + 1
+        if RULE_START.match(text) and (
+                colon < 0 and (comma < 0 or text.lower().startswith("to "))
+                or comma >= 0 and colon < 0 and not text[comma + 1:].strip()):
+            # the preamble (or a one-line rule's phrase) goes on in the next lines
+            text, body_from = join_continuations(lines, i, text)
+            colon, comma = colon_outside_quotes(text), comma_outside_quotes(text)
+        if RULE_START.match(text) and colon >= 0:
+            i = read_rule(lines, i, text, colon, where, out, body_from)
+            continue
         if RULE_START.match(text) and comma >= 0 and not text.lower().startswith("to "):
             # a one-line rule: 'Instead of taking the lamp, say "No."'
-            i = read_rule(lines, i, text, comma, where, out)
+            i = read_rule(lines, i, text, comma, where, out, body_from)
             continue
         # an assertion paragraph: gather lines up to a blank line or a rule
         chunk, first = [raw], i
@@ -163,8 +188,9 @@ def read_sentences(source: str) -> list[Sentence]:
 
 
 def read_rule(lines: list[str], i: int, text: str, colon: int,
-              where: Location, out: list[Sentence]) -> int:
-    """A rule: 'preamble: phrase; phrase.' and/or indented lines after it."""
+              where: Location, out: list[Sentence], body_from: int | None = None) -> int:
+    """A rule: 'preamble: phrase; phrase.' and/or indented lines after it.
+    BODY_FROM: the first line after the preamble (it may take several)."""
     preamble = text[:colon].strip()
     rest = text[colon + 1:].strip()
     rule = Sentence(preamble + ":", where)
@@ -172,7 +198,7 @@ def read_rule(lines: list[str], i: int, text: str, colon: int,
     if rest:
         rule.body.append(BodyLine(rest, Location(where.line, where.column + colon + 1),
                                   base + 1))
-    i += 1
+    i = body_from if body_from is not None else i + 1
     while i < len(lines) and lines[i].strip() and indent_of(lines[i]) > base:
         raw = lines[i]
         rule.body.append(BodyLine(raw.strip(), Location(i + 1, len(raw) - len(raw.lstrip()) + 1),

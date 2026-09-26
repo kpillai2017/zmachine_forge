@@ -20,7 +20,8 @@ from zforge.compiler.i7.model import ADJECTIVES, BUILTIN_KINDS, TEXT_PROPERTIES,
     strip_article, unquote
 from zforge.compiler.i7.problems import Location
 from zforge.compiler.i7.source import BodyLine
-from zforge.compiler.i7.standard import ACTIVITIES, DIRECTIONS, zil_name, zil_string
+from zforge.compiler.i7.standard import (ACTIVITIES, DIRECTIONS, PARSER_ERRORS, zil_name,
+                                         zil_string)
 from zforge.compiler.i7.text import IfText, Literal, OneOf, Substitution, Text, TextError, \
     ends_sentence, parse_text
 
@@ -68,12 +69,39 @@ def split_outside_quotes(text: str, sep: str) -> list[str]:
     return parts
 
 
+@dataclass
+class ParamPhrase:
+    """A phrase with parameters: how to find its uses, and its routine."""
+    pattern: re.Pattern
+    params: list[tuple[str, str, str]]      # (name, ZIL local, 'text'/'number'/'object')
+    routine: str
+    preamble: str
+
+
 class PhraseLowerer:
     def __init__(self, lowerer: Lowerer):
         self.L = lowerer
         self.say_phrases: dict[str, str] = {}      # 'nokeys' -> routine
         self.decide_phrases: dict[str, str] = {}   # 'the cloak is hung' -> routine
         self.do_phrases: dict[str, str] = {}
+        # phrases with parameters ('To pose the question (proposition - a text)
+        # with affirmative response (hint text - a text):'), by use
+        self.param_phrases: dict[str, list[ParamPhrase]] = {"do": [], "say": [], "decide": []}
+        # while a phrase's body is compiled: its parameters, by name
+        # ('hint text' -> ('.HINT-TEXT', 'text'))
+        self.bindings: dict[str, tuple[str, str]] = {}
+        self.aux: list[str] = []        # 'let' locals of the routine being compiled
+
+    def take_aux(self) -> list[str]:
+        """The 'let' locals made while compiling one routine's body; forgets
+        them, and the names they were bound to, for the next routine."""
+        aux, self.aux = self.aux, []
+        self.bindings = {n: b for n, b in self.bindings.items() if b[0][1:] not in aux}
+        return aux
+
+    @staticmethod
+    def locals_list(params: list[str], aux: list[str]) -> str:
+        return " ".join(params + (['"AUX"'] + aux if aux else []))
 
     # ------------------------------------------------------------ helpers
     def problem(self, where: Location, wrote: str, why: str) -> str:
@@ -83,6 +111,8 @@ class PhraseLowerer:
     def atom_of(self, phrase: str) -> str | None:
         """The ZIL value an object/direction/variable name stands for."""
         p = strip_article(phrase).lower().strip()
+        if p in self.bindings and self.bindings[p][1] == "object":   # a phrase's parameter
+            return self.bindings[p][0]
         fixed = {"noun": ",PRSO", "second noun": ",PRSI", "player": ",PLAYER",
                  "yourself": ",PLAYER", "location": ",HERE", "score": ",SCORE",
                  "turn count": ",TURN-COUNT", "nothing": "0",
@@ -103,6 +133,8 @@ class PhraseLowerer:
     def kind_of_value(self, phrase: str) -> str:
         """'number', 'object' or 'text': how a value prints."""
         p = strip_article(phrase).lower().strip()
+        if p in self.bindings:
+            return self.bindings[p][1]
         if p in ("score", "turn count") or re.fullmatch(r"-?\d+", p):
             return "number"
         kind = None
@@ -118,6 +150,8 @@ class PhraseLowerer:
     # ------------------------------------------------------------ values
     def value(self, text: str, where: Location) -> str:
         t = text.strip()
+        if strip_article(t).lower() in self.bindings:          # a phrase's parameter
+            return self.bindings[strip_article(t).lower()][0]
         if re.fullmatch(r"-?\d+", t):
             return t
         if t.startswith('"'):
@@ -126,6 +160,12 @@ class PhraseLowerer:
             return "1" if t.lower() == "true" else "0"
         if t.lower() == "the item described":        # the object an activity is about
             return ",ACT-OBJ"
+        if t.lower() == "the latest parser error":
+            return ",LATEST-PARSER-ERROR"
+        m = re.fullmatch(r"(?:the )?(.+) error", t, re.I)
+        if m and m.group(1).lower() in PARSER_ERRORS:   # 'the can't see any such thing error'
+            code = PARSER_ERRORS[m.group(1).lower()]
+            return code if code.isdigit() else "," + code
         for word, op in ((" plus ", "+"), (" minus ", "-"), (" times ", "*"),
                          (" + ", "+"), (" - ", "-")):
             if word in t:
@@ -141,6 +181,23 @@ class PhraseLowerer:
         return self.problem(where, text, f"'{t}' is not a value, thing or room I know.")
 
     # ------------------------------------------------------------ conditions
+    def described_subject(self, t: str) -> str | None:
+        """A description as the subject: 'the locked grate is in the location'
+        means the grate, if locked -> 'the grate is locked and the grate is in
+        the location'. Only when 'locked grate' is not itself a name."""
+        m = re.match(r"^(the |a |an )?([a-z][a-z -]*?) (is|are) (.+)$", t, re.I)
+        if not m or self.L.m.find(m.group(2)):
+            return None
+        words = m.group(2).split()
+        for n in range(1, len(words)):
+            adjective, noun = " ".join(words[:n]).lower(), " ".join(words[n:])
+            known = adjective in ADJECTIVES or adjective in self.L.m.either_or
+            if known and self.L.m.find(noun):
+                article = m.group(1) or ""
+                return (f"{article}{noun} {m.group(3)} {adjective} and "
+                        f"{article}{noun} {m.group(3)} {m.group(4)}")
+        return None
+
     def condition(self, text: str, where: Location) -> str:
         t = " ".join(text.strip().rstrip(",").split())
         if len(ors := split_outside_quotes(t, " or ")) > 1:
@@ -148,9 +205,15 @@ class PhraseLowerer:
         if len(ands := split_outside_quotes(t, " and ")) > 1:
             return "<AND " + " ".join(self.condition(x, where) for x in ands) + ">"
         low = t.lower()
+        described = self.described_subject(t)
+        if described:                      # 'the locked grate is in the location'
+            return self.condition(described, where)
         for phrase, routine in self.decide_phrases.items():
             if low == phrase:
                 return f"<{routine}>"
+        call = self.use_of("decide", t, where)
+        if call:
+            return call
         if low in ("in darkness", "in the dark"):
             return "<NOT ,LIT>"
         m = re.match(r"^handling (the .+ activity)$", t, re.I)
@@ -347,7 +410,7 @@ class PhraseLowerer:
             head = ph.preamble[3:].strip()                   # after 'To '
             low = head.lower()
             if "(" in head:
-                self.L.p.unsupported(ph.where, ph.preamble, "a phrase with parameters")
+                self.declare_with_parameters(ph, head)
                 continue
             if low.startswith("say "):
                 name = self.L.names.new("SAY-" + head[4:])
@@ -363,10 +426,130 @@ class PhraseLowerer:
                 self.do_phrases[low] = name
             self.defs.append((name, ph))
         for name, ph in self.defs:
-            body = [f'<ROUTINE {name} ()   ;"{ph.preamble} (line {ph.where.line})"']
-            body += ["    " + line for line in self.body(ph.body)]
+            params = next((pp.params for use in self.param_phrases.values() for pp in use
+                           if pp.routine == name), [])
+            self.bindings = {n: (f".{local}", kind) for n, local, kind in params}
+            lines = self.body(ph.body)
+            locals_ = self.locals_list([local for _, local, _ in params], self.take_aux())
+            body = [f'<ROUTINE {name} ({locals_})   ;"{ph.preamble} (line {ph.where.line})"']
+            body += ["    " + line for line in lines]
             body.append("    <RFALSE>>")
+            self.bindings = {}
             self.L.routines.append("\n".join(body))
+
+    def new_local(self, name: str, kind: str, aux: bool = False) -> str:
+        """A new local for NAME (a loop variable, or with AUX a 'let' one)."""
+        taken = {b[0][1:] for b in self.bindings.values()} | set(self.aux)
+        local, n = zil_name(name), 2
+        while local in taken:
+            local, n = f"{zil_name(name)}-{n}", n + 1
+        if aux:
+            if len(self.aux) >= 12:                     # a routine has at most 15 locals
+                raise ValueError("too many 'let' variables in one rule or phrase")
+            self.aux.append(local)
+        self.bindings[name] = (f".{local}", kind)
+        return local
+
+    def let(self, name: str, what: str, where: Location) -> str:
+        """'let x be 3' / 'let the prize be the lamp' / 'let the reply be "Yes."'"""
+        key = strip_article(name.strip()).lower()
+        w = what.strip()
+        kind = "text" if w.startswith('"') else self.kind_of_value(w)
+        value = self.argument(w, kind, where)
+        if key in self.bindings:                        # 'let' again: a new value
+            return f"<SET {self.bindings[key][0][1:]} {value}>"
+        try:
+            local = self.new_local(key, kind, aux=True)
+        except ValueError as e:
+            return self.problem(where, f"let {name} be {what}", f"{e} (I7-lite allows 12).")
+        return f"<SET {local} {value}>"
+
+    PARAMETER = re.compile(r"\(\s*([^()]+?)\s+-\s+([^()]+?)\s*\)")
+
+    def declare_with_parameters(self, ph: PhraseDef, head: str) -> None:
+        """'pose the question (proposition - a text) with affirmative response
+        (hint text - a text)' -> a routine with two locals, and a pattern that
+        finds its uses: 'pose the question "..." with affirmative response "..."'."""
+        use, words = "do", head
+        if head.lower().startswith("say "):
+            use, words = "say", head[4:]
+        elif head.lower().startswith("decide whether "):
+            use, words = "decide", head[15:]
+        elif head.lower().startswith("decide "):
+            self.L.p.unsupported(ph.where, ph.preamble, "'To decide which/what' phrases")
+            return
+        params, pattern, at = [], "", 0
+        for m in self.PARAMETER.finditer(words):
+            name, kind = m.group(1).lower(), self.parameter_kind(m.group(2))
+            if kind is None:
+                self.L.p.unsupported(ph.where, ph.preamble,
+                                     f"a parameter of kind '{strip_article(m.group(2))}' "
+                                     "(I7-lite's are "
+                                     "texts, numbers, truth states and objects)")
+                return
+            pattern += self.literal_words(words[at:m.start()]) + "(.+?)"
+            params.append((name, zil_name(name), kind))
+            at = m.end()
+        pattern += self.literal_words(words[at:])
+        routine = self.L.names.new(f"{use.upper()}-" + self.PARAMETER.sub("X", words))
+        self.param_phrases[use].append(ParamPhrase(re.compile(f"^{pattern}$", re.I),
+                                                   params, routine, ph.preamble))
+        self.defs.append((routine, ph))
+
+    @staticmethod
+    def literal_words(text: str) -> str:
+        words = text.split()
+        if not words:
+            return r"\s*"
+        return r"\s*" + r"\s+".join(re.escape(w) for w in words) + r"\s*"
+
+    def parameter_kind(self, kind: str) -> str | None:
+        k = strip_article(kind).lower().strip()
+        if k == "text":
+            return "text"
+        if k in ("number", "truth state"):
+            return "number"
+        if k == "object" or k in BUILTIN_KINDS or k in self.L.m.kinds:
+            return "object"
+        return None
+
+    def use_of(self, use: str, text: str, where: Location) -> str | None:
+        """A use of a phrase with parameters -> the routine call, or None."""
+        for pp in self.param_phrases[use]:
+            m = pp.pattern.match(" ".join(text.split()))
+            if not m:
+                continue
+            args = [self.argument(arg, kind, where)
+                    for arg, (_, _, kind) in zip(m.groups(), pp.params, strict=True)]
+            return f"<{pp.routine}" + "".join(" " + a for a in args) + ">"
+        return None
+
+    def argument(self, arg: str, kind: str, where: Location) -> str:
+        a = arg.strip()
+        if kind != "text":
+            return self.value(a, where)
+        bound = self.bindings.get(strip_article(a).lower())
+        if bound and bound[1] == "text":                # a text passed on: already a routine
+            return bound[0]
+        if a.startswith('"'):
+            try:
+                text = parse_text(a)
+            except TextError as e:
+                return self.problem(where, a, f"the text is malformed: {e}.")
+        else:                                           # a text variable: printed when used
+            text = parse_text(f'"[{a}]"')
+        routine = self.L.text_routine("TEXT-ARG", text,       # (no quotes in the comment)
+                                      f"a text given to a phrase, line {where.line}", where)
+        # The text is a routine of its own, so it cannot see this rule's or
+        # phrase's locals. (Inform 7 would substitute it here and now.)
+        used = [n for n, (local, _) in self.bindings.items()
+                if re.search(re.escape(local) + r"(?![\w?-])", self.L.routines[-1])]
+        if used:
+            self.L.routines.pop()
+            return self.problem(where, a, f"this text uses '{used[0]}', a name that only exists "
+                                "inside this rule or phrase. I7-lite cannot pass such a text on "
+                                "yet: say it here instead.")
+        return "," + routine
 
     def body(self, lines: list[BodyLine]) -> list[str]:
         """Phrases (split at ';', nested by indentation) -> ZIL lines."""
@@ -422,6 +605,16 @@ class PhraseLowerer:
                 out.append("<COND " + " ".join(
                     f"({cond} {' '.join(self.blocks(kids)) or '<RFALSE>'})"
                     for cond, kids in clauses) + ">")
+            elif m := re.match(r"^repeat with (.+?) running from (.+?) to (.+?):$", b.text, re.I):
+                name = m.group(1).lower()                 # a DO loop: its variable is a local
+                start, end = self.value(m.group(2), b.where), self.value(m.group(3), b.where)
+                local = self.new_local(name, "number")
+                kids = " ".join(self.blocks(b.children))
+                out.append(f"<DO ({local} {start} {end}) {kids}>")
+            elif m := re.match(r"^while (.+):$", b.text, re.I):
+                cond = self.condition(m.group(1), b.where)
+                kids = " ".join(self.blocks(b.children))
+                out.append(f"<REPEAT () <COND (<NOT {cond}> <RETURN>)> {kids}>")
             else:
                 out.extend(self.phrase(b.text, b.where))
             i += 1
@@ -439,8 +632,17 @@ class PhraseLowerer:
                     f"{' '.join(self.phrase(m.group(2), where))})>"]
         if low.startswith("say "):
             return self.say(t[4:].strip(), where)
+        if low in ("decide yes", "decide no"):          # a 'To decide whether' answer
+            return ["<RTRUE>" if low == "decide yes" else "<RFALSE>"]
+        m = re.match(r"^let (.+?) be (.+)$", t, re.I)
+        if m:
+            return [self.let(m.group(1), m.group(2), where)]
         if low.startswith("now "):
             return [self.now(t[4:], where)]
+        m = re.match(r"^(increment|decrement) (.+)$", t, re.I)     # by one
+        if m:
+            verb = "increase" if m.group(1).lower() == "increment" else "decrease"
+            t = f"{verb} {m.group(2)} by 1"
         m = re.match(r"^(increase|decrease) (.+?) by (.+)$", t, re.I)
         if m:
             target, amount = self.value(m.group(2), where), self.value(m.group(3), where)
@@ -485,6 +687,9 @@ class PhraseLowerer:
             return [self.try_action(m.group(2), bool(m.group(1)), where)]
         if low in self.do_phrases:
             return [f"<{self.do_phrases[low]}>"]
+        call = self.use_of("do", t, where)
+        if call:
+            return [call]
         self.problem(where, t, "I7-lite does not know this phrase.")
         return []
 
@@ -613,11 +818,15 @@ class PhraseLowerer:
                   "bold type": "<HLIGHT 2>", "italic type": "<HLIGHT 4>",
                   "roman type": "<HLIGHT 0>", "fixed letter spacing": "<HLIGHT 8>",
                   "variable letter spacing": "<HLIGHT 0>", "no line break": "",
-                  "run paragraph on": "", "/b": "", "b": ""}
+                  "run paragraph on": "", "/b": "", "b": "",
+                  "bracket": '<TELL "[">', "close bracket": '<TELL "]">'}   # [ and ] themselves
         if low in simple:
             return simple[low]
         if low in self.say_phrases:
             return f"<{self.say_phrases[low]}>"
+        call = self.use_of("say", w, where)
+        if call:
+            return call
         adaptive = self.adaptive(w, where)
         if adaptive:
             return adaptive
@@ -663,6 +872,8 @@ class PhraseLowerer:
             return f"<TELL {zil_string(w)}>"
         if w.lower() in ("regarding it", "regarding nothing"):
             return "<SETG PRIOR-NAMED 0>"
+        if w.lower() == "regarding them":            # what follows agrees as a plural
+            return "<SETG PRIOR-NAMED ,SOME-THINGS>"
         m = re.match(r"^regarding (.+)$", w, re.I)
         if m:
             return f"<SETG PRIOR-NAMED {self.value(m.group(1), where)}>"
@@ -675,6 +886,9 @@ class PhraseLowerer:
         return None
 
     def print_value(self, what: str, where: Location) -> str:
+        bound = self.bindings.get(strip_article(what.strip()).lower())
+        if bound and bound[1] == "text":        # a text parameter is a routine: run it
+            return f"<APPLY {bound[0]}>"
         m = re.match(r"^(?:the )?(.+?) of (.+)$", what.strip(), re.I)
         if m and (m.group(1).lower() in TEXT_PROPERTIES
                   or self.L.m.value_properties.get(m.group(1).lower()) == "text"):

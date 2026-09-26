@@ -519,3 +519,59 @@ could be typed: it never reset byte 1 of its text buffer, which §15 read
 counts as letters already typed, so every command after the first was
 glued to the one before. It now resets it, as Infocom's games did.
 
+
+## ADR-034: Parser errors, rule placement, phrases with parameters
+
+Context. Real Inform 7 sources customise parser errors. Advent's hint
+system is the example: after three parser errors in a row near the locked
+grate it asks "Are you trying to get into the cave?". That needs the
+*printing a parser error* activity, `the latest parser error`, a `first`
+rule, a phrase with text parameters and a preamble that goes on over
+several lines.
+
+Decisions.
+- **One parser, two ways, chosen at compile time.** `lib/parser.zil` is
+  shared by ZIL games and I7 games, and the ZIL games are frozen golden
+  builds. So ZIL-lite gains ZILF's `COMPILATION-FLAG` / `IFFLAG`, resolved as
+  the source is read: the I7 runtime sets `I7` before it includes the
+  parser, and each error site says `<IFFLAG (I7 <I7-PARSER-ERROR ...>) (ELSE
+  ...the old code...)>`. ZIL games see exactly the tokens they saw before
+  (the golden check proves it: byte-identical).
+- **The names are Inform 7's, the letters are not used.** The error names
+  (`the can't see any such thing error`, ...) were read out of the compiled
+  Advent_Crowther.z8, which contains them. Which response letter goes with
+  which error could not be settled (Advent replaces most of them with a
+  random choice of three messages; probing the real game under six random
+  seeds showed an unknown verb is N, not M as one might guess). So I7-lite
+  does not let the parser error internal rule's responses be edited; a
+  `Rule for printing a parser error when the latest parser error is ...`
+  does the same job and needs no letters.
+- **Inform 7's wording, where the real game shows it**: `I'm not sure what
+  'it' refers to.` (single quotes, not the double quotes I7-lite printed).
+  The 'it' gone message follows Inform 6's library (`You can't see 'it' (the
+  lamp) at the moment.`); the real Advent answers that one at random.
+- **A parser error is a message, not a paragraph.** After the error's
+  message no paragraph break is owed: an after rule's text follows on the
+  next line. The real game shows it: its hint question comes exactly one
+  blank line after the message, and that blank line is the hint's own
+  `[line break]`.
+- **First/last** is a group sorted before specificity, in every rulebook
+  (actions, activities, every turn, when play begins) - the same groups the
+  "is listed first/last" sentences already used.
+- **Parameters are locals.** A phrase with parameters is a routine with one
+  local per parameter; its uses are found by matching the definition's
+  words, with a slot per parameter. A text parameter always holds a routine
+  (a quoted text becomes one; a text variable gets a small one that prints
+  it), so the phrase prints it with APPLY and never has to guess. The same
+  bindings give `let` (AUX locals, declared after the body is compiled),
+  `repeat with ... running from ... to` (a DO loop) and `while` (a REPEAT).
+- **A text given to a phrase cannot use the giver's own names.** It is a
+  routine of its own, which cannot see the giver's locals. Inform 7 would
+  substitute such a text there and then (printing it into memory); until
+  I7-lite does that, a problem message says so.
+
+Consequences. The Advent differential grew by the hint system - three
+errors, the question, "no" ("OK."), a reset by a good command, three more,
+"yes" and the hint - and still matches the real game on z5 and z8. Finding
+the docs table claiming `let`, `repeat`, `while` and parameter phrases
+that did not exist led to building them; the table now says what is there.

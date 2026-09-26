@@ -239,15 +239,52 @@ ACTIVITIES: tuple[LibraryActivity, ...] = (
     LibraryActivity("printing the description of a dark room", "PRINTING-DARK-DESC-ACTIVITY"),
     LibraryActivity("printing the name of a dark room", "PRINTING-DARK-NAME-ACTIVITY"),
     LibraryActivity("printing the banner text", "PRINTING-BANNER-ACTIVITY"),
+    LibraryActivity("printing a parser error", "PRINTING-PARSER-ERROR-ACTIVITY"),
     LibraryActivity("printing the name", "PRINTING-NAME-ACTIVITY", "of"),
     LibraryActivity("writing a paragraph", "WRITING-PARAGRAPH-ACTIVITY", "about"),
 )
+
+# Inform 7's parser errors, by the names an author uses ('the latest parser
+# error is the can't see any such thing error'). The names are Inform 7's own
+# (checked against the compiled Advent_Crowther.z8, which contains them).
+# I7-lite's parser makes the first six; a rule about any other can be written
+# but never applies - as in a game where that kind of mistake cannot happen.
+PARSER_ERRORS: dict[str, str] = {
+    "didn't understand": "PE-DIDNT-UNDERSTAND",
+    "can't see any such thing": "PE-CANT-SEE",
+    "not sure what it refers to": "PE-NOT-SURE",
+    "can't see it at the moment": "PE-CANT-SEE-IT",
+    "not a verb i recognise": "PE-NOT-A-VERB",
+    "i beg your pardon": "PE-PARDON",
+    # never made by I7-lite's parser: each has its own number (101 up),
+    # which LATEST-PARSER-ERROR never holds
+    "only understood as far as": "101",
+    "didn't understand that number": "102",
+    "said too little": "103",
+    "aren't holding that": "104",
+    "can't use multiple objects": "105",
+    "can only use multiple objects": "106",
+    "excepted something not included": "107",
+    "can only do that to something animate": "108",
+    "not something you need to refer to": "109",
+    "didn't understand the way that finished": "110",
+    "not enough of those available": "111",
+    "nothing to do": "112",
+    "noun did not make sense in that context": "113",
+    "referred to a determination of scope": "114",
+    "can't again the addressee": "115",
+    "comma can't begin": "116",
+    "can't see whom to talk to": "117",
+    "can't talk to inanimate things": "118",
+    "didn't understand addressee's last name": "119",
+}
+
 
 # Inform 7 activities that I7-lite knows by name but does not carry out yet:
 # a rule for one gets a clear problem instead of being read as an action.
 UNSUPPORTED_ACTIVITIES: tuple[str, ...] = (
     "printing the announcement of darkness", "printing the announcement of light",
-    "printing a parser error", "supplying a missing noun", "supplying a missing second noun",
+    "supplying a missing noun", "supplying a missing second noun",
     "choosing notable locale objects", "printing the locale description",
     "printing a locale paragraph about", "listing contents", "listing nondescript items",
     "grouping together", "printing the plural name", "printing room description details",

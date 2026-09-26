@@ -160,6 +160,24 @@ Rules are ordered as in Inform 7: more specific first, then the library
 before the author, then source order; a rule listed instead of another
 takes its place. A response edit may use substitutions.
 
+`First` and `last` put a rule at the front or the back of its rulebook,
+whatever its specificity (ADR-034): `First every turn: ...`,
+`Last carry out taking: ...`, `The first after printing a parser error
+rule: ...`.
+
+A long preamble may go on in the next lines, each starting with a space
+(a body line starts with a tab):
+
+    To pose the question (proposition - a text)
+     with affirmative response (hint text - a text):
+        ...
+    After printing a parser error when the locked grate is in the location,
+     pose the question "Are you trying to get into the cave? "
+     with affirmative response "The grate is very solid ...".
+
+A rule begins a line: `The count is a number that varies. When play
+begins: ...` on one line is not read as a rule.
+
 Other rule forms: `going nowhere` (a direction with no exit), `[the door
 gone through]`, `[the room gone to]`, `[the room gone from]`.
 
@@ -174,15 +192,18 @@ stands in its own paragraph).
 | `say "text"` | 7a |
 | `now X is Y` / `now X is in Y` / `now the player carries X` | 7a |
 | `move X to Y` / `remove X from play` | 7a |
-| `increase X by N` / `decrease X by N` / `increment X` | 7a |
-| `let X be <value>` | 7a |
+| `increase X by N` / `decrease X by N` | 7a |
+| `increment X` / `decrement X` (by one) | Advent |
+| `let X be <value>` (a number, a thing or a text; `let` again gives it a new value) | Advent |
 | `if <cond>: ...` / `otherwise if` / `otherwise` (indented or one line) | 7a |
-| `repeat with I running from 1 to 10: ...` / `while <cond>: ...` | 7a |
+| `repeat with I running from 1 to 10: ...` / `while <cond>: ...` | Advent |
 | `end the story` / `end the story finally` / `end the story saying "..."` | 7a |
 | `stop the action` / `continue the action` / `rule succeeds` / `rule fails` | 7a |
 | `try <action>` / `silently try <action>` | 7b |
 | `<phrase> instead` (do it, then stop) | 7b |
-| `To <phrase> (N - a number): ...` user phrases; `To decide whether ...`; `To say <name>: ...` | 7a |
+| `To <phrase>: ...` / `To say <name>: ...` user phrases | 7a |
+| `To decide whether ...: ...` with `decide yes` / `decide no` | Advent |
+| phrases with parameters: `To praise (item - a thing) times (n - a number): ...`, `To say fancy (item - a thing): ...`, `To decide whether (item - a thing) is gleaming: ...` | Advent |
 | `say line break` / `say paragraph break` | Advent |
 
 Conditions: `X is Y`, `X is not Y`, `X is in Y`, `X is on Y`, `the player
@@ -190,7 +211,18 @@ carries X`, `the player is in Y`, `X is <property>`, `the noun is X`,
 `N is greater than / less than / at least / at most M` (and `>` `<`
 `>=` `<=`), `A and B`, `A or B`, `a random chance of 1 in 3 succeeds`,
 `X encloses Y`, `the player consents` (a yes/no question), `in darkness`,
-`X is ""` (a text property with no text).
+`X is ""` (a text property with no text), `the latest parser error is the
+<name> error` (section 10), and a description as the subject: `the locked
+grate is in the location` means the grate, if it is locked (`the grate is
+locked and the grate is in the location`).
+
+Parameters (ADR-034) are texts, numbers, truth states or objects (any kind
+of thing, or `object`). Inside the phrase they are names like any other:
+`say "[proposition]"`, `if the item is lit`, `increase the count by n`. A
+text argument may have substitutions; it is worked out when the phrase
+prints it. One limit: a text given to a phrase cannot use the names of the
+rule or phrase that gives it (`echo "[message]!"` inside a phrase whose
+parameter is `message`) - I7-lite says so; say the text there instead.
 The location, the noun, the second noun, the player, the score, the turn
 count are built in.
 
@@ -225,7 +257,9 @@ Also (from Advent's cave):
 **Adaptive text in I7-lite** is always second person, present tense
 (`[We] [are]` prints "You are"). `[regarding X]` makes the next verb agree
 with X: `[regarding the stream][flow]` -> "flows", `[regarding the keys]
-[are]` -> "are". There is no story-viewpoint switching. As in Inform 7
+[are]` -> "are"; `[regarding them][are]` -> "are" with no thing named.
+`[bracket]` and `[close bracket]` print `[` and `]`. There is no
+story-viewpoint switching. As in Inform 7
 (checked against the real Advent), a paragraph about a thing agrees with
 that thing, and each new turn starts with nothing named.
 
@@ -430,6 +464,7 @@ skipped, unless the rule ends with `continue the activity`.
 
 | Activity | Written as | The library's own way |
 |---|---|---|
+| printing a parser error | `Rule for printing a parser error when the latest parser error is the not a verb I recognise error: ...` | Inform 7's message for that error |
 | printing the name | `Rule for printing the name of the lamp: ...` | the printed name |
 | printing the banner text | `After printing the banner text: ...` | title, headline, release line |
 | printing the name of a dark room | `Rule for printing the name of a dark room: ...` | "Darkness" (heading response (A)) |
@@ -454,15 +489,35 @@ skipped, unless the rule ends with `continue the activity`.
   `end the X activity`, or all three at once with
   `carry out the X activity [with <thing>]`.
 
-Other Inform 7 activities (the announcements of darkness and light, parser
-errors, supplying a missing noun, choosing notable locale objects, listing
+*Printing a parser error* (ADR-034) runs when a command cannot be
+understood. `the latest parser error` says why, by Inform 7's own names
+(checked against the compiled Advent): I7-lite's parser makes
+
+| The ... error | Inform 7's message |
+|---|---|
+| I beg your pardon | I beg your pardon? |
+| not a verb I recognise | That's not a verb I recognise. |
+| can't see any such thing | You can't see any such thing. |
+| not sure what it refers to | I'm not sure what 'it' refers to. |
+| can't see it at the moment | You can't see 'it' (the lamp) at the moment. |
+| didn't understand | I didn't understand that sentence. |
+
+Inform 7's other error names (`said too little`, `nothing to do`, ...) can
+be used in conditions, but I7-lite's parser never makes them. A parser
+error is a message, not a paragraph: what an after rule prints follows it
+on the next line, as in Inform 7. Its responses (`The parser error internal
+rule response (N) is ...`) cannot be edited: write a rule for the activity.
+
+Other Inform 7 activities (the announcements of darkness and light,
+supplying a missing noun, choosing notable locale objects, listing
 contents, and so on) are recognised by name and refused with a problem
 message that says so.
 
 ## Not supported (a problem message says so)
 
-Relations and relation verbs, tables, activities other than the five in
-section 10, Inform 6 inclusions `(- -)`,
+Relations and relation verbs, tables, activities other than the six in
+section 10, editing the parser error internal rule's responses, texts
+given to a phrase that use the giver's own names, `To decide which/what`, Inform 6 inclusions `(- -)`,
 extensions (`Include`), `does nothing`, action variables, kinds of action
 (`... is attempting entry`), rulebooks the author makes, `Definition:`,
 backdrops, regions, scenes, kinds of value, `[text]` tokens, units,

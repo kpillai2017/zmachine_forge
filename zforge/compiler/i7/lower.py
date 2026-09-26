@@ -70,7 +70,9 @@ class Lowerer:
         self.atom: dict[str, str] = {"yourself": "PLAYER"}          # object name -> atom
         self.out: list[str] = []
         self.routines: list[str] = []                                # generated routines
-        self.rulebooks: dict[str, dict[str, list[tuple[tuple, str]]]] = {}
+        # book -> stage -> [(specificity, routine, group)]; group 0 = 'first',
+        # 1 = normal, 2 = 'last' (sorted before specificity)
+        self.rulebooks: dict[str, dict[str, list[tuple[tuple, str, int]]]] = {}
         self.phrases = PhraseLowerer(self)
         self.extra_globals: list[str] = []                           # e.g. [one of] counters
 
@@ -268,7 +270,7 @@ class Lowerer:
                 guard = self.phrases.condition(rule.preamble[5:], rule.where)
             name = self.rule_routine(rule, guard, default="<RFALSE>")
             book = "WHEN-PLAY-BEGINS" if stage == "when play begins" else "EVERY-TURN"
-            self.add_rule(book, "", (0,), name)
+            self.add_rule(book, "", (0,), name, rule.placement)
             return
         if stage.startswith("activity "):
             self.activity_rule(rule, stage[len("activity "):])
@@ -281,7 +283,7 @@ class Lowerer:
         if rule.named:
             self.named_rules[rule.named] = name
         for action in pattern.actions or [""]:        # "" = every action ('doing something')
-            self.add_rule(action, stage, pattern.specificity, name)
+            self.add_rule(action, stage, pattern.specificity, name, rule.placement)
 
     def activity_rule(self, rule: Rule, stage: str) -> None:
         """'Rule for printing the name of the lamp when the lamp is lit:' - STAGE is
@@ -316,7 +318,7 @@ class Lowerer:
         if rule.named:
             self.named_rules[rule.named] = name
         specificity = (sum(1 for g in guards if g),)
-        self.add_rule(activity.atom, stage, specificity, name)
+        self.add_rule(activity.atom, stage, specificity, name, rule.placement)
 
     def activities(self) -> None:
         """One global per library activity (activities.zil): its before, for and
@@ -326,30 +328,37 @@ class Lowerer:
             tables = []
             for stage in ("before", "for", "after"):
                 entries = self.rulebooks.get(activity.atom, {}).get(stage, [])
-                order = sorted(enumerate(entries), key=lambda e: (tuple(-x for x in e[1][0]), e[0]))
-                tables.append("<LTABLE" + "".join(" ," + r for _, (_, r) in order) + ">")
+                order = sorted(enumerate(entries),
+                               key=lambda e: (e[1][2], tuple(-x for x in e[1][0]), e[0]))
+                tables.append("<LTABLE" + "".join(" ," + r for _, (_, r, _) in order) + ">")
             self.emit(f"<GLOBAL {activity.atom} <TABLE {' '.join(tables)}>>")
         self.emit("")
 
     def rule_routine(self, rule: Rule, guard: str, default: str) -> str:
         name = self.names.new(f"RULE-{rule.number}")
         heading = " ".join(f"{rule.stage} {rule.preamble}".split()) or f"the {rule.named}"
-        lines = [f'<ROUTINE {name} ()   ;"{heading} (line {rule.where.line})"']
+        body = self.phrases.body(rule.body)           # first: it may make 'let' locals
+        locals_ = self.phrases.locals_list([], self.phrases.take_aux())
+        lines = [f'<ROUTINE {name} ({locals_})   ;"{heading} (line {rule.where.line})"']
         if guard:
             lines.append(f"    <COND (<NOT {guard}> <RFALSE>)>")
-        lines.extend("    " + line for line in self.phrases.body(rule.body))
+        lines.extend("    " + line for line in body)
         lines.append(f"    {default}>")
         self.routines.append("\n".join(lines))
         return name
 
-    def add_rule(self, book: str, stage: str, specificity: tuple, routine: str) -> None:
-        self.rulebooks.setdefault(book, {}).setdefault(stage, []).append((specificity, routine))
+    def add_rule(self, book: str, stage: str, specificity: tuple, routine: str,
+                 placement: str = "") -> None:
+        group = {"first": 0, "": 1, "last": 2}[placement]
+        self.rulebooks.setdefault(book, {}).setdefault(stage, []).append(
+            (specificity, routine, group))
 
     # ------------------------------------------------------------ actions
     def actions(self) -> None:
         self.emit('"--- rulebooks and actions"')
         for book in ("WHEN-PLAY-BEGINS", "EVERY-TURN"):
-            rules = [r for _, r in self.rulebooks.get(book, {}).get("", [])]
+            entries = self.rulebooks.get(book, {}).get("", [])     # source order, but
+            rules = [r for _, r, _ in sorted(entries, key=lambda e: e[2])]   # first/last
             self.emit(f"<GLOBAL {book}-RULES <LTABLE {' '.join(',' + r for r in rules)}>>")
         self.emit(self.rulebook_global("GENERAL-RULES", ""))
         for name, action in self.m.actions.items():
@@ -414,7 +423,7 @@ class Lowerer:
             # 1 = normal, 2 = listed last; order: library i, the author's 1000 + i
             entries = [[1, (0,), i, r.routine, r.name]
                        for i, r in enumerate(std.rules.get(stage, ()) if std else ())]
-            entries += [[1, spec, 1000 + i, r, self.rule_name_of(r)] for i, (spec, r)
+            entries += [[group, spec, 1000 + i, r, self.rule_name_of(r)] for i, (spec, r, group)
                         in enumerate(self.rulebooks.get(action, {}).get(stage, []))]
             if action:
                 entries = self.apply_listings(entries, (stage, action))

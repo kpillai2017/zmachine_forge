@@ -162,6 +162,16 @@ DEFAULT_PLAN: list[Task] = [
           "zforge/compiler/i7/model.py", "zforge/compiler/i7/phrases.py",
           "zforge/compiler/i7/standard.py", "examples/advent_opening.ni"],
          ["I7_LITE.md", "ADR-031"], ["i7-advent-differential"], ["tests/test_i7.py"]),
+    Task("v2-i7-parser-errors", 7, "I7-lite: printing a parser error, the latest parser error "
+         "(Inform 7's names), first/last rules, phrases with parameters, let/repeat/while; "
+         "ZIL-lite IFFLAG keeps ZIL games byte-identical; Crowther's hint system matches the "
+         "real game (ADR-034)",
+         ["zforge/lib/parser.zil", "zforge/lib/i7/activities.zil", "zforge/compiler/forms.py",
+          "zforge/compiler/i7/phrases.py", "zforge/compiler/i7/source.py",
+          "zforge/compiler/i7/model.py", "zforge/compiler/i7/lower.py",
+          "examples/advent_opening.ni"],
+         ["I7_LITE.md", "ZIL_SUBSET.md", "ADR-034"],
+         ["i7-advent-differential", "golden"], ["tests/test_i7_parser_errors.py"]),
 
     # ---- Tier 8: version 6, the eight-window screen model (§8.8, ADR-030)
     Task("v2-v6-file", 8, "a z6 story file: §5.4 starts by calling main, §11.1 swaps "

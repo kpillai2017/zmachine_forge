@@ -88,3 +88,50 @@
     <TELL "Release " N ,RELEASE-NUMBER " / Serial number ">
     <DO (I 18 23) <PRINTC <GETB 0 .I>>>     ;"§11: header bytes $12-$17"
     <TELL " / zforge I7-lite" CR CR>>
+
+;"---------------------------------------------- printing a parser error
+
+ When the parser cannot make sense of a command it names the problem -
+ Inform 7's 'the latest parser error' - and carries out 'printing a
+ parser error', whose default prints Inform 7's message. An author can
+ replace a message ('Rule for printing a parser error when the latest
+ parser error is the not a verb I recognise error: ...') or add to it
+ ('After printing a parser error: ...').
+
+ The numbers are I7-lite's own; an author only ever uses the names
+ (standard.py PARSER_ERRORS). These six are the ones this parser makes."
+
+<CONSTANT PE-DIDNT-UNDERSTAND 1>  ;"the didn't understand error"
+<CONSTANT PE-CANT-SEE 2>          ;"the can't see any such thing error"
+<CONSTANT PE-NOT-SURE 3>          ;"the not sure what it refers to error"
+<CONSTANT PE-CANT-SEE-IT 4>       ;"the can't see it at the moment error"
+<CONSTANT PE-NOT-A-VERB 5>        ;"the not a verb I recognise error"
+<CONSTANT PE-PARDON 6>            ;"the I beg your pardon error"
+
+<GLOBAL LATEST-PARSER-ERROR 0>
+
+<ROUTINE I7-PARSER-ERROR (E)
+    ;"lib/parser calls this (IFFLAG I7) instead of printing the message itself.
+      A parser error is a message, not a paragraph: what an after rule prints
+      follows it directly (the real Advent shows it - its hint question comes
+      one blank line later, and that blank line is the hint's own
+      [line break]). So the three steps, with no paragraph break owed after
+      the message."
+    <SETG LATEST-PARSER-ERROR .E>
+    <BEGIN-ACTIVITY ,PRINTING-PARSER-ERROR-ACTIVITY 0>
+    <COND (<HANDLING? ,PRINTING-PARSER-ERROR-ACTIVITY> <PARSER-ERROR-STANDARD>)>
+    <PARA-ABSORB>
+    <END-ACTIVITY ,PRINTING-PARSER-ERROR-ACTIVITY>>
+
+<ROUTINE PARSER-ERROR-STANDARD ()
+    ;"Inform 7's own messages (the parser error internal rule)"
+    <COND (<EQUAL? ,LATEST-PARSER-ERROR ,PE-PARDON> <TELL "I beg your pardon?" CR>)
+          (<EQUAL? ,LATEST-PARSER-ERROR ,PE-NOT-A-VERB>
+           <TELL "That's not a verb I recognise." CR>)
+          (<EQUAL? ,LATEST-PARSER-ERROR ,PE-CANT-SEE> <TELL "You can't see any such thing." CR>)
+          (<EQUAL? ,LATEST-PARSER-ERROR ,PE-NOT-SURE>
+           <TELL "I'm not sure what '"> <PRINT-WORD ,P-ERROR-WORD> <TELL "' refers to." CR>)
+          (<EQUAL? ,LATEST-PARSER-ERROR ,PE-CANT-SEE-IT>
+           <TELL "You can't see '"> <PRINT-WORD ,P-ERROR-WORD> <TELL "' (">
+           <SAY-THE ,P-IT> <TELL ") at the moment." CR>)
+          (ELSE <TELL "I didn't understand that sentence." CR>)>>

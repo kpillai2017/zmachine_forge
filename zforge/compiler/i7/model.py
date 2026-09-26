@@ -111,6 +111,7 @@ class Rule:
     where: Location
     number: int = 0
     named: str | None = None    # "(this is the Crowther's heading rule)" -> that name
+    placement: str = ""         # "first" / "last": 'The first after printing ... rule:'
 
 
 @dataclass
@@ -855,6 +856,15 @@ class ModelBuilder:
         if m:
             preamble, named = m.group(1), self.rule_name(m.group(2))
             low = preamble.lower()
+        # 'The first after printing a parser error rule:' / 'First every turn:' /
+        # 'Last carry out taking:' - first or last in its rulebook, whatever the
+        # specificity. Only when a real rule follows ('Last Chance' is a room).
+        placement = ""
+        m = re.match(r"^(?:the |a )?(first|last) (.+?)(?: rule)?$", preamble, re.I)
+        if m and re.match(r"^(rule for|before|after|instead|check|carry out|report|"
+                          r"every turn|when play begins)\b", m.group(2), re.I):
+            placement, preamble = m.group(1).lower(), m.group(2)
+            low = preamble.lower()
         # Activities: "Rule for printing the name of the lamp", "Before
         # printing the banner text". Checked before actions, so "Before
         # printing ..." is not read as a before-rule for an action.
@@ -864,7 +874,7 @@ class ModelBuilder:
             activity = self.activity_named(rest)
             if activity is not None:
                 self.m.rules.append(Rule("activity " + ("for" if stage == "rule for" else stage),
-                                         rest, s.body, s.where, number, named))
+                                         rest, s.body, s.where, number, named, placement))
                 return
             if stage == "rule for":
                 known = [a for a in UNSUPPORTED_ACTIVITIES if rest.lower().startswith(a)]
@@ -882,7 +892,8 @@ class ModelBuilder:
         for words, stage in self.STAGE_WORDS:
             if low.startswith(words):
                 rest = preamble[len(words):].strip()
-                self.m.rules.append(Rule(stage, rest, s.body, s.where, number, named))
+                self.m.rules.append(Rule(stage, rest, s.body, s.where, number, named,
+                                         placement))
                 return
         self.p.unsupported(s.where, s.text, "this kind of rule")
 

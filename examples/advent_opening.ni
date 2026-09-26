@@ -28,6 +28,32 @@ Before looking when look later is false:
 	say "Sorry, but I am not allowed to give more detail. I will repeat the long description of [our] location."
 After looking: now look later is false.
 
+[Advent 296-321: Crowther's hints. A few are given after failing to solve a
+ puzzle - but only after 3 parser errors in a row. Every turn rules run only
+ after a command was understood, so they reset the count.]
+The count of sequential parser errors is a number that varies.
+
+The first after printing a parser error rule:
+	increment the count of sequential parser errors.
+
+Every turn: now the count of sequential parser errors is 0.
+
+To pose the question (proposition - a text)
+ with affirmative response (hint text - a text):
+	if the count of sequential parser errors is 3:
+		now the count of sequential parser errors is 0;
+		say "[line break][proposition][paragraph break]  ";
+		if the player consents:
+			say "[hint text][paragraph break]";
+		otherwise:
+			say "OK."
+
+[Advent edits the parser error internal rule's response (N) - its message
+ for a word it does not know - to "I don't know that word. ". I7-lite does
+ not let a parser error's responses be edited; this rule says the same.]
+Rule for printing a parser error when the latest parser error is the not a verb I recognise error:
+	say "I don't know that word. ".
+
 [Advent 261: there is nothing to examine closely.]
 Instead of examining something: try looking.
 
@@ -127,6 +153,11 @@ The Entryway is privately-named.
 The grate is a door. The grate is locked and lockable. The grate is down from Stream's End and outside from the Entryway.
 "[The grate] [are] [if the grate is open]open[otherwise]locked[end if]."
 The keys unlock the grate.
+
+[Advent 777-779]
+After printing a parser error when the locked grate is in the location,
+ pose the question "Are you trying to get into the cave? "
+ with affirmative response "The grate is very solid and has a hardened steel lock. [We] [cannot enter] without a key, and there [regarding them][are] no keys nearby. I would recommend looking elsewhere for the keys."
 
 End of Road, the Building, the Valley, the Streambed, Stream's End, the Entryway, and Cobble Crawl are lighted.
 

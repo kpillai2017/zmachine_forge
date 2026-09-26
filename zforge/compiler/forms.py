@@ -29,6 +29,7 @@ class FormParser:
         self.diag = diag
         self.base_dir = base_dir or Path(".")
         self.program = ast.Program()
+        self.flags: dict[str, bool] = {}    # <COMPILATION-FLAG ...> (ZILF)
 
     def error(self, node, message: str) -> None:
         self.diag.error(node.location, message)
@@ -40,6 +41,60 @@ class FormParser:
         return self.program
 
     def top_level(self, datum) -> None:
+        for item in self.resolve_flags([datum]):      # <IFFLAG ...> chooses first
+            self._top_level(item)
+
+    # ------------------------------------------------ compile-time flags
+    # ZILF's way of compiling one library two ways: <COMPILATION-FLAG I7 T>
+    # sets a flag, <COMPILATION-FLAG-DEFAULT I7 <>> sets it unless it is set
+    # already, and <IFFLAG (I7 forms...) (ELSE forms...)> is replaced by the
+    # forms of the first clause whose flag is true - as the source is read,
+    # so the rest of the compiler never sees the clauses it did not choose.
+    def resolve_flags(self, data: list) -> list:
+        out = []
+        for d in data:
+            if isinstance(d, r.Form) and d.items and isinstance(d.items[0], r.Atom) \
+                    and d.items[0].name == "IFFLAG":
+                out += self.resolve_flags(self._chosen_clause(d))
+            elif isinstance(d, (r.Form, r.List)):
+                out.append(type(d)(self.resolve_flags(d.items), d.location))
+            else:
+                out.append(d)
+        return out
+
+    def _chosen_clause(self, form) -> list:
+        for clause in form.items[1:]:
+            if not (isinstance(clause, r.List) and clause.items
+                    and isinstance(clause.items[0], r.Atom)):
+                self.error(form, "IFFLAG clauses look like (FLAG forms...) or (ELSE forms...)")
+                return []
+            flag = clause.items[0].name
+            if flag in ("ELSE", "T"):
+                return clause.items[1:]
+            if flag not in self.flags:
+                self.error(clause, f"IFFLAG: no compilation flag {flag} "
+                                   f"(set it with <COMPILATION-FLAG {flag} T>)")
+                return []
+            if self.flags[flag]:
+                return clause.items[1:]
+        return []
+
+    def compilation_flag(self, form, args, default_only: bool = False) -> None:
+        if len(args) != 2 or not isinstance(args[0], r.Atom):
+            self.error(form, "use <COMPILATION-FLAG NAME T> or <COMPILATION-FLAG NAME <>>")
+            return
+        value = args[1]
+        if isinstance(value, r.Atom) and value.name == "T":
+            on = True
+        elif isinstance(value, r.Form) and not value.items:
+            on = False
+        else:
+            self.error(form, "a compilation flag is T or <>")
+            return
+        if not (default_only and args[0].name in self.flags):
+            self.flags[args[0].name] = on
+
+    def _top_level(self, datum) -> None:
         if not isinstance(datum, r.Form) or not datum.items:
             if isinstance(datum, r.String):
                 return                     # a bare string at top level is a comment
@@ -53,6 +108,9 @@ class FormParser:
             "PROPDEF": self.propdef, "DIRECTIONS": self.directions,
             "INSERT-FILE": self.insert_file, "SYNTAX": self.syntax,
             "VERB-SYNONYM": self.synonym, "PREP-SYNONYM": self.synonym,
+            "COMPILATION-FLAG": self.compilation_flag,
+            "COMPILATION-FLAG-DEFAULT":
+                lambda form, args: self.compilation_flag(form, args, default_only=True),
         }.get(name)
         if handler is None:
             self.error(head if hasattr(head, "location") else datum,
