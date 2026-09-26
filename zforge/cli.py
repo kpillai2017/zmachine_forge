@@ -209,12 +209,13 @@ def cmd_spec(args) -> int:
 
 # --------------------------------------------------------------- main
 def build_parser() -> argparse.ArgumentParser:
-    p = argparse.ArgumentParser(prog="zforge", description="A study-friendly Z-machine v5 "
-                                "toolchain: interpreter, ZIL-lite compiler, assembler.")
+    p = argparse.ArgumentParser(prog="zforge", description="A study-friendly Z-machine "
+                                "toolchain for versions 5-8: interpreter, Inform 7 (I7-lite) "
+                                "and ZIL-lite compilers, assembler.")
     p.add_argument("--debug", action="store_true", help="show Python tracebacks")
     sub = p.add_subparsers(dest="command", required=True)
 
-    r = sub.add_parser("run", help="play a .z5 story file")
+    r = sub.add_parser("run", help="play a story file (z5, z6, z7 or z8)")
     r.add_argument("story")
     r.add_argument("--ui", choices=["auto", "curses", "plain"], default="auto")
     r.add_argument("--script", help="file of input lines (one command per line)")
@@ -229,7 +230,7 @@ def build_parser() -> argparse.ArgumentParser:
                        help="compile ZIL-lite (.zil) or Inform 7 (.ni) source to a story file")
     c.add_argument("source")
     c.add_argument("-o", "--output")
-    c.add_argument("--target", help="z5, z7 or z8 (default: zforge.toml, $ZFORGE_TARGET, "
+    c.add_argument("--target", help="z5, z6, z7 or z8 (default: zforge.toml, $ZFORGE_TARGET, "
                                     "then the source's <VERSION>)")
     c.add_argument("--emit-zil", action="store_true",
                    help="(Inform 7 sources) also write the generated ZIL-lite")
@@ -241,7 +242,7 @@ def build_parser() -> argparse.ArgumentParser:
     a = sub.add_parser("asm", help="assemble .zas to a story file")
     a.add_argument("source")
     a.add_argument("-o", "--output")
-    a.add_argument("--target", help="z5, z7 or z8 (default: zforge.toml, $ZFORGE_TARGET, z5)")
+    a.add_argument("--target", help="z5, z6, z7 or z8 (default: zforge.toml, $ZFORGE_TARGET, z5)")
     a.set_defaults(func=cmd_asm)
 
     d = sub.add_parser("disasm", help="disassemble a story file")

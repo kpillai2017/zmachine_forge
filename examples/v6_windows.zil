@@ -110,6 +110,7 @@ Build and play it with:
 	<REPEAT ()
 		<CRLF>
 		<PRINTI "> ">
+		<PUTB ,INPUT-BUFFER 1 0>         ;"§15 read: byte 1 counts letters ALREADY typed"
 		<READ ,INPUT-BUFFER ,LEX-BUFFER>
 		<SETG TURNS <+ ,TURNS 1>>
 		<STATUS-LINE>

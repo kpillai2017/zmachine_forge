@@ -1133,6 +1133,13 @@
       "type": "pytest",
       "tests": "tests/test_curses_tty.py",
       "expect": "`zforge run --ui curses` in a pseudo-terminal: plays, survives a resize, and after SIGTERM or SIGHUP exits normally with the terminal restored (rmcup)"
+    },
+    {
+      "id": "plain-v6",
+      "suite": "v2",
+      "type": "pytest",
+      "tests": "tests/test_plain_v6.py",
+      "expect": "`zforge run --ui plain` on z6, through the real CLI: a story prints byte-for-byte the same on z5, z6, z7 and z8; piped stdin works; the v6 demo's painted windows (status line, panel) are shown as '| ...' rows when they change, and every command is understood"
     }
   ]
 }

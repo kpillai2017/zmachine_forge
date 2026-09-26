@@ -493,3 +493,29 @@ CI - more than the one smoke test "skipped with no TTY" the plan asked for.
 **Consequences.** No change for scripted play: the golden builds, the v1
 suite and every transcript are unchanged.
 
+## ADR-033: Version 6 on a plain stream
+
+**Context.** `zforge run --ui plain` (also what `run` uses when stdout is
+not a terminal) crashed on v6 at the first prompt: PlainV6Screen combined
+the v6 model with the plain screen, but the v6 model's input hooks
+(`_input_line`, `_input_key`) were never written for the plain screen, and
+v6's set_window hid the plain screen's status-line display, so the status
+line's padding streamed out as text. The evals play v6 through the virtual
+screen, so none noticed; found by trying the README's own commands.
+
+**Decision.** A stream has no cursor, so the plain screen treats a v6
+window by what its attributes say it is for (§8.8.3.2). A window that
+scrolls holds running text and streams (window 0, by default). A window
+that does not is painted - the status line, the demo's panel: its text is
+kept out of the stream and its rows are shown as "| ..." lines when the
+game switches away from it, whenever they changed, exactly as v5's status
+line is. The typed command is echoed into the window's grid but not onto
+the stream, which has already shown it.
+
+**Consequences.** A story that uses no v6 feature now prints byte-for-byte
+the same in plain mode on z5, z6, z7 and z8 (tests/test_plain_v6.py). The
+v6 demo also had a bug of its own, visible only once more than one command
+could be typed: it never reset byte 1 of its text buffer, which §15 read
+counts as letters already typed, so every command after the first was
+glued to the one before. It now resets it, as Infocom's games did.
+
