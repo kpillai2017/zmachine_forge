@@ -24,6 +24,7 @@ from zforge.vm.lexer import Dictionary
 from zforge.vm.objects import ObjectTable
 from zforge.vm.streams import OutputStreams
 from zforge.common.opcodes import table_for
+from zforge.vm.ops import handlers_for
 
 INTERPRETER_NUMBER = 6          # §11.1.3: "IBM PC" is a common neutral choice
 INTERPRETER_VERSION = ord("Z")  # an ASCII letter in v4-5
@@ -36,6 +37,8 @@ class ZMachine:
         self.story = bytes(story)                  # pristine copy (restart, verify, Quetzal)
         self.header = H.Header.parse(self.story)   # raises for unsupported versions
         self.opcode_table = table_for(self.header.version)   # §14, per version
+        self.handlers = handlers_for(self.header.version)    # §15, per version
+        self.mouse_window = 1                                # §15 mouse_window default
         self.screen = screen
         self.rng = random.Random(seed)
         self.trace_file = trace_file
@@ -56,9 +59,15 @@ class ZMachine:
         self.unicode = self._load_unicode_table()
         self.dictionary = Dictionary.load(self.mem, h.dictionary)
         self.streams = OutputStreams(self.mem, self.screen, self.to_zscii, self.transcript_path)
-        # v1-5: execution starts at a byte address with a dummy frame (§5.5)
+        # §5.5: execution starts at a byte address, in a dummy frame with no
+        # locals. §5.4: v6 instead CALLS the "main" routine whose packed
+        # address is in $06 - so the dummy frame is the caller it never
+        # returns to, and call_routine sets up main's locals.
         self.frames = [Frame(return_pc=0, locals=[], store_var=None, arg_count=0)]
         self.pc = h.initial_pc
+        if h.profile.starts_with_main_routine:
+            self.pc = 0                       # only a return would use it, and that is illegal
+            self.call_routine(h.initial_pc, [], None)
         self.set_interpreter_header()
         if keep_flags2 is not None:     # §15 restart keeps transcript + fixed-pitch bits
             flags2 = self.mem.read_word(H.H_FLAGS2) & ~0b11
@@ -94,8 +103,11 @@ class ZMachine:
         m.write_header_byte(H.H_SCREEN_WIDTH_CHARS, min(s.width, 255))
         m.write_header_word(H.H_SCREEN_WIDTH_UNITS, s.width)     # 1 unit = 1 character
         m.write_header_word(H.H_SCREEN_HEIGHT_UNITS, s.height)
-        m.write_header_byte(H.H_FONT_WIDTH_UNITS, 1)
-        m.write_header_byte(H.H_FONT_HEIGHT_UNITS, 1)
+        # §11.1: one unit IS one character here, so the font is 1x1. Version 6
+        # swaps these two bytes, which is why the header knows where they go.
+        width_byte, height_byte = self.header.font_size_bytes()
+        m.write_header_byte(width_byte, 1)
+        m.write_header_byte(height_byte, 1)
         m.write_header_byte(H.H_DEFAULT_BACKGROUND, 2)          # black
         m.write_header_byte(H.H_DEFAULT_FOREGROUND, 9)          # white
         m.write_header_byte(H.H_STANDARD_REVISION, STANDARD_REVISION[0])
@@ -171,7 +183,7 @@ class ZMachine:
                 for o in ins.operands]
 
     def step(self) -> None:
-        from zforge.vm.ops import HANDLERS           # the explicit opcode table
+        handlers = self.handlers                    # the explicit opcode table
         ins = decode(self.mem.read_byte, self.pc, self.skip_text, self.opcode_table,
                      self.header.version)
         self.current = ins
@@ -180,7 +192,7 @@ class ZMachine:
         self.recent.append((ins, len(self.frames) - 1))      # formatted only if needed
         if self.trace_file is not None:
             self.trace_file.write(format_trace(ins, len(self.frames) - 1) + "\n")
-        handler = HANDLERS.get(ins.op.name)
+        handler = handlers.get(ins.op.name)
         if handler is None:
             if ins.op.name.startswith("ext_unknown"):
                 self.warn(f"ignored unknown extended opcode {ins.op.label} (§14.2.1)")

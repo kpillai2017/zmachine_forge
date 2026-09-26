@@ -21,9 +21,9 @@ def test_parse_target_accepts_z8_Z8_and_8():
     assert parse_target("z8") == parse_target("Z8") == parse_target("8") == 8
 
 
-@pytest.mark.parametrize("bad", ["z3", "z6", "zz", ""])
+@pytest.mark.parametrize("bad", ["z3", "z4", "zz", ""])
 def test_unsupported_targets_are_refused(bad):
-    with pytest.raises(UnsupportedTarget, match="choose z5, z7, z8"):
+    with pytest.raises(UnsupportedTarget, match="choose z5, z6, z7, z8"):
         parse_target(bad)
 
 

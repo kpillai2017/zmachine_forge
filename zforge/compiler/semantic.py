@@ -49,8 +49,15 @@ BUILTINS: dict[str, tuple[int, int | None]] = {
     # input
     "READ": (1, 2), "LEX": (2, 2), "INPUT": (1, 1),
     # screen
-    "SPLIT": (1, 1), "SCREEN": (1, 1), "CURSET": (2, 2), "HLIGHT": (1, 1),
-    "CLEAR": (1, 1), "COLOR": (2, 2), "BUFOUT": (1, 1),
+    "SPLIT": (1, 1), "SCREEN": (1, 1), "CURSET": (2, 3), "HLIGHT": (1, 1),
+    "CLEAR": (1, 1), "COLOR": (2, 3), "BUFOUT": (1, 1),
+    # screen, version 6 only (§8.8): the compiler checks the target allows
+    # them (driver.compatible_targets), the assembler that the opcode exists
+    "WINGET": (2, 2), "WINPUT": (3, 3), "WINATTR": (2, 3), "WINSIZE": (3, 3),
+    "WINPOS": (3, 3), "MARGIN": (2, 3), "SCROLL": (2, 2), "FONT": (1, 2),
+    "MOUSE-LIMIT": (1, 1), "MOUSE-INFO": (1, 1), "MENU": (2, 2),
+    "DISPLAY": (1, 3), "DCLEAR": (1, 3), "PICINF": (2, 2), "PICSET": (1, 1),
+    "PRINTF": (1, 1), "BUFFER-SCREEN": (1, 1), "XPUSH": (2, 2), "POP": (1, 2),
     # control
     "RTRUE": (0, 0), "RFALSE": (0, 0), "RFATAL": (0, 0), "RETURN": (0, 1),
     "AGAIN": (0, 0), "APPLY": (1, 8), "QUIT": (0, 0), "RESTART": (0, 0),

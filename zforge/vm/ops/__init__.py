@@ -6,7 +6,7 @@ reflection - so you can read exactly which function runs for each opcode.
 tests/test_opcodes.py checks every v5 opcode has a handler.
 """
 from zforge.vm.ops import (arith, branch, calls, input, misc, objects, output, screen, tables,
-                           variables)
+                           v6, variables)
 
 HANDLERS = {
     # arithmetic / bitwise
@@ -66,3 +66,33 @@ HANDLERS = {
     "save": misc.op_save, "restore": misc.op_restore,
     "save_undo": misc.op_save_undo, "restore_undo": misc.op_restore_undo,
 }
+
+# §8.8: version 6 adds eighteen opcodes and changes the form of five it
+# shares with version 5. Nothing is taken away, so this is the v5 table
+# with those on top. tests/test_v6.py checks every v6 opcode has a handler.
+HANDLERS_V6 = {
+    **HANDLERS,
+    # windows (§8.8.3)
+    "get_wind_prop": v6.op_get_wind_prop, "put_wind_prop": v6.op_put_wind_prop,
+    "window_style": v6.op_window_style, "window_size": v6.op_window_size,
+    "move_window": v6.op_move_window, "scroll_window": v6.op_scroll_window,
+    "set_margins": v6.op_set_margins, "mouse_window": v6.op_mouse_window,
+    "read_mouse": v6.op_read_mouse, "make_menu": v6.op_make_menu,
+    # pictures (§8.8.5) - none available, reported honestly
+    "picture_data": v6.op_picture_data, "draw_picture": v6.op_draw_picture,
+    "erase_picture": v6.op_erase_picture, "picture_table": v6.op_picture_table,
+    # user stacks (§6.6)
+    "push_stack": v6.op_push_stack, "pop_stack": v6.op_pop_stack,
+    "pull": v6.op_pull_v6,
+    # the rest
+    "print_form": v6.op_print_form, "buffer_screen": v6.op_buffer_screen,
+    # the same opcodes, with v6's extra operands (§15)
+    "set_colour": v6.op_set_colour_v6, "set_cursor": v6.op_set_cursor_v6,
+    "set_font": v6.op_set_font_v6, "sound_effect": v6.op_sound_effect_v6,
+}
+
+
+def handlers_for(version: int) -> dict:
+    """The handler table a story of this version runs on (§14)."""
+    from zforge.common.versions import profile_for
+    return HANDLERS_V6 if profile_for(version).opcode_table == 6 else HANDLERS

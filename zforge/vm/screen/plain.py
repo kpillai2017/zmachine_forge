@@ -11,6 +11,7 @@ import sys
 
 from zforge.common.errors import QuitGame
 from zforge.vm.screen.base import KEY_NEWLINE, GridScreen, ScriptInput
+from zforge.vm.screen.v6 import V6Model
 
 
 class PlainScreen(GridScreen):
@@ -96,3 +97,11 @@ class PlainScreen(GridScreen):
             raise QuitGame("end of input")
         self.column = 0
         return ord(line[0]) if line.strip("\r\n") else KEY_NEWLINE
+
+
+class PlainV6Screen(V6Model, PlainScreen):
+    """The same, with the §8.8 window model in front of it (v6 stories).
+
+    A stream has no cursor to move, so what the game paints into windows
+    2-7 is not shown as a layout: the text still arrives, in the order the
+    game printed it. `--ui curses` draws the windows properly."""

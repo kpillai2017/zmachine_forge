@@ -205,4 +205,6 @@ def test_v8_aligns_routines_and_strings_to_8():
 
 def test_zil_sources_build_for_compatible_targets_only():
     from zforge.compiler.driver import compatible_targets
-    assert compatible_targets(5) == [5, 7, 8]         # §1: 7 and 8 are "identical to 5"
+    # §1: 7 and 8 are "identical to 5"; v6 adds opcodes but removes none
+    assert compatible_targets(5) == [5, 6, 7, 8]
+    assert compatible_targets(6) == [6]               # a v6 source may use the v6-only opcodes

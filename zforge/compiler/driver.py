@@ -13,7 +13,8 @@ from zforge.compiler.grammar import desugar
 from zforge.compiler.lexer import Lexer
 from zforge.compiler.reader import read
 from zforge.compiler.semantic import analyse
-from zforge.common.versions import profile_for, supported_versions
+from zforge.common.opcodes import table_for
+from zforge.common.versions import supported_versions
 
 
 def read_source(source: str, diag: Diagnostics) -> list:
@@ -32,11 +33,22 @@ class CompileResult:
 
 def compatible_targets(declared: int) -> list[int]:
     """The versions a source written for `declared` can be built for: those
-    with the same opcode set. §1: "Versions 7 and 8 are identical to Version
-    5 except as stated at 1.1.4 and 1.2.3" (size and packed addresses, which
-    the assembler handles), so a v5 source builds for 5, 7 and 8."""
-    table = profile_for(declared).opcode_table
-    return [v for v in supported_versions() if profile_for(v).opcode_table == table]
+    whose opcode set can say everything the declared one can.
+
+    §1: "Versions 7 and 8 are identical to Version 5 except as stated at
+    1.1.4 and 1.2.3" (size and packed addresses, which the assembler
+    handles), so a v5 source builds for 5, 7 and 8. Version 6 adds 18
+    opcodes (§8.8) and takes none away, so a v5 source builds for z6 as
+    well; the one opcode whose form changed, `pull`, stores its result in
+    v6, and the assembler says so if a source uses it. A v6 source may use
+    the v6-only opcodes, so it builds for z6 only."""
+    wanted = opcode_names(declared)
+    return [v for v in supported_versions() if wanted <= opcode_names(v)]
+
+
+def opcode_names(version: int) -> set[str]:
+    """The names of a version's opcodes (§14)."""
+    return {op.name for op in table_for(version).values()}
 
 
 def compile_zil(source: str, filename: str = "<zil>", target: int | None = None) -> CompileResult:

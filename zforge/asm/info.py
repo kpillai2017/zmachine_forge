@@ -17,7 +17,10 @@ def header_report(story: bytes) -> str:
     h, _ = _mem(story)
     ok = H.compute_checksum(story, h.file_length or len(story)) == h.checksum
     rows = [("Version", h.version), ("Release", h.release), ("Serial", h.serial),
-            ("High memory", f"0x{h.high_memory:04x}"), ("Initial PC", f"0x{h.initial_pc:04x}"),
+            ("High memory", f"0x{h.high_memory:04x}"),
+            # §5.4: v6 starts by calling a routine; the others start at a byte address (§5.5)
+            (("Main routine", f"0x{h.main_routine:04x} (packed {h.initial_pc})")
+             if h.profile.starts_with_main_routine else ("Initial PC", f"0x{h.initial_pc:04x}")),
             ("Dictionary", f"0x{h.dictionary:04x}"), ("Object table", f"0x{h.objects:04x}"),
             ("Globals", f"0x{h.globals:04x}"), ("Static memory", f"0x{h.static_memory:04x}"),
             ("Abbreviations", f"0x{h.abbreviations:04x}"),

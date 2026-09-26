@@ -59,10 +59,12 @@ def cmd_run(args) -> int:
     try:
         if ui == "curses":
             from zforge.vm.screen.curses_screen import run_with_curses
-            reason, trace, warnings = run_with_curses(play)
+            reason, trace, warnings = run_with_curses(play, version=story[0])
         else:
-            from zforge.vm.screen.plain import PlainScreen
-            reason, trace, warnings = play(PlainScreen(width=args.width, script=script))
+            from zforge.vm.screen import screen_for
+            from zforge.vm.screen.plain import PlainScreen, PlainV6Screen
+            reason, trace, warnings = play(screen_for(
+                story[0], PlainScreen, PlainV6Screen, width=args.width, script=script))
     finally:
         if trace_file:
             trace_file.close()

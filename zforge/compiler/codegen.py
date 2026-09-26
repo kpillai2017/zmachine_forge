@@ -707,6 +707,8 @@ PREDICATES = {
                                                 e.loc), lab, j),
     "T?": lambda g, e, lab, j: g.compile_cond(e.args[0], lab, j),
     "FSET?": _op("test_attr"), "IN?": _op("jin"),
+    "PICINF": _op("picture_data"), "XPUSH": _op("push_stack"),   # v6 (§8.8, §6.6)
+    "MENU": _op("make_menu"),
     "NOT": lambda g, e, lab, j: g.compile_cond(e.args[0], lab, not j),
     "AND": CodeGenerator.and_, "OR": CodeGenerator.or_,
     "VERIFY": _op("verify"),
@@ -722,6 +724,9 @@ VALUE_OPS = {
     "BCOM": "not", "RANDOM": "random", "GET": "loadw", "GETB": "loadb",
     "GETP": "get_prop", "GETPT": "get_prop_addr", "PTSIZE": "get_prop_len",
     "NEXTP": "get_next_prop", "LOC": "get_parent", "INPUT": "read_char",
+    # version 6 only (§8.8; the names are Infocom's YZIP ones where known,
+    # and docs/ZIL_SUBSET.md lists them all)
+    "WINGET": "get_wind_prop", "BUFFER-SCREEN": "buffer_screen", "FONT": "set_font",
 }
 
 STATEMENT_OPS = {
@@ -732,6 +737,12 @@ STATEMENT_OPS = {
     "LEX": "tokenise", "SPLIT": "split_window", "SCREEN": "set_window",
     "CURSET": "set_cursor", "HLIGHT": "set_text_style", "CLEAR": "erase_window",
     "COLOR": "set_colour", "BUFOUT": "buffer_mode",
+    # version 6 only (§8.8): windows, margins, scrolling, pictures, menus
+    "WINPUT": "put_wind_prop", "WINATTR": "window_style", "WINSIZE": "window_size",
+    "WINPOS": "move_window", "MARGIN": "set_margins", "SCROLL": "scroll_window",
+    "MOUSE-LIMIT": "mouse_window", "MOUSE-INFO": "read_mouse",
+    "DISPLAY": "draw_picture", "DCLEAR": "erase_picture", "PICSET": "picture_table",
+    "PRINTF": "print_form", "POP": "pop_stack",
 }
 
 SPECIAL_FORMS = {

@@ -341,3 +341,64 @@ Building would say "There are food here."
 line and blank line the same as the real game. It stops before the Hall of
 Mists, where the dwarves wake and move at random (Advent 1520). Golden
 outputs unchanged; each behaviour above has a unit test in `tests/test_i7.py`.
+
+## ADR-030: Version 6: one unit is one character
+
+**Context.** Version 6 is Infocom's graphical Z-machine. Its screen is an
+array of PIXELS with eight windows lying on top of each other like
+transparencies (§8.8), and it can draw pictures from a separate file.
+zforge is a character terminal program. Tier 8 had to decide what v6
+means here.
+
+**Decision. One unit is one character.** The font is 1 unit wide and 1
+high (§11.1, header $26/$27), so every v6 coordinate - window positions
+and sizes, cursor positions, margins, scrolling - is a character cell.
+The Standard allows this: units are whatever the interpreter's font makes
+them, and §8.8.3.2.5 simply reports the font size. Nothing in §8.8 is
+skipped because of it: all eight windows, all four attributes, all
+eighteen properties, margins, line counts and scrolling are implemented,
+and `examples/v6_windows.zil` draws a bordered panel with text flowing
+beside it to show them working.
+
+**What is honestly absent**, with the Standard's own escape hatches:
+- **Pictures** (§8.8.5). There is no picture file, so `picture_data`
+  reports none available and does not branch, Flags 1's picture bit and
+  Flags 2's picture bit are cleared, and `draw_picture` warns.
+- **The mouse.** `read_mouse` writes the pointer at rest with no buttons;
+  Flags 2's mouse bit is cleared.
+- **Menus.** `make_menu` does not branch; Flags 2's menu bit is cleared.
+- **Sampled sound.** The two bleeps work. A sampled sound with a callback
+  raises, rather than leaving the game waiting for a sound that will
+  never finish.
+- **Newline interrupts** (§8.8.3.2.2) are counted but the routine is not
+  called; see KNOWN_GAPS.
+
+**Other decisions inside Tier 8:**
+- **A v5 source may be built for z6** (`--target z6`). Version 6 adds
+  eighteen opcodes and removes none, so everything a v5 source can say
+  still means the same - except `pull`, which stores its result in v6,
+  and the assembler says so if a source uses it. A **v6 source builds
+  only for z6**, since it may use the v6-only opcodes.
+- **The start-up stub is a routine in v6.** §5.4 CALLs the main routine
+  at the packed address in $06, so the stub that calls the game's `GO`
+  must itself have a packed address: it is laid out as the first routine
+  of the routine area rather than before it.
+- **Window 0 has wrapping on.** §8.8.3.3 lists window 0's attributes as
+  scrolling, transcript and buffering; the note under §8.8.3.1.2.2 says
+  wrapping "would normally be on for a window holding running text", and
+  that window 0 has it on. The two passages disagree; zforge follows the
+  note, as interpreters do.
+- **Reaching the bottom of a window that does not scroll** is "undefined
+  behaviour" (the §8.8 remark). zforge keeps the cursor on the last line,
+  so later text overwrites it; nothing is ever painted outside a window.
+- **Interpreter number 6 (IBM PC).** §11.1.3 says the choice matters in
+  v6 because story files behave differently on different machines, and
+  the §8.8 remark recommends interpreting DOS-intended files. zforge
+  already reported 6, so v6 games get the machine they most expect.
+
+**Evidence.** Evals `v6-story-file`, `v6-window-model`, `v6-opcodes`,
+`v6-windows-demo` and `v6-reads-like-v5`; `tests/test_v6.py` (27 tests),
+including the Standard's own worked wrapping example (§8.8.3.1.2.2) for
+all four combinations of wrapping and buffering, cursor position
+included. Every cross-version eval now covers z6, and the Inform 7 Advent
+port prints the same 49-command walkthrough on z5, z6, z7 and z8.

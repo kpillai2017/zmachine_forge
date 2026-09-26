@@ -1,7 +1,17 @@
 # Known gaps (deliberate, for this version)
 
-- **Versions**: 5, 7 and 8 are supported (ADR-021, ADR-023); version 6 comes
-  with proforma v2 Tier 8, and versions 1-4 are refused (exit 2).
+- **Versions**: 5, 6, 7 and 8 are supported (ADR-021, ADR-023, ADR-030);
+  versions 1-4 are refused (exit 2).
+- **Version 6 has no pictures, mouse or menus** (ADR-030): one unit is one
+  character, so windows, margins and scrolling all work, but `picture_data`
+  reports none available, `read_mouse` reports the pointer at rest and
+  `make_menu` does not branch. The header bits are cleared to say so.
+- **Newline interrupts** (§8.8.3.2.2): the line count is counted down, but
+  the interrupt routine is not called. No story zforge builds uses one, and
+  calling a routine in the middle of printing needs the VM to re-enter
+  itself. §8.8.3.2.2.1's Zork Zero workaround is not implemented either.
+- **`buffer_mode` in v6** is "undefined" in the Standard; zforge sets the
+  current window's buffering attribute, as Frotz does.
 - **czech.z8** has to be compiled locally (czech 0.8 ships only the v5
   binary): `brew install inform6`, then `inform -v8 stories/czech.inf
   stories/czech.z8`. Without it, `czech-conformance-z8` skips.

@@ -21,7 +21,7 @@ def test_errors_are_one_line_and_nonzero(tmp_path, capsys):
     assert main(["run", str(bad), "--ui", "plain"]) == 2
     err = capsys.readouterr().err
     assert "Traceback" not in err and "version 3" in err
-    assert "zforge runs versions 5, 7 and 8" in err
+    assert "zforge runs versions 5, 6, 7 and 8" in err
 
 
 def test_scripted_play_of_the_example_game(tmp_path, capsys):

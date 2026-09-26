@@ -51,13 +51,30 @@ routines, W?words). Execution starts at `<ROUTINE GO ...>`.
 | tables | `GET PUT GETB PUTB`, `<TABLE ...>` `<LTABLE ...>` `<ITABLE n [init]>` (+ `(BYTE)`) |
 | output | `TELL` (strings, `CR`, `N x`, `D obj`, `C char`, `B addr`, or a packed string), `PRINT PRINTI PRINTN PRINTD PRINTC PRINTB CRLF` |
 | input | `READ text parse`, `LEX text parse`, `INPUT 1` |
-| screen | `SPLIT SCREEN CURSET HLIGHT CLEAR COLOR BUFOUT` |
+| screen | `SPLIT SCREEN CURSET HLIGHT CLEAR COLOR BUFOUT` (in v6, `CURSET` and `COLOR` take a window as a third argument) |
+| screen, v6 only | `WINGET WINPUT WINATTR WINSIZE WINPOS MARGIN SCROLL FONT MOUSE-LIMIT MOUSE-INFO MENU DISPLAY DCLEAR PICINF PICSET PRINTF BUFFER-SCREEN XPUSH POP` - §8.8's windows, margins, user stacks and pictures. See examples/v6_windows.zil, and ADR-030 for what a character terminal can and cannot do. |
 | control | `COND` (with `ELSE`/`T`), `REPEAT ()`, `DO (I from to [step])`, `MAP-CONTENTS (I container)`, `PROG (bindings)`, `BIND (bindings)`, `RETURN AGAIN RTRUE RFALSE RFATAL QUIT RESTART SAVE RESTORE APPLY` |
 | grammar | `<VERB? TAKE DROP>` = `<EQUAL? ,PRSA ,V?TAKE ,V?DROP>`; `<PRSO? LAMP>` / `<PRSI? HOOK>` = `<EQUAL? ,PRSO ,LAMP>` |
 | escape hatch | `<ZOP opcode args...>` - any §15 opcode by name, e.g. `<ZOP SAVE_UNDO>` |
 
 A routine's value is its last form. See docs/DECISIONS.md ADR-009..013 for
 the numbering, exit, RETURN and operand-order rules.
+
+`<VERSION 6>` (or `YZIP`) makes a source version 6, which can only be
+built for z6. A source written for version 5 can be built for z5, z6, z7
+or z8 (`--target`): v6 adds opcodes but takes none away. The one form
+that changed is `pull`, which stores its result in v6; the assembler says
+so if a source uses it.
+
+The v6 names above are Infocom's YZIP ones where they are known. Each maps
+to the §15 opcode of the same job: `WINGET` is `get_wind_prop`, `WINPUT`
+is `put_wind_prop`, `WINATTR` is `window_style`, `WINSIZE` is
+`window_size`, `WINPOS` is `move_window`, `MARGIN` is `set_margins`,
+`SCROLL` is `scroll_window`, `MOUSE-LIMIT` is `mouse_window`, `MOUSE-INFO`
+is `read_mouse`, `MENU` is `make_menu`, `DISPLAY` is `draw_picture`,
+`DCLEAR` is `erase_picture`, `PICINF` is `picture_data`, `PICSET` is
+`picture_table`, `PRINTF` is `print_form`, `XPUSH` is `push_stack` and
+`POP` is `pop_stack`. `PICINF`, `XPUSH` and `MENU` branch.
 
 ## Blocks: PROG and BIND (ADR-017)
 

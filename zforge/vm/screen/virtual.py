@@ -3,6 +3,7 @@ Used by tests, the eval harness and `zforge run --ui virtual`."""
 from __future__ import annotations
 
 from zforge.vm.screen.base import GridScreen, ScriptInput
+from zforge.vm.screen.v6 import V6Model
 
 
 class VirtualScreen(GridScreen):
@@ -15,3 +16,7 @@ class VirtualScreen(GridScreen):
 
     def _input_key(self) -> int:
         return self.input.next_char()
+
+
+class VirtualV6Screen(V6Model, VirtualScreen):
+    """The same, with the §8.8 window model in front of it (v6 stories)."""

@@ -403,7 +403,9 @@ class Assembler:
         self._fill_code(story, layout)
         linker.write_header(story, linker.HeaderFields(
             release=self.release, serial=self.serial, high_memory=layout.high_memory,
-            initial_pc=layout.stub, dictionary=layout.static_memory,
+            initial_pc=(self.profile.pack_routine(layout.stub, self.routines_offset)
+                        if self.profile.starts_with_main_routine else layout.stub),
+            dictionary=layout.static_memory,
             objects=layout.object_table, globals=layout.globals_table,
             static_memory=layout.static_memory, abbreviations=layout.abbreviations,
             flags2=H.F2_UNDO if self.want_undo else 0,
@@ -444,9 +446,17 @@ class Assembler:
         so it has a packed address (§1.2.3; 4 bytes in v5)."""
         boundary = self.profile.code_alignment
         story += bytes(align(len(story), boundary) - len(story))
-        layout.high_memory = layout.stub = len(story)
-        story += bytes(8)                      # call_vn main (4 bytes) + quit + padding
+        layout.high_memory = len(story)
+        by_call = self.profile.starts_with_main_routine
+        if not by_call:                        # §5.5: the PC starts here
+            layout.stub = len(story)
+            story += bytes(8)                  # call_vn main (4 bytes) + quit + padding
         self.routines_offset = self._start_area(story)
+        if by_call:
+            # §5.4: v6 CALLS the stub, so it needs a packed address - which
+            # means it must live inside the routine area, as its first routine.
+            layout.stub = len(story)
+            story += bytes(8)                  # 0 locals + call_vn main + quit + padding
         for routine, encoded, labels in routines:
             story += bytes(align(len(story), boundary) - len(story))
             address = len(story)
@@ -499,8 +509,10 @@ class Assembler:
     def _fill_code(self, story: bytearray, layout: "Layout") -> None:
         """Pass 4b: the start stub, every routine body and every string."""
         main_packed = self.pack_routine(self.main)
-        story[layout.stub:layout.stub + 5] = bytes(
-            [0xF9, 0x3F, *main_packed.to_bytes(2, "big"), 0xBA])   # call_vn main; quit
+        stub = bytes([0xF9, 0x3F, *main_packed.to_bytes(2, "big"), 0xBA])  # call_vn main; quit
+        if self.profile.starts_with_main_routine:
+            stub = bytes([0]) + stub          # §5.2: a routine header of 0 locals
+        story[layout.stub:layout.stub + len(stub)] = stub
         for address, routine, encoded, labels in layout.routine_places:
             story[address] = len(routine.locals)
             self._emit_routine(story, address + 1, encoded, labels)

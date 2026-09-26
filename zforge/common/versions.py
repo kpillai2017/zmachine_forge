@@ -14,14 +14,16 @@ The rules, as the Standard states them:
   max story size    §1.1.4 256K        512K          512K          512K
   execution starts  §5.4-5 PC at $06   CALL main $06 PC at $06     PC at $06
   opcode set        §1/§14 v5          v6            v5            v5
+  font size bytes   §11.1  $26 w, $27 h $26 h, $27 w  $26 w, $27 h  $26 w, $27 h
+  screen model      §8     two windows  eight (§8.8)  two windows   two windows
 
 (R_O and S_O are the routine and string offsets in header words $28/$2a.)
 §1 ends: "Versions 7 and 8 are identical to Version 5 except as stated at
 1.1.4 and 1.2.3" - which is why v7/v8 differ from v5 only in the first four
 rows.
 
-Registered so far: 5 (Tier 5), 7 and 8 (Tier 6). Version 6 comes in Tier 8,
-with its window model.
+Registered: 5 (Tier 5), 7 and 8 (Tier 6), 6 (Tier 8, with its window model
+and its 18 extra opcodes - see vm/screen/v6.py and ADR-030).
 """
 from __future__ import annotations
 
@@ -39,6 +41,8 @@ class VersionProfile:
     max_story_size: int            # §1.1.4: in bytes
     starts_with_main_routine: bool  # §5.4 (v6) versus §5.5 (the others)
     opcode_table: int              # §1/§14: whose opcode table this version uses
+    font_bytes_swapped: bool = False   # §11.1: v6 puts height at $26, width at $27
+    windows: int = 2                   # §8.7 two windows; §8.8 v6 has eight
 
     # ------------------------------------------------ packed addresses §1.2.3
     def unpack_routine(self, packed: int, routines_offset: int = 0) -> int:
@@ -97,6 +101,12 @@ PROFILES: dict[int, VersionProfile] = {
                       starts_with_main_routine=False, opcode_table=5),
     # §1: "Versions 7 and 8 are identical to Version 5 except as stated at
     # 1.1.4 and 1.2.3" - only the size limit and the packed addresses.
+    # §5.4 the game starts by CALLing the "main" routine whose packed address
+    # is in $06; §1.2.3 packing uses the offsets; §8.8 the window model.
+    6: VersionProfile(version=6, packed_scale=4, uses_packing_offsets=True,
+                      file_length_divisor=8, max_story_size=512 * 1024,
+                      starts_with_main_routine=True, opcode_table=6,
+                      font_bytes_swapped=True, windows=8),
     7: VersionProfile(version=7, packed_scale=4, uses_packing_offsets=True,
                       file_length_divisor=8, max_story_size=512 * 1024,
                       starts_with_main_routine=False, opcode_table=5),

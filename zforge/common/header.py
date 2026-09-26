@@ -32,8 +32,11 @@ H_SCREEN_HEIGHT_LINES = 0x20   # 255 = infinite
 H_SCREEN_WIDTH_CHARS = 0x21
 H_SCREEN_WIDTH_UNITS = 0x22    # word
 H_SCREEN_HEIGHT_UNITS = 0x24   # word
-H_FONT_WIDTH_UNITS = 0x26      # v5: width of '0'
+# §11.1: v5 has width at $26 and height at $27; VERSION 6 SWAPS THEM.
+H_FONT_WIDTH_UNITS = 0x26      # v5: width of a '0'
 H_FONT_HEIGHT_UNITS = 0x27     # v5
+H_FONT_HEIGHT_UNITS_V6 = 0x26  # v6: height
+H_FONT_WIDTH_UNITS_V6 = 0x27   # v6: width of a '0'
 H_ROUTINES_OFFSET = 0x28       # v6-7: R_O, packed routine addresses (§1.2.3)
 H_STRINGS_OFFSET = 0x2A        # v6-7: S_O, packed string addresses (§1.2.3)
 H_DEFAULT_BACKGROUND = 0x2C
@@ -130,10 +133,24 @@ class Header:
         """The version rules for this story file (common/versions.py)."""
         return profile_for(self.version)
 
+    @property
+    def main_routine(self) -> int:
+        """§5.4: in v6 the word at $06 is the PACKED address of the "main"
+        routine the game starts by calling; in the others it is a byte
+        address to start executing at (§5.5, `initial_pc`)."""
+        return self.profile.unpack_routine(self.initial_pc, self.routines_offset)
+
+    def font_size_bytes(self) -> tuple[int, int]:
+        """(width byte, height byte) addresses: v6 swaps them (§11.1)."""
+        if self.profile.font_bytes_swapped:
+            return H_FONT_WIDTH_UNITS_V6, H_FONT_HEIGHT_UNITS_V6
+        return H_FONT_WIDTH_UNITS, H_FONT_HEIGHT_UNITS
+
     def validate(self, actual_size: int) -> None:
         if self.static_memory < HEADER_SIZE or self.static_memory > actual_size:
             raise StoryFileError("Not a valid story file: bad static memory base")
-        if not HEADER_SIZE <= self.initial_pc < actual_size:
+        start = self.main_routine if self.profile.starts_with_main_routine else self.initial_pc
+        if not HEADER_SIZE <= start < actual_size:
             raise StoryFileError("Not a valid story file: initial PC outside the file")
         if self.file_length and self.file_length > actual_size:
             raise StoryFileError(

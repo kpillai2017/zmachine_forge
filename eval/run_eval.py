@@ -17,6 +17,7 @@ from __future__ import annotations
 import functools
 import inspect
 import json
+import re
 import subprocess
 import sys
 import tempfile
@@ -126,6 +127,28 @@ def run_screen(case: dict) -> list[str]:
     return problems
 
 
+def run_v6_windows(case: dict) -> list[str]:
+    """§8.8: a version-6 story draws into several windows at once. The grid
+    is checked row by row, so the panel really is beside the text."""
+    result = play(_compile(case["source"], case.get("target")), case.get("script", []))
+    rows = result.screen.text_rows()
+    problems = []
+    for want in case.get("rows_matching", []):
+        if not any(re.search(want, row) for row in rows):
+            problems.append(f"no row matches {want!r}")
+    for number, want in case.get("row", {}).items():
+        row = rows[int(number)] if int(number) < len(rows) else ""
+        if not re.search(want, row):
+            problems.append(f"row {number} is {row!r}, wanted {want!r}")
+    windows = getattr(result.screen, "windows", [])
+    for number, properties in case.get("window_properties", {}).items():
+        for name, value in properties.items():
+            actual = getattr(windows[int(number)], name, None)
+            if actual != value:
+                problems.append(f"window {number} {name} is {actual}, wanted {value}")
+    return problems
+
+
 def run_save_restore(case: dict) -> list[str]:
     """Real §15 save/restore opcodes through the game's SAVE/RESTORE verbs."""
     story = _compile(case["source"], case.get("target"))
@@ -232,7 +255,9 @@ def run_golden(case: dict) -> list[str]:
 
 def run_pytest(case: dict) -> list[str]:
     """Run a selection of unit tests as one eval case (no duplicated logic)."""
-    cmd = [sys.executable, "-m", "pytest", "-q", "-p", "no:cacheprovider", case["tests"]]
+    tests = case["tests"]
+    cmd = [sys.executable, "-m", "pytest", "-q", "-p", "no:cacheprovider"]
+    cmd += tests if isinstance(tests, list) else [tests]      # a file, or named tests
     if case.get("select"):
         cmd += ["-k", case["select"]]
     done = subprocess.run(cmd, cwd=ROOT, capture_output=True, text=True, timeout=300)
@@ -345,7 +370,7 @@ RUNNERS = {"story": run_story_case, "compile_run": run_compile_run, "screen": ru
            "golden": run_golden, "pytest": run_pytest, "asm_run": run_asm_run,
            "reject_cli": run_reject_cli, "illegal_opcode": run_illegal_opcode,
            "cross_version": run_cross_version, "i7_problems": run_i7_problems,
-           "i7_differential": run_i7_differential}
+           "i7_differential": run_i7_differential, "v6_windows": run_v6_windows}
 
 
 def expand_targets(cases: list[dict]) -> list[dict]:

@@ -14,6 +14,7 @@ from __future__ import annotations
 import curses
 
 from zforge.common.errors import QuitGame
+from zforge.vm.screen.v6 import V6Model
 from zforge.vm.screen.base import (KEY_DELETE, KEY_DOWN, KEY_ESCAPE, KEY_F1, KEY_LEFT,
                                    KEY_NEWLINE, KEY_RIGHT, KEY_UP, STYLE_BOLD, STYLE_ITALIC,
                                    STYLE_REVERSE, Cell, GridScreen)
@@ -174,7 +175,14 @@ class CursesScreen(GridScreen):
         return "".join(typed)
 
 
-def run_with_curses(body):
+class CursesV6Screen(V6Model, CursesScreen):
+    """The same, with the §8.8 window model in front of it (v6 stories)."""
+
+
+def run_with_curses(body, version: int = 5):
     """Run body(screen) inside curses.wrapper, so the terminal is ALWAYS
-    restored - even after an exception."""
-    return curses.wrapper(lambda stdscr: body(CursesScreen(stdscr)))
+    restored - even after an exception. The story's version picks the
+    screen model: §8.7's two windows, or §8.8's eight."""
+    from zforge.common.versions import profile_for
+    cls = CursesV6Screen if profile_for(version).windows > 2 else CursesScreen
+    return curses.wrapper(lambda stdscr: body(cls(stdscr)))

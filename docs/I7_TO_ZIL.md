@@ -113,7 +113,9 @@ carries, go → goes, have → has).
 ## Target versions
 
 The generated ZIL declares `<VERSION 5>`, so, like every ZIL-lite source,
-it builds for z5, z7 or z8 (`--target`, ADR-023); z6 follows in Tier 8.
+it builds for z5, z6, z7 or z8 (`--target`, ADR-023, ADR-030). An
+Inform 7 story uses no version-6 feature, so on z6 it reads exactly as
+it does on z5 - it simply runs under the §8.8 window model.
 Default for `.ni` files: z8 (big games fit; `.zil` files keep z5).
 
 ## Limits worth knowing

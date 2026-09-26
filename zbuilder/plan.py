@@ -156,6 +156,24 @@ DEFAULT_PLAN: list[Task] = [
          "the dark Debris Room) matches the real game, 49 commands (ADR-029)",
          ["zforge/compiler/i7/", "zforge/lib/i7/", "examples/advent_opening.ni"],
          ["I7_LITE.md", "ADR-029"], ["i7-advent-differential"], ["tests/test_i7.py"]),
+
+    # ---- Tier 8: version 6, the eight-window screen model (§8.8, ADR-030)
+    Task("v2-v6-file", 8, "a z6 story file: §5.4 starts by calling main, §11.1 swaps "
+         "the font bytes, §1.2.3 packs with offsets; a v5 source can target z6",
+         ["zforge/common/versions.py", "zforge/common/header.py", "zforge/vm/machine.py",
+          "zforge/asm/assembler.py", "zforge/compiler/driver.py"],
+         ["ADR-030"], ["v6-story-file"], ["tests/test_v6.py"]),
+    Task("v2-v6-screen", 8, "§8.8 the eight-window model: attributes, properties, "
+         "margins, scrolling, one character to the unit",
+         ["zforge/vm/screen/v6.py", "zforge/vm/screen/__init__.py"],
+         ["ADR-030", "KNOWN_GAPS.md"], ["v6-window-model", "v6-reads-like-v5"],
+         ["tests/test_v6.py"]),
+    Task("v2-v6-opcodes", 8, "§15 the eighteen v6 opcodes, the v6 forms of five others, "
+         "user stacks (§6.6), and honest answers for pictures, mouse and menus",
+         ["zforge/vm/ops/v6.py", "zforge/vm/ops/__init__.py", "zforge/compiler/codegen.py",
+          "zforge/compiler/semantic.py", "examples/v6_windows.zil"],
+         ["ZIL_SUBSET.md", "ADR-030"], ["v6-opcodes", "v6-windows-demo"],
+         ["tests/test_v6.py"]),
 ]
 
 

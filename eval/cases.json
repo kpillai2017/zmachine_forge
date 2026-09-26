@@ -554,6 +554,7 @@
       "source": "examples/cloak.zil",
       "versions": [
         5,
+        6,
         7,
         8
       ],
@@ -575,7 +576,7 @@
       "type": "reject_cli",
       "version_byte": 3,
       "exit_code": 2,
-      "expect": "Unsupported story version 3: zforge runs versions 5, 7 and 8"
+      "expect": "Unsupported story version 3: zforge runs versions 5, 6, 7 and 8"
     },
     {
       "id": "illegal-opcode-per-version",
@@ -735,6 +736,7 @@
       "source": "examples/hello.ni",
       "versions": [
         5,
+        6,
         7,
         8
       ],
@@ -761,6 +763,7 @@
       "source": "examples/cloak.ni",
       "versions": [
         5,
+        6,
         7,
         8
       ],
@@ -792,6 +795,7 @@
       "source": "examples/cloak.ni",
       "versions": [
         5,
+        6,
         7,
         8
       ],
@@ -832,6 +836,7 @@
       "type": "cross_version",
       "source": "examples/cloak.ni",
       "versions": [
+        6,
         8
       ],
       "script": [
@@ -874,6 +879,7 @@
       "source": "tests/samples/doors_and_lamps.ni",
       "versions": [
         5,
+        6,
         7,
         8
       ],
@@ -919,6 +925,7 @@
       "source": "tests/samples/adaptive.ni",
       "versions": [
         5,
+        6,
         7,
         8
       ],
@@ -1008,6 +1015,98 @@
         "look",
         "score"
       ]
+    },
+    {
+      "id": "v6-story-file",
+      "suite": "v2",
+      "type": "pytest",
+      "tests": [
+        "tests/test_v6.py::test_a_v6_story_starts_by_calling_its_main_routine",
+        "tests/test_v6.py::test_v6_swaps_the_two_font_size_bytes",
+        "tests/test_v6.py::test_every_v6_opcode_has_a_handler",
+        "tests/test_v6.py::test_a_v6_source_builds_only_for_z6",
+        "tests/test_v6.py::test_v6_is_not_offered_as_a_bigger_target"
+      ],
+      "expect": "a z6 file starts by CALLing the main routine whose packed address is in $06 (\u00a75.4), swaps the font width and height bytes (\u00a711.1), and has a handler for all 116 opcodes (\u00a714). A v5 source may target z6; a v6 source may not target anything else."
+    },
+    {
+      "id": "v6-window-model",
+      "suite": "v2",
+      "type": "pytest",
+      "tests": [
+        "tests/test_v6.py::test_the_standard_s_own_wrapping_example",
+        "tests/test_v6.py::test_the_default_windows",
+        "tests/test_v6.py::test_split_window_tiles_windows_0_and_1",
+        "tests/test_v6.py::test_erase_window_minus_one_unsplits",
+        "tests/test_v6.py::test_each_window_keeps_its_own_cursor_and_colours",
+        "tests/test_v6.py::test_margins_indent_text_and_wrap_it_early",
+        "tests/test_v6.py::test_set_margins_rescues_a_stranded_cursor",
+        "tests/test_v6.py::test_window_properties_read_back",
+        "tests/test_v6.py::test_window_number_minus_three_means_the_current_window",
+        "tests/test_v6.py::test_window_style_sets_clears_and_flips",
+        "tests/test_v6.py::test_scroll_window_moves_a_window_s_contents",
+        "tests/test_v6.py::test_a_window_without_scrolling_stays_on_its_last_line"
+      ],
+      "expect": "the \u00a78.8 model: eight windows with the Standard's default positions, sizes and attributes; its own worked wrapping example (\u00a78.8.3.1.2.2) for all four combinations of wrapping and buffering, cursor included; margins, properties, styles, scrolling and -3 meaning the current window"
+    },
+    {
+      "id": "v6-opcodes",
+      "suite": "v2",
+      "type": "pytest",
+      "tests": [
+        "tests/test_v6.py::test_get_wind_prop_and_margins_from_zil",
+        "tests/test_v6.py::test_user_stacks",
+        "tests/test_v6.py::test_pull_stores_its_result_in_v6",
+        "tests/test_v6.py::test_there_are_no_pictures_and_the_game_is_told_so",
+        "tests/test_v6.py::test_no_mouse_reports_the_pointer_at_rest"
+      ],
+      "expect": "the v6 opcodes run from ZIL-lite: window properties and margins; user stacks (\u00a76.6) that branch when full; pull storing its result; and the honest answers for the things a terminal has not got - no pictures (\u00a78.8.5), no mouse, no menus"
+    },
+    {
+      "id": "v6-windows-demo",
+      "suite": "v2",
+      "type": "v6_windows",
+      "source": "examples/v6_windows.zil",
+      "script": [
+        "move",
+        "wrap",
+        "scroll",
+        "quit"
+      ],
+      "row": {
+        "0": "^ zforge v6 demo .*turns: 4$"
+      },
+      "rows_matching": [
+        "^This is window 0\\. To the right, window 2 has \\+-{30}\\+$",
+        "\\| window 2 +\\|$",
+        "\\| at \\(4,46\\) size 9x32 +\\|$",
+        "^> move +\\+-{30}\\+$"
+      ],
+      "window_properties": {
+        "1": {
+          "y_size": 1,
+          "x_size": 80
+        },
+        "2": {
+          "y": 4,
+          "x": 46,
+          "y_size": 9,
+          "x_size": 32,
+          "attributes": 8
+        }
+      },
+      "expect": "examples/v6_windows.zil draws three windows at once: a reverse-video status bar tiled by SPLIT (window 1), a bordered panel placed with WINPOS and sized with WINSIZE (window 2), and running text whose right margin keeps it clear of the panel (window 0) - so the same screen row holds window 0's text AND the panel's border. MOVE moves the panel down a line and redraws it; SCROLL scrolls window 0 under the unmoved panel (\u00a78.8.3.6), which is why the rows checked here are the ones beside the panel rather than the first line printed."
+    },
+    {
+      "id": "v6-reads-like-v5",
+      "suite": "v2",
+      "type": "pytest",
+      "tests": [
+        "tests/test_v6.py::test_the_same_zil_reads_the_same_on_z5_and_z6",
+        "tests/test_v6.py::test_an_i7_story_reads_the_same_on_z5_and_z6",
+        "tests/test_v6.py::test_the_v6_demo_draws_its_panel"
+      ],
+      "expect": "a story that uses no v6 feature reads exactly the same on z6 as on z5 - the same text, line for line - for hello.zil, cloak.zil, parser_demo.zil and the Inform 7 Advent port"
     }
   ]
 }

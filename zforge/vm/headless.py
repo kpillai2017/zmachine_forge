@@ -6,7 +6,8 @@ from dataclasses import dataclass, field
 
 from zforge.common.errors import ZForgeError
 from zforge.vm.machine import ZMachine
-from zforge.vm.screen.virtual import VirtualScreen
+from zforge.vm.screen import screen_for
+from zforge.vm.screen.virtual import VirtualScreen, VirtualV6Screen
 
 
 @dataclass
@@ -25,7 +26,9 @@ class PlayResult:
 
 def play(story: bytes, script: list[str] | None = None, seed: int = 1,
          max_steps: int = 20_000_000, width: int = 80, height: int = 24) -> PlayResult:
-    screen = VirtualScreen(script=list(script or []), width=width, height=height)
+    # §8.7 or §8.8, according to the story's version byte
+    screen = screen_for(story[0], VirtualScreen, VirtualV6Screen,
+                        script=list(script or []), width=width, height=height)
     vm = ZMachine(story, screen, seed=seed)
     trace: list[str] = []
     try:
