@@ -73,6 +73,7 @@ class GridScreen:
     override render() / more_prompt()."""
 
     supports_colour = True
+    on_resize = None        # the machine's hook: on_resize(width, height)
 
     def __init__(self, width: int = 80, height: int = 24):
         self.width, self.height = width, height
@@ -88,6 +89,38 @@ class GridScreen:
         self.lines_since_input = 0
         self.font = 1
         self.transcript: list[str] = []       # everything shown in window 0 (+input)
+
+    # ---------------------------------------------------------------- resize
+    def resize(self, width: int, height: int) -> None:
+        """The terminal changed size. The upper window keeps its rows from
+        the top (it is the status line), the lower window keeps its NEWEST
+        lines - the ones up to the cursor - and the game is told (§11)."""
+        width, height = max(width, 1), max(height, 1)
+        if (width, height) == (self.width, self.height):
+            return
+        def fit(row):
+            return (row + [BLANK] * width)[:width]
+        upper = min(self.upper_height, height)
+        cursor_row = max(self.lower_cursor[0], self.upper_height)
+        lower_rows = self.rows[self.upper_height:cursor_row + 1]
+        kept = lower_rows[-(height - upper):] if height > upper else []
+        self.rows = ([fit(r) for r in self.rows[:upper]] + [fit(r) for r in kept]
+                     + [[BLANK] * width for _ in range(height - upper - len(kept))])
+        self.lower_cursor = (min(upper + max(len(kept) - 1, 0), height - 1),
+                             min(self.lower_cursor[1], width - 1))
+        self.upper_cursor = (min(self.upper_cursor[0], max(upper - 1, 0)),
+                             min(self.upper_cursor[1], width - 1))
+        self.upper_height = upper
+        self.width, self.height = width, height
+        self.lines_since_input = 0
+        if self.on_resize:
+            self.on_resize(width, height)
+
+    def screen_cursor(self) -> tuple[int, int]:
+        """Where the terminal's cursor goes: the current window's cursor."""
+        return self.upper_cursor if self.window == 1 else self.lower_cursor
+
+    cursor_visible = True      # v6's set_cursor -1 hides it (§15)
 
     # ---------------------------------------------------------------- output
     def print(self, text: str) -> None:

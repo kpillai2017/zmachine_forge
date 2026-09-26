@@ -65,6 +65,11 @@ python -m zforge compile examples/v6_windows.zil -o build/v6.z6
 python -m zforge run build/v6.z6 --ui curses      # a panel, a status bar, flowing text
 ```
 
+The curses screen follows the terminal: drag its corner and the game is
+told the new size (a v6 game is also asked to redraw), with the status line
+and the newest text kept. Closing the window or `kill` leaves the terminal
+as it was (ADR-032).
+
 ```bash
 python -m zforge spec print_char            # or: 3.8.5.3, "packed address"
 ```

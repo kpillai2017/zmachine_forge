@@ -156,6 +156,12 @@ DEFAULT_PLAN: list[Task] = [
          "the dark Debris Room) matches the real game, 49 commands (ADR-029)",
          ["zforge/compiler/i7/", "zforge/lib/i7/", "examples/advent_opening.ni"],
          ["I7_LITE.md", "ADR-029"], ["i7-advent-differential"], ["tests/test_i7.py"]),
+    Task("v2-i7-activities", 7, "I7-lite: activities - printing the name, the banner, the dark "
+         "room's name and description, writing a paragraph about; begin/handling/end (ADR-031)",
+         ["zforge/lib/i7/activities.zil", "zforge/compiler/i7/lower.py",
+          "zforge/compiler/i7/model.py", "zforge/compiler/i7/phrases.py",
+          "zforge/compiler/i7/standard.py", "examples/advent_opening.ni"],
+         ["I7_LITE.md", "ADR-031"], ["i7-advent-differential"], ["tests/test_i7.py"]),
 
     # ---- Tier 8: version 6, the eight-window screen model (§8.8, ADR-030)
     Task("v2-v6-file", 8, "a z6 story file: §5.4 starts by calling main, §11.1 swaps "
@@ -174,6 +180,16 @@ DEFAULT_PLAN: list[Task] = [
           "zforge/compiler/semantic.py", "examples/v6_windows.zil"],
          ["ZIL_SUBSET.md", "ADR-030"], ["v6-opcodes", "v6-windows-demo"],
          ["tests/test_v6.py"]),
+    Task("v2-terminal-resize", 9, "The terminal may change size: both screen models resize, "
+         "the §11 header follows, a v6 game is asked to redraw",
+         ["zforge/vm/screen/base.py", "zforge/vm/screen/v6.py", "zforge/vm/machine.py",
+          "zforge/common/versions.py", "zforge/common/header.py"],
+         ["§11", "ADR-032"], ["terminal-resize"], ["tests/test_resize.py"]),
+    Task("v2-curses-v6", 9, "curses draws the v6 model: typing at the current window's cursor, "
+         "cursor on/off, resizing, the terminal restored after SIGHUP/SIGTERM",
+         ["zforge/vm/screen/curses_screen.py"],
+         ["§8.8", "§15", "ADR-032"], ["curses-renderer", "curses-real-terminal"],
+         ["tests/test_curses_screen.py", "tests/test_curses_tty.py"]),
 ]
 
 

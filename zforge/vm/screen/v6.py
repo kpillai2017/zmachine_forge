@@ -124,6 +124,45 @@ class V6Model:
             raise IndexError(f"window {number} does not exist (§8.8.3: 0 to 7)")
         return self.windows[number]
 
+    # -------------------------------------------------------------- resize
+    def resize(self, width: int, height: int) -> None:
+        """The terminal changed size. A window that reached the old right
+        or bottom edge follows the new one; a scrolling window whose cursor
+        line would fall off scrolls up just enough to keep it (its newest
+        text survives); everything is clipped to the new screen. The machine
+        then tells the game and asks it to redraw (§11)."""
+        width, height = max(width, 1), max(height, 1)
+        if (width, height) == (self.width, self.height):
+            return
+        old_width, old_height = self.width, self.height
+        for w in self.windows:
+            if w.y_size and w.top + w.y_size >= old_height:
+                new_y_size = max(0, height - w.top)
+                cut = w.y_cursor - new_y_size
+                if cut > 0 and w.has(ATTR_SCROLLING):
+                    self._scroll(w, cut)          # on the old grid, before cropping
+                    w.y_cursor -= cut
+                w.y_size = new_y_size
+            if w.x_size and w.left + w.x_size >= old_width:
+                w.x_size = max(0, width - w.left)
+        self.rows = ([(row + [BLANK] * width)[:width] for row in self.rows[:height]]
+                     + [[BLANK] * width for _ in range(height - min(height, old_height))])
+        self.width, self.height = width, height
+        for w in self.windows:
+            w.y_size = max(0, min(w.y_size, height - w.top))
+            w.x_size = max(0, min(w.x_size, width - w.left))
+            w.y_cursor = max(1, min(w.y_cursor, max(w.y_size, 1)))
+            w.x_cursor = max(1, min(w.x_cursor, max(w.x_size, 1)))
+            w.lines_since_input = 0
+        if self.on_resize:
+            self.on_resize(width, height)
+
+    def screen_cursor(self) -> tuple[int, int]:
+        """The current window's cursor, on the screen (0-based)."""
+        w = self.current
+        return (min(w.top + w.y_cursor - 1, self.height - 1),
+                min(w.left + w.x_cursor - 1, self.width - 1))
+
     # -------------------------------------------------------------- output
     def print(self, text: str) -> None:
         for ch in text:

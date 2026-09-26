@@ -12,12 +12,13 @@ EVERY exit path (normal quit, fatal error, Ctrl-C) - see proforma §11.
 from __future__ import annotations
 
 import curses
+import signal
 
 from zforge.common.errors import QuitGame
 from zforge.vm.screen.v6 import V6Model
 from zforge.vm.screen.base import (KEY_DELETE, KEY_DOWN, KEY_ESCAPE, KEY_F1, KEY_LEFT,
                                    KEY_NEWLINE, KEY_RIGHT, KEY_UP, STYLE_BOLD, STYLE_ITALIC,
-                                   STYLE_REVERSE, Cell, GridScreen)
+                                   STYLE_REVERSE, GridScreen)
 
 # Z-machine colour number -> curses colour (§8.3.1)
 Z_TO_CURSES = {2: curses.COLOR_BLACK, 3: curses.COLOR_RED, 4: curses.COLOR_GREEN,
@@ -75,6 +76,8 @@ class CursesScreen(GridScreen):
             self._pairs[key] = number
         return self._pairs[key]
 
+    _typing = ""          # the line being typed, drawn over the grid (not into it)
+
     def render(self) -> None:
         for r, row in enumerate(self.rows):
             for c, cell in enumerate(row):
@@ -84,12 +87,25 @@ class CursesScreen(GridScreen):
                     self.stdscr.addstr(r, c, cell.char, self._attribute(cell))
                 except curses.error:
                     pass
-        row, col = self.upper_cursor if self.window == 1 else self.lower_cursor
+        # The typed line goes at the CURRENT window's cursor (§8.8.3.5 in v6,
+        # the lower window in v5), showing its end if it is too long to fit.
+        row, col = self.screen_cursor()
+        room = max(self.width - col - 1, 0)
+        shown = self._typing[-room:] if room else ""
         try:
-            self.stdscr.move(min(row, self.height - 1), min(col, self.width - 1))
+            if shown:
+                self.stdscr.addstr(row, col, shown)
+            self.stdscr.move(row, col + len(shown))
         except curses.error:
             pass
-        self.stdscr.refresh()
+        try:
+            curses.curs_set(1 if self.cursor_visible else 0)    # §15 set_cursor -1/-2
+        except curses.error:
+            pass                    # some terminals cannot hide the cursor
+        try:
+            self.stdscr.refresh()
+        except curses.error:
+            pass                    # the terminal has gone (SIGHUP)
 
     def more_prompt(self) -> None:
         self.render()
@@ -131,8 +147,17 @@ class CursesScreen(GridScreen):
             except curses.error:
                 continue
             if key == curses.KEY_RESIZE:
-                continue            # simple approach: keep the original grid size
+                self._terminal_resized()
+                continue
             return ord(key) if isinstance(key, str) else key
+
+    def _terminal_resized(self) -> None:
+        """The window changed size: resize the screen model (which tells the
+        game, §11), then redraw everything from scratch."""
+        height, width = self.stdscr.getmaxyx()
+        self.resize(width, height)
+        self.stdscr.clear()
+        self.render()
 
     def _to_zscii(self, key: int) -> int | None:
         if key in CURSES_KEY_TO_ZSCII:
@@ -148,30 +173,25 @@ class CursesScreen(GridScreen):
                 return code
 
     def _input_line(self, max_length: int) -> str:
-        """A tiny line editor drawn straight onto the grid (Backspace works)."""
+        """A tiny line editor (Backspace works). The typed text is an overlay
+        drawn by render(), never written into the grid: read_line echoes the
+        finished line into the right window itself, v5 or v6, and a resize
+        in mid-typing just redraws it in its new place."""
         typed: list[str] = []
-        start_row, start_col = self.lower_cursor
-        while True:
-            self.render()
-            code = self._to_zscii(self._raw_key())
-            if code == KEY_NEWLINE:
-                break
-            if code == KEY_DELETE and typed:
-                typed.pop()
-                row, col = self.lower_cursor
-                if col > 0:
-                    self.rows[row][col - 1] = Cell(" ")
-                    self.lower_cursor = (row, col - 1)
-            elif code is not None and 32 <= code <= 126 and len(typed) < max_length:
-                typed.append(chr(code))
-                row, col = self.lower_cursor
-                if col < self.width - 1:
-                    self.rows[row][col] = Cell(chr(code), self.style)
-                    self.lower_cursor = (row, col + 1)
-        # GridScreen.read_line re-echoes the text; rewind to where typing began
-        self.lower_cursor = (start_row, start_col)
-        for c in range(start_col, self.width):
-            self.rows[start_row][c] = Cell(" ")
+        try:
+            while True:
+                self._typing = "".join(typed)
+                self.render()
+                code = self._to_zscii(self._raw_key())
+                if code == KEY_NEWLINE:
+                    break
+                if code == KEY_DELETE:
+                    if typed:
+                        typed.pop()
+                elif code is not None and 32 <= code <= 126 and len(typed) < max_length:
+                    typed.append(chr(code))
+        finally:
+            self._typing = ""
         return "".join(typed)
 
 
@@ -179,10 +199,25 @@ class CursesV6Screen(V6Model, CursesScreen):
     """The same, with the §8.8 window model in front of it (v6 stories)."""
 
 
+def _quit_on_signal(signum, frame):
+    raise QuitGame("interrupted")
+
+
 def run_with_curses(body, version: int = 5):
     """Run body(screen) inside curses.wrapper, so the terminal is ALWAYS
-    restored - even after an exception. The story's version picks the
-    screen model: §8.7's two windows, or §8.8's eight."""
+    restored after an exception. Signals too: a closed terminal window
+    (SIGHUP) would otherwise kill Python with the terminal still in curses
+    mode, and `kill` (SIGTERM), which ncurses cleans up after by itself,
+    would skip zforge's own shutdown (a --transcript file is closed there).
+    Both become a clean quit instead. The story's version picks the screen
+    model: §8.7's two windows, or §8.8's eight."""
     from zforge.common.versions import profile_for
     cls = CursesV6Screen if profile_for(version).windows > 2 else CursesScreen
-    return curses.wrapper(lambda stdscr: body(cls(stdscr)))
+    caught = [sig for sig in (getattr(signal, "SIGTERM", None), getattr(signal, "SIGHUP", None))
+              if sig is not None]
+    previous = {sig: signal.signal(sig, _quit_on_signal) for sig in caught}
+    try:
+        return curses.wrapper(lambda stdscr: body(cls(stdscr)))
+    finally:
+        for sig, handler in previous.items():
+            signal.signal(sig, handler)

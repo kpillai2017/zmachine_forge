@@ -453,3 +453,43 @@ and all evals passed before any author activity rule existed. The survey's
 "`Rule for <activity>`: out" becomes "partly in". `do nothing` became a
 phrase on the way.
 
+## ADR-032: The terminal is not a fixed size (Tier 9)
+
+**Context.** Tier 8 drew v6's eight windows with curses, but the renderer
+kept the grid it started with, drew typed text into the v5 lower window
+whatever the story's version, and relied on curses.wrapper - which restores
+the terminal after an exception, not after a signal.
+
+**Decision.**
+- *Resizing.* Each screen model has `resize(width, height)`. v5/v7/v8 keep
+  the status line's rows and the lower window's NEWEST lines (up to the
+  cursor), as a terminal does. In v6, windows that reached the old right or
+  bottom edge follow the new one, a scrolling window whose cursor line
+  would fall off scrolls up just enough to keep it, and everything is
+  clipped. Then the machine rewrites the §11 screen-size header, and on v6
+  sets Flags 2 bit 2 - the §11 remarks: the bit "may be set by modern
+  interpreters after, for example, resizing the 'screen'". It is v6 only in
+  §11's table, so it is a VersionProfile field (`redraw_request_bit`).
+- *Typing is an overlay.* The line editor no longer writes into the grid;
+  render() draws the typed text at `screen_cursor()` - the CURRENT window's
+  cursor (§8.8.3.5 in v6). Found while building this tier: in a v6 game the
+  old editor typed over the status line (row 0) and then blanked it
+  (tests/test_curses_screen.py fails on the old code).
+- *The cursor* follows §15 set_cursor -1/-2 through curs_set.
+- *Signals.* SIGHUP and SIGTERM raise QuitGame("interrupted"), so zforge
+  shuts down through its normal path and curses.wrapper restores the
+  terminal. Measured without the handlers: SIGHUP (a closed terminal
+  window) killed Python with the terminal left in curses mode; SIGTERM was
+  cleaned up by ncurses itself, but around zforge's own shutdown (which is
+  where a --transcript file is closed).
+
+**Testing without a terminal.** tests/test_curses_screen.py drives the
+real CursesScreen classes through real games with a stand-in window.
+tests/test_curses_tty.py runs the real CLI in a pseudo-terminal (pty.fork):
+it plays, resizes (TIOCSWINSZ + SIGWINCH), is killed, and must exit
+normally having sent xterm's rmcup. Neither needs a screen, so both run in
+CI - more than the one smoke test "skipped with no TTY" the plan asked for.
+
+**Consequences.** No change for scripted play: the golden builds, the v1
+suite and every transcript are unchanged.
+

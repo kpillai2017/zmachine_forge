@@ -23,6 +23,7 @@ can never disagree about an opcode or a z-string.
 6. `vm/objects.py`, `vm/lexer.py` - §12, §13
 7. `vm/streams.py`, `vm/screen/base.py` - §7, §8.7 (one grid model; `curses_screen.py` just draws it)
    `vm/screen/v6.py` - §8.8: version 6's eight windows, in front of that grid (ADR-030)
+   `vm/screen/curses_screen.py` - draws either model; resizing and signals (ADR-032)
    `vm/ops/v6.py` - §15: the eighteen opcodes version 6 adds
 8. `vm/quetzal.py` - Appendix C save files and undo
 9. `asm/syntax.py` → `asm/assembler.py` → `asm/linker.py` - text to bytes

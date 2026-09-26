@@ -55,3 +55,11 @@
   (`say "[if false]x[end if]"`); the `while`
   clause (`... while taking inventory`) and `(called ...)` names in activity
   rules are not supported.
+- **Resizing** (ADR-032): only the curses screen follows the terminal; the
+  plain screen keeps `--width`. A v6 window that does not touch the
+  screen's right or bottom edge keeps its size (and is clipped if the screen
+  shrinks past it), until the game rearranges its windows in answer to the
+  redraw request. v5/v7/v8 games are told the new size but not asked to
+  redraw: the redraw bit is v6 only (§11), so their text reflows from the
+  next line on and the status line from the next turn.
+

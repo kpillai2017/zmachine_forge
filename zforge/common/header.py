@@ -61,6 +61,7 @@ F2_FIXED_PITCH = 1 << 1
 F2_PICTURES = 1 << 3
 F2_UNDO = 1 << 4
 F2_MOUSE = 1 << 5
+F2_REDRAW = 1 << 2        # v6: the interpreter asks the game to redraw (§11)
 F2_COLOURS = 1 << 6
 F2_SOUND = 1 << 7
 F2_MENUS = 1 << 8

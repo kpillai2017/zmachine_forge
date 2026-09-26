@@ -1112,6 +1112,27 @@
         "tests/test_v6.py::test_the_v6_demo_draws_its_panel"
       ],
       "expect": "a story that uses no v6 feature reads exactly the same on z6 as on z5 - the same text, line for line - for hello.zil, cloak.zil, parser_demo.zil and the Inform 7 Advent port"
+    },
+    {
+      "id": "terminal-resize",
+      "suite": "v2",
+      "type": "pytest",
+      "tests": "tests/test_resize.py",
+      "expect": "the terminal changes size: v5/v7/v8 keep the status line and the newest lines; v6 windows follow the screen's edges and window 0 keeps its newest text; the game is told through the §11 header, and a v6 game is asked to redraw (Flags 2 bit 2)"
+    },
+    {
+      "id": "curses-renderer",
+      "suite": "v2",
+      "type": "pytest",
+      "tests": "tests/test_curses_screen.py",
+      "expect": "the real curses renderer, driven through real games with a stand-in window: typing appears at the current window's cursor and wipes nothing (v6), a resize reaches the game (the status line grows), typing survives a resize, set_cursor -1/-2 hide and show the cursor"
+    },
+    {
+      "id": "curses-real-terminal",
+      "suite": "v2",
+      "type": "pytest",
+      "tests": "tests/test_curses_tty.py",
+      "expect": "`zforge run --ui curses` in a pseudo-terminal: plays, survives a resize, and after SIGTERM or SIGHUP exits normally with the terminal restored (rmcup)"
     }
   ]
 }

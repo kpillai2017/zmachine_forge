@@ -40,6 +40,7 @@ class ZMachine:
         self.handlers = handlers_for(self.header.version)    # §15, per version
         self.mouse_window = 1                                # §15 mouse_window default
         self.screen = screen
+        screen.on_resize = self.screen_resized       # the terminal may change size
         self.rng = random.Random(seed)
         self.trace_file = trace_file
         self.recent = deque(maxlen=trace_depth)    # last N instructions for error reports
@@ -87,6 +88,23 @@ class ZMachine:
                 return UnicodeTable(chars)
         return UnicodeTable()
 
+    def write_screen_size(self) -> None:
+        """§11 $20/$21 the screen in lines and characters, $22/$24 in units
+        (one unit is one character here)."""
+        m, s = self.mem, self.screen
+        m.write_header_byte(H.H_SCREEN_HEIGHT_LINES, min(s.height, 255))
+        m.write_header_byte(H.H_SCREEN_WIDTH_CHARS, min(s.width, 255))
+        m.write_header_word(H.H_SCREEN_WIDTH_UNITS, s.width)
+        m.write_header_word(H.H_SCREEN_HEIGHT_UNITS, s.height)
+
+    def screen_resized(self, width: int, height: int) -> None:
+        """The terminal changed size: tell the game (§11 header), and on v6
+        ask it to redraw (§11 remarks: "may be set by modern interpreters
+        after, for example, resizing the 'screen'")."""
+        self.write_screen_size()
+        if self.header.profile.redraw_request_bit:
+            self.mem.write_header_word(H.H_FLAGS2, self.mem.read_word(H.H_FLAGS2) | H.F2_REDRAW)
+
     def set_interpreter_header(self) -> None:
         """§11: fields the interpreter must set after load/restore/restart."""
         m, s = self.mem, self.screen
@@ -99,10 +117,7 @@ class ZMachine:
         m.write_header_word(H.H_FLAGS2, flags2)
         m.write_header_byte(H.H_INTERPRETER_NUMBER, INTERPRETER_NUMBER)
         m.write_header_byte(H.H_INTERPRETER_VERSION, INTERPRETER_VERSION)
-        m.write_header_byte(H.H_SCREEN_HEIGHT_LINES, min(s.height, 255))
-        m.write_header_byte(H.H_SCREEN_WIDTH_CHARS, min(s.width, 255))
-        m.write_header_word(H.H_SCREEN_WIDTH_UNITS, s.width)     # 1 unit = 1 character
-        m.write_header_word(H.H_SCREEN_HEIGHT_UNITS, s.height)
+        self.write_screen_size()
         # §11.1: one unit IS one character here, so the font is 1x1. Version 6
         # swaps these two bytes, which is why the header knows where they go.
         width_byte, height_byte = self.header.font_size_bytes()

@@ -16,6 +16,7 @@ The rules, as the Standard states them:
   opcode set        §1/§14 v5          v6            v5            v5
   font size bytes   §11.1  $26 w, $27 h $26 h, $27 w  $26 w, $27 h  $26 w, $27 h
   screen model      §8     two windows  eight (§8.8)  two windows   two windows
+  redraw request    §11    -           Flags 2 bit 2  -             -
 
 (R_O and S_O are the routine and string offsets in header words $28/$2a.)
 §1 ends: "Versions 7 and 8 are identical to Version 5 except as stated at
@@ -43,6 +44,9 @@ class VersionProfile:
     opcode_table: int              # §1/§14: whose opcode table this version uses
     font_bytes_swapped: bool = False   # §11.1: v6 puts height at $26, width at $27
     windows: int = 2                   # §8.7 two windows; §8.8 v6 has eight
+    # §11 Flags 2 bit 2, "Int sets to request screen redraw", is marked v6
+    # only; the §11 remarks suggest setting it "after, for example, resizing".
+    redraw_request_bit: bool = False
 
     # ------------------------------------------------ packed addresses §1.2.3
     def unpack_routine(self, packed: int, routines_offset: int = 0) -> int:
@@ -106,7 +110,7 @@ PROFILES: dict[int, VersionProfile] = {
     6: VersionProfile(version=6, packed_scale=4, uses_packing_offsets=True,
                       file_length_divisor=8, max_story_size=512 * 1024,
                       starts_with_main_routine=True, opcode_table=6,
-                      font_bytes_swapped=True, windows=8),
+                      font_bytes_swapped=True, windows=8, redraw_request_bit=True),
     7: VersionProfile(version=7, packed_scale=4, uses_packing_offsets=True,
                       file_length_divisor=8, max_story_size=512 * 1024,
                       starts_with_main_routine=False, opcode_table=5),
