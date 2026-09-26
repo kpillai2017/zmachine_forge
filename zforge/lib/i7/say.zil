@@ -8,7 +8,38 @@
 <PROPDEF ARTICLE 1>
 <PROPDEF ARTICLE-TEXT 0>
 
+;"Adaptive text (fixed viewpoint: 'you', present tense). Inform 7 remembers
+  the object named most recently - the 'prior named object' - and makes
+  verbs and pronouns agree with it: '[regarding the keys][They] [are]'
+  prints 'They are'. Every routine here that prints a name sets it."
+<GLOBAL PRIOR-NAMED 0>
+
+<ROUTINE PRIOR-PLURAL? ()
+    ;"do verbs take their plural form? (for 'you', and plural-named things)"
+    <OR <EQUAL? ,PRIOR-NAMED ,PLAYER> <AND ,PRIOR-NAMED <FSET? ,PRIOR-NAMED ,PLURALBIT>>>>
+
+<ROUTINE SAY-VERB (PLURAL SINGULAR)
+    ;"'are'/'is', 'flow'/'flows': the compiler supplies both forms"
+    <COND (<PRIOR-PLURAL?> <PRINT .PLURAL>) (ELSE <PRINT .SINGULAR>)>>
+
+<ROUTINE SAY-WE (TEXT)
+    ;"[We] [we] [us] [our] ...: the player - print the word, and they are now
+      the prior named object"
+    <SETG PRIOR-NAMED ,PLAYER>
+    <PRINT .TEXT>>
+
+<ROUTINE SAY-PRONOUN (YOU THEY IT)
+    ;"[They] [they] [them] [Those]: the pronoun for the prior named object"
+    <COND (<EQUAL? ,PRIOR-NAMED ,PLAYER> <PRINT .YOU>)
+          (<PRIOR-PLURAL?> <PRINT .THEY>)
+          (ELSE <PRINT .IT>)>>
+
+<ROUTINE SAY-NAME (O)
+    <SETG PRIOR-NAMED .O>
+    <TELL D .O>>
+
 <ROUTINE SAY-A (O "AUX" A)
+    <SETG PRIOR-NAMED .O>
     ;"[a noun]: 'a brass hook', 'an apple', 'some water', 'Roger'"
     <SET A <GETP .O ,P?ARTICLE>>
     <COND (<FSET? .O ,PROPERBIT>)
@@ -19,6 +50,7 @@
     <TELL D .O>>
 
 <ROUTINE SAY-CAP-A (O "AUX" A)
+    <SETG PRIOR-NAMED .O>
     ;"[A noun]"
     <SET A <GETP .O ,P?ARTICLE>>
     <COND (<FSET? .O ,PROPERBIT>)
@@ -43,11 +75,13 @@
         <PRINTC .C>>>
 
 <ROUTINE SAY-THE (O)
+    <SETG PRIOR-NAMED .O>
     ;"[the noun]"
     <COND (<NOT <FSET? .O ,PROPERBIT>> <TELL "the ">)>
     <TELL D .O>>
 
 <ROUTINE SAY-CAP-THE (O)
+    <SETG PRIOR-NAMED .O>
     ;"[The noun]"
     <COND (<NOT <FSET? .O ,PROPERBIT>> <TELL "The ">)>
     <TELL D .O>>

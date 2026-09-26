@@ -143,6 +143,10 @@ DEFAULT_PLAN: list[Task] = [
          "'is usually', articles, names, synonyms, presence)",
          ["zforge/compiler/i7/", "zforge/lib/i7/", "tests/samples/doors_and_lamps.ni"],
          ["I7_LITE.md", "I7_SURVEY.md"], ["i7-doors-devices"], ["tests/test_i7.py"]),
+    Task("v2-i7-7c", 7, "I7-lite 7c: adaptive text, fixed viewpoint ([We] [are] "
+         "[regarding X], the story's own verbs)",
+         ["zforge/compiler/i7/", "zforge/lib/i7/say.zil", "tests/samples/adaptive.ni"],
+         ["I7_LITE.md"], ["i7-adaptive-text"], ["tests/test_i7.py"]),
 ]
 
 

@@ -246,3 +246,18 @@ thing.". **Consequence.** The two v1 outputs that include the parser
 (`cloak_syntax.zil`, `parser_demo.zil`) grew by 128 bytes each, so their
 golden hashes were re-recorded; every other golden output is unchanged and
 the v1 behaviour suite still passes 28/28 (their messages are unchanged).
+
+## ADR-027: The player object answers to "me" (golden re-recorded)
+
+**Decision.** `PLAYER` in `zforge/lib/parser.zil` gets `(SYNONYM ME MYSELF
+SELF YOURSELF)`, so `x me` works in I7-lite games (where the player is in
+the room, hence in scope). The two v1 examples that include the parser
+change size by a few bytes (cloak_syntax 7688 -> 7720, parser_demo 5408 ->
+5444) and are re-recorded; their behaviour is unchanged (v1 suite 28/28),
+because in those games the player is not in scope.
+
+**Also (Tier 7c).** Placing a room in something, or a thing in itself, is
+now a problem message. Both usually mean a short name matched an existing
+object ("The stream is scenery in the Stream Bank." - "stream" is the
+Stream Bank), which Inform 7 also reports.
+

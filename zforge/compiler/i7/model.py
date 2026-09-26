@@ -134,6 +134,7 @@ class WorldModel:
     either_or: dict[str, tuple[str, bool]] = field(default_factory=dict)  # adj -> (flag, value)
     value_properties: dict[str, str] = field(default_factory=dict)        # name -> kind
     direction_words: dict[str, list[str]] = field(default_factory=dict)  # 'north' -> ['plugh']
+    verbs: dict[str, tuple[str, str]] = field(default_factory=dict)      # 'flow': (flow, flows)
     command_synonyms: list[tuple[str, str]] = field(default_factory=list)  # ('grab', 'take')
     notes: list[str] = field(default_factory=list)
 
@@ -168,6 +169,20 @@ class WorldModel:
             return all(w in it for w in words)          # words appear in order
         matches = [o for o in self.objects.values() if fits(o)]
         return matches[0] if len(matches) == 1 else None
+
+
+IRREGULAR = {"be": "is", "have": "has", "do": "does", "go": "goes"}
+
+
+def third_person_singular(verb: str) -> str:
+    """flow -> flows, reach -> reaches, carry -> carries, have -> has."""
+    if verb in IRREGULAR:
+        return IRREGULAR[verb]
+    if re.search(r"(s|x|z|ch|sh|o)$", verb):
+        return verb + "es"
+    if re.search(r"[^aeiou]y$", verb):
+        return verb[:-1] + "ies"
+    return verb + "s"
 
 
 def strip_article(phrase: str) -> str:
@@ -402,6 +417,11 @@ class ModelBuilder:
         except TextError as e:
             self.p.problem(s.where, value, f"the text is malformed: {e}.")
 
+    def new_verb(self, s, m):
+        """To flow is a verb.   (then [flow] prints 'flow' or 'flows')"""
+        verb = m.group(1).lower()
+        self.m.verbs[verb] = (verb, third_person_singular(verb))
+
     def command_synonym(self, s, m):
         """Understand the command "grab" as "take"."""
         new = [unquote(w).lower() for w in re.split(r"\s*(?:,|\band\b|\bor\b)\s*", m.group(1))
@@ -567,6 +587,7 @@ class ModelBuilder:
         (r"^the (.+?) of (an? .+?) (?:is|are) usually (\".*\")$", usually_text),
         (r"^(.+?) (?:is|are) usually (.+)$", usually),
         (r"^understand the commands? (.+?) as (\".*?\")$", command_synonym),
+        (r"^to ([a-z]+)(?: \(.*\))? is a verb$", new_verb),
         (r"^(.+?) (?:is|are) (above|below) (.+)$", above_below),
         (r"^(.+?) (?:unlock|unlocks) (.+)$", unlocks),
         (r"^(.+?) (?:is|are) (north|northeast|east|southeast|south|southwest|west|northwest|"
@@ -624,6 +645,16 @@ class ModelBuilder:
 
     def place(self, s: Sentence, obj: Obj, relation: str, place: str) -> None:
         holder = self.object_for(place, s.where)
+        if obj is holder:
+            self.p.problem(s.where, s.text, f"this puts '{obj.name}' inside itself. (A short "
+                           f"name like this can mean an existing '{obj.name}': give the new "
+                           "thing a different name.)")
+            return
+        if self.m.is_a(obj.kind, "room"):
+            self.p.problem(s.where, s.text, f"'{obj.name}' is a room, and a room cannot be "
+                           f"{relation} something. (A short name can mean an existing room: "
+                           "give the new thing a different name.)")
+            return
         if relation == "on" and not self.m.is_a(holder.kind, "supporter"):
             self.p.problem(s.where, s.text, f"'{holder.name}' is not a supporter, so "
                            "nothing can be put on it.")

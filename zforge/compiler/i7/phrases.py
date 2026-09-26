@@ -19,7 +19,7 @@ from typing import TYPE_CHECKING
 from zforge.compiler.i7.model import ADJECTIVES, BUILTIN_KINDS, PhraseDef, strip_article, unquote
 from zforge.compiler.i7.problems import Location
 from zforge.compiler.i7.source import BodyLine
-from zforge.compiler.i7.standard import DIRECTIONS
+from zforge.compiler.i7.standard import DIRECTIONS, zil_string
 from zforge.compiler.i7.text import IfText, Literal, OneOf, Substitution, Text, TextError, \
     ends_sentence, parse_text
 
@@ -481,7 +481,6 @@ class PhraseLowerer:
         return out
 
     def parts(self, parts: list, where: Location) -> list[str]:
-        from zforge.compiler.i7.lower import zil_string
         out: list[str] = []
         for part in parts:
             if isinstance(part, Literal):
@@ -533,6 +532,9 @@ class PhraseLowerer:
             return simple[low]
         if low in self.say_phrases:
             return f"<{self.say_phrases[low]}>"
+        adaptive = self.adaptive(w, where)
+        if adaptive:
+            return adaptive
         m = re.match(r"^(.+) in words$", w, re.I)
         if m:
             return f"<SAY-IN-WORDS {self.value(m.group(1), where)}>"
@@ -544,6 +546,38 @@ class PhraseLowerer:
             return f"<{routine} {target}>"
         return self.print_value(w, where)
 
+    # Adaptive text, fixed viewpoint (7c): the player is 'you', present tense.
+    WE = {"We": "You", "we": "you", "us": "you", "Us": "You", "our": "your", "Our": "Your",
+          "ourselves": "yourself", "Ourselves": "Yourself"}
+    AGREEING = {"are": ("are", "is"), "Are": ("Are", "Is"), "'re": ("'re", "'s"),
+                "have": ("have", "has"), "Have": ("Have", "Has"), "'ve": ("'ve", "'s")}
+    PRONOUNS = {"They": ("You", "They", "It"), "they": ("you", "they", "it"),
+                "them": ("you", "them", "it"), "Those": ("You", "Those", "That"),
+                "those": ("you", "those", "that")}
+    FIXED = {"here": "here", "Here": "Here", "now": "now", "Now": "Now",
+             "There": "There", "there": "there"}
+
+    def adaptive(self, w: str, where: Location) -> str | None:
+        """[We] [are] [regarding X] [They] and the story's own verbs ([flow])."""
+        if w in self.WE:
+            return f"<SAY-WE {zil_string(self.WE[w])}>"
+        if w in self.AGREEING:
+            return "<SAY-VERB {} {}>".format(*(zil_string(x) for x in self.AGREEING[w]))
+        if w in self.PRONOUNS:
+            return "<SAY-PRONOUN {} {} {}>".format(*(zil_string(x) for x in self.PRONOUNS[w]))
+        if w in self.FIXED:
+            return f"<TELL {zil_string(self.FIXED[w])}>"
+        m = re.match(r"^regarding (.+)$", w, re.I)
+        if m:
+            return f"<SETG PRIOR-NAMED {self.value(m.group(1), where)}>"
+        forms = self.L.m.verbs.get(w.lower())
+        if forms:                                   # To flow is a verb.  -> [flow]
+            plural, singular = forms
+            if w[:1].isupper():
+                plural, singular = plural.capitalize(), singular.capitalize()
+            return f"<SAY-VERB {zil_string(plural)} {zil_string(singular)}>"
+        return None
+
     def print_value(self, what: str, where: Location) -> str:
         kind = self.kind_of_value(what)
         value = self.value(what, where)
@@ -551,4 +585,4 @@ class PhraseLowerer:
             return f"<TELL N {value}>"
         if kind == "text":
             return f"<PRINT {value}>"
-        return f"<TELL D {value}>"
+        return f"<SAY-NAME {value}>"

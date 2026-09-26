@@ -60,7 +60,8 @@
 <GLOBAL READBUF <ITABLE 80 (BYTE)>>
 <GLOBAL PARSEBUF <ITABLE 50 (BYTE)>>     ;"2 + 4 bytes x 12 words (§13.6.3)"
 
-<OBJECT PLAYER (DESC "yourself")>
+<OBJECT PLAYER (DESC "yourself")
+    (SYNONYM ME MYSELF SELF YOURSELF)>   ;"'x me' (found when the player is in scope)"
 
 ;"0 = Infocom-style messages (\"I don't know the word ...\"); the I7-lite
   runtime sets 1 for Inform 7's wording (\"You can't see any such thing.\")"

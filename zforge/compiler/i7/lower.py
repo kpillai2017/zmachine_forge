@@ -13,7 +13,7 @@ from dataclasses import dataclass
 from zforge.compiler.i7.model import Obj, Rule, WorldModel
 from zforge.compiler.i7.phrases import PhraseLowerer
 from zforge.compiler.i7.problems import Problems
-from zforge.compiler.i7.standard import DIRECTIONS, STAGES, zil_name
+from zforge.compiler.i7.standard import DIRECTIONS, STAGES, zil_name, zil_string
 
 # ZIL names the library already uses: generated names must not clash
 RESERVED = {"PLAYER", "HERE", "LIT", "PRSA", "PRSO", "PRSI", "GO", "SCORE", "TURN-COUNT",
@@ -35,14 +35,6 @@ class Names:
             candidate, n = f"{atom}-{n}", n + 1
         self.used.add(candidate)
         return candidate
-
-
-def zil_string(s: str) -> str:
-    """A ZIL string literal. Runs of spaces and newlines become one space (as
-    in Inform 7), but a leading or trailing space is kept: it matters in
-    "You see " followed by a name. '|' is ZIL's newline, so it is avoided."""
-    s = re.sub(r"\s+", " ", s).replace("\\", "\\\\").replace('"', '\\"').replace("|", "/")
-    return f'"{s}"'
 
 
 def article_code(obj: Obj) -> int:

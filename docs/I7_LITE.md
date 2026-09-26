@@ -12,8 +12,11 @@ Darkness; **7b** adds the survey's features (doors, devices, `try`, ...);
 **7c** adds adaptive text. Anything not listed is refused with a problem
 message that names the construct and points here.
 
-**Built so far:** 7a and 7b (see `examples/cloak.ni` and
-`tests/samples/doors_and_lamps.ni`). Details that differ from Inform 7:
+**Built so far:** 7a, 7b and 7c (see `examples/cloak.ni`,
+`tests/samples/doors_and_lamps.ni` and `tests/samples/adaptive.ni`).
+Adaptive text agrees with the object named most recently, exactly as in
+Inform 7 - so "[We] [are] by a stream that [flow]" prints "flow" (it
+agrees with "you"); write "[regarding the stream]" or plain "flows". Details that differ from Inform 7:
 doors are closed and openable by default, containers open; a door is
 listed in room descriptions (not yet checked against real Inform 7).
 

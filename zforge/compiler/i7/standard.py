@@ -7,6 +7,8 @@ standard.zil) that go into each stage of its rulebook."""
 
 from __future__ import annotations
 
+import re
+
 from dataclasses import dataclass, field
 
 STAGES = ("before", "instead", "check", "carry out", "after", "report")
@@ -99,6 +101,14 @@ DIRECTIONS: tuple[tuple[str, str, str], ...] = (
     ("inside", "in", "outside"), ("outside", "out", "inside"),
 )
 OPPOSITE = {name: opposite for name, _, opposite in DIRECTIONS}
+
+
+def zil_string(s: str) -> str:
+    """A ZIL string literal. Runs of spaces and newlines become one space (as
+    in Inform 7), but a leading or trailing space is kept: it matters in
+    "You see " followed by a name. '|' is ZIL's newline, so it is avoided."""
+    s = re.sub(r"\s+", " ", s).replace("\\", "\\\\").replace('"', '\\"').replace("|", "/")
+    return f'"{s}"'
 
 
 def zil_name(words: str) -> str:

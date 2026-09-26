@@ -911,6 +911,34 @@
         "That isn't something you can switch."
       ],
       "expect": "7b features: a locked two-sided door and its key, a device that lights a dark room, custom articles, printed/private names, Understand as a direction, command synonyms, 'in the presence of', 'try'; identical on z5, z7 and z8"
+    },
+    {
+      "id": "i7-adaptive-text",
+      "suite": "v2",
+      "type": "cross_version",
+      "source": "tests/samples/adaptive.ni",
+      "versions": [
+        5,
+        7,
+        8
+      ],
+      "script": [
+        "look",
+        "x brook",
+        "x keys",
+        "x lamp",
+        "x me",
+        "wait"
+      ],
+      "must_contain": [
+        "You are standing beside a stream. You have a feeling you are not alone here.",
+        "The brook flows out of the building.",
+        "They are shiny, and they reach the floor.",
+        "The lamp is dull. It carries a dent.",
+        "You look fine. Your cloak is wet.",
+        "There is nothing to do now."
+      ],
+      "expect": "7c adaptive text, fixed viewpoint: [We] [are] [have] [here] [now] [There], [regarding X], pronouns, and the story's own verbs agree with the object named last; 'x me' finds the player; identical on z5, z7 and z8"
     }
   ]
 }

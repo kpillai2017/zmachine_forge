@@ -187,3 +187,24 @@ def test_privately_named_things_are_not_understood_by_their_name():
                      'The lamp is privately-named. Understand "lantern" as the lamp.', "t.ni").zil
     obj = zil[zil.index("<OBJECT LAMP"):]
     assert "(SYNONYM LANTERN)" in obj[:obj.index(">")]
+
+
+# ------------------------------------------------------------------ 7c
+
+def test_third_person_singular_of_the_storys_verbs():
+    from zforge.compiler.i7.model import third_person_singular as s
+    assert [s(v) for v in ("flow", "reach", "carry", "go", "have", "play", "fix")] == \
+        ["flows", "reaches", "carries", "goes", "has", "plays", "fixes"]
+
+
+def test_adaptive_text_lowers_to_agreement_routines():
+    zil = compile_i7('"T" by "U"\nTo flow is a verb. The Lab is a room. '
+                     '"[We] [are] here. [regarding the lamp][They] [flow]." '
+                     'The lamp is in the Lab.', "t.ni").zil
+    assert '<SAY-WE "You">' in zil and '<SAY-VERB "are" "is">' in zil
+    assert '<SETG PRIOR-NAMED ,LAMP>' in zil and '<SAY-VERB "flow" "flows">' in zil
+
+
+def test_a_short_name_that_means_an_existing_room_is_a_problem():
+    m, problems = model_of("The Stream Bank is a room. The stream is scenery in the Stream Bank.")
+    assert len(problems) == 1 and "inside itself" in problems[0]
