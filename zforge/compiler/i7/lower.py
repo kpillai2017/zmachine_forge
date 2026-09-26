@@ -13,12 +13,18 @@ from dataclasses import dataclass
 from zforge.compiler.i7.model import Obj, Rule, WorldModel
 from zforge.compiler.i7.phrases import PhraseLowerer
 from zforge.compiler.i7.problems import Problems
-from zforge.compiler.i7.standard import DIRECTIONS, STAGES, zil_name, zil_string
+from zforge.compiler.i7.standard import DIRECTIONS, LIBRARY_RULES, STAGES, zil_name, \
+    zil_string
+from zforge.compiler.i7.text import parse_text
 
 # ZIL names the library already uses: generated names must not clash
 RESERVED = {"PLAYER", "HERE", "LIT", "PRSA", "PRSO", "PRSI", "GO", "SCORE", "TURN-COUNT",
             "ROOMS", "STORY-ENDED", "END-SAYING", "OUT-OF-WORLD", "SILENTLY", "GOING-TO",
+            "GOING-FROM", "GOING-DOOR", "EXAMINE-SAID", "DESCRIBE-ROOM",
             "LIBRARY-FLAGS", "TRY", "RUN-ACTION", "FOLLOW-RULES", "BANNER", "YES?"}
+# ... and every library rule's routine and response routines (TAKE-REPORT-A)
+RESERVED |= {r.routine for r in LIBRARY_RULES.values()}
+RESERVED |= {f"{r.routine}-{letter}" for r in LIBRARY_RULES.values() for letter, _ in r.responses}
 DIRECTION_PROPS = {name: name.upper() for name, _, _ in DIRECTIONS}   # inside -> INSIDE
 DICT_WORD = re.compile(r"^[a-z0-9][a-z0-9-]*$")
 
@@ -83,6 +89,7 @@ class Lowerer:
         self.variables()
         self.rules()
         self.actions()
+        self.responses()
         if self.extra_globals:
             self.emit('"--- state for [one of] texts"', *self.extra_globals, "")
         self.out.extend(self.routines)
@@ -285,6 +292,8 @@ class Lowerer:
             atom = self.action_atom[name]
             self.emit(self.rulebook_global(f"{atom}-RULES", name))
             prelude = "<SETG OUT-OF-WORLD 1> " if action.out_of_world else ""
+            if action.standard and action.standard.variables:    # going: room gone to, ...
+                prelude += f"<{action.standard.variables}> "
             self.routines.append(f'<ROUTINE V-{atom} ()   ;"the {name} action"\n'
                                  f"    {prelude}<RUN-ACTION ,{atom}-RULES>>")
             grammar = [(g, self.where0()) for g in (action.standard.grammar
@@ -323,12 +332,23 @@ class Lowerer:
         std = self.m.actions[action].standard if action else None
         tables = []
         for stage in STAGES:
-            entries = [((0,), -1, r) for r in (std.rules.get(stage, ()) if std else ())]
+            entries = [((0,), -1, r.routine) for r in (std.rules.get(stage, ()) if std else ())]
             entries += [(spec, i, r) for i, (spec, r)
                         in enumerate(self.rulebooks.get(action, {}).get(stage, []))]
             entries.sort(key=lambda e: (tuple(-x for x in e[0]), e[1]))
             tables.append("<LTABLE " + " ".join("," + r for _, _, r in entries) + ">")
         return f"<GLOBAL {global_name} <TABLE {' '.join(tables)}>>"
+
+    # ------------------------------------------------------------ responses
+    def responses(self) -> None:
+        """One routine per library response, e.g. TAKE-REPORT-A, which the
+        library rule calls to print it: Inform 7's text, or the author's."""
+        for rule in sorted(LIBRARY_RULES.values(), key=lambda r: r.routine):
+            for letter, default in rule.responses:
+                text = parse_text(default)
+                body = self.phrases.tell(text, sentence_break=True)
+                self.routines.append(f'<ROUTINE {rule.routine}-{letter} ()   '
+                                     f';"the {rule.name} response ({letter})"\n    {body}>')
 
     def expand_grammar(self, line: str, applying: int, action: str, where) -> list[Grammar]:
         """'put [something] on/onto [something]' -> SYNTAX token lists

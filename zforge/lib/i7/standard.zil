@@ -1,8 +1,17 @@
 "zforge/lib/i7/standard.zil - the standard actions' own rules.
 
- The compiler puts these routines into each action's rulebook alongside
- the author's rules (zforge/compiler/i7/standard.py says which rule goes
- in which stage). The wording follows Inform 7's standard responses.
+ One routine per Inform 7 library rule, named after it (the compiler's
+ catalogue, zforge/compiler/i7/standard.py, pairs each routine with its
+ Inform 7 name - 'the can't take what's already taken rule' - and puts it
+ in its action's rulebook, where an author can remove or replace it).
+
+ A rule never prints its message itself: it calls a response routine
+ such as TAKE-ALREADY-TAKEN-A, which the compiler writes from the rule's
+ response text - Inform 7's default, or the author's own ('The standard
+ report taking rule response (A) is \"OK.\"').
+
+ A rule returns true when it decides (a check rule stops the action);
+ false means 'no decision, go on'.
 
  Directions: Inform 7 treats 'north' as an object (the noun of 'going
  north'). The compiler makes one DIR-... object per direction, holding
@@ -11,56 +20,105 @@
 <PROPDEF DIR-PROP 0>
 
 ;"------------------------------------------------------------- looking"
-<ROUTINE LOOKING-CARRY-OUT () <DESCRIBE-ROOM> <RFALSE>>
+;"The four carry out looking rules; going into a room runs them too."
+<ROUTINE DESCRIBE-ROOM () <FOLLOW-RULES <GET ,LOOKING-RULES ,CARRY-OUT-STAGE>>>
+
+<ROUTINE LOOK-HEADING ()               ;"the room description heading rule"
+    <HLIGHT 2>
+    <COND (,LIT <TELL D ,HERE>) (ELSE <LOOK-HEADING-A>)>
+    <HLIGHT 0> <CRLF>
+    <RFALSE>>
+
+<ROUTINE LOOK-BODY ()                  ;"the room description body text rule"
+    <COND (<NOT ,LIT> <LOOK-BODY-A>)
+          (<SAY-TEXT ,HERE ,P?DESCRIPTION> <CRLF>)>
+    <RFALSE>>
+
+<ROUTINE LOOK-OBJECTS ()     ;"the room description paragraphs about objects rule"
+    <COND (<NOT ,LIT> <RFALSE>)>
+    ;"things that describe themselves, until they are first picked up.
+      Like Inform 7, the thing is 'regarded' first: '[There] [are] ...'
+      in its paragraph agrees with it."
+    <MAP-CONTENTS (O ,HERE)
+        <COND (<SHOWS-INITIAL? .O>
+               <SETG PRIOR-NAMED .O>
+               <CRLF> <SAY-TEXT .O ,P?INITIAL-APPEARANCE> <CRLF>)>>
+    <COND (<NOT <ZERO? <COUNT-LISTED ,HERE ,LISTED-HERE?>>>
+           <CRLF> <TELL "You can see "> <SAY-LIST ,HERE ,LISTED-HERE?> <TELL " here." CR>)>
+    ;"what is on scenery supporters (Inform 7 mentions these too)"
+    <MAP-CONTENTS (O ,HERE)
+        <COND (<AND <FSET? .O ,SCENERYBIT> <FSET? .O ,SUPPORTERBIT>
+                    <NOT <ZERO? <COUNT-LISTED .O ,VISIBLE-THING?>>>>
+               <CRLF> <TELL "On "> <SAY-THE .O> <TELL " ">
+               <COND (<EQUAL? <COUNT-LISTED .O ,VISIBLE-THING?> 1> <TELL "is ">)
+                     (ELSE <TELL "are ">)>
+               <SAY-LIST .O ,VISIBLE-THING?> <TELL "." CR>)>>
+    <RFALSE>>
+
+<ROUTINE LOOK-NEW-ARRIVAL ()           ;"the check new arrival rule"
+    <COND (,LIT <FSET ,HERE ,VISITEDBIT>)>
+    <RFALSE>>
 
 ;"----------------------------------------------------------- examining"
-<ROUTINE EXAMINING-CARRY-OUT ()
-    <COND (<SAY-TEXT ,PRSO ,P?DESCRIPTION> <CRLF>)
-          (ELSE <TELL "You see nothing special about "> <SAY-THE ,PRSO> <TELL "." CR>)>
+<GLOBAL EXAMINE-SAID 0>                ;"has an examining rule said something?"
+<ROUTINE EXAMINE-STANDARD ()           ;"the standard examining rule"
+    <SETG EXAMINE-SAID 0>
+    <COND (<SAY-TEXT ,PRSO ,P?DESCRIPTION> <CRLF> <SETG EXAMINE-SAID 1>)>
+    <RFALSE>>
+<ROUTINE EXAMINE-UNDESCRIBED ()        ;"the examine undescribed things rule"
+    <COND (<NOT ,EXAMINE-SAID> <EXAMINE-UNDESCRIBED-A>)>
     <RFALSE>>
 
 ;"-------------------------------------------------------------- taking"
-<ROUTINE TAKING-CHECK ()
-    <COND (<EQUAL? ,PRSO ,PLAYER> <TELL "You are always self-possessed." CR> <RTRUE>)
-          (<IN? ,PRSO ,PLAYER> <TELL "You already have that." CR> <RTRUE>)
-          (<FSET? ,PRSO ,PERSONBIT>
-           <TELL "I don't suppose "> <SAY-THE ,PRSO> <TELL " would care for that." CR> <RTRUE>)
-          (<FSET? ,PRSO ,SCENERYBIT> <TELL "That's hardly portable." CR> <RTRUE>)
-          (<FSET? ,PRSO ,FIXEDBIT> <TELL "That's fixed in place." CR> <RTRUE>)>
-    <RFALSE>>
-<ROUTINE TAKING-CARRY-OUT () <MOVE ,PRSO ,PLAYER> <FSET ,PRSO ,HANDLEDBIT> <RFALSE>>
-<ROUTINE TAKING-REPORT () <TELL "Taken." CR> <RFALSE>>
+<ROUTINE TAKE-YOURSELF ()
+    <COND (<EQUAL? ,PRSO ,PLAYER> <TAKE-YOURSELF-A> <RTRUE>)> <RFALSE>>
+<ROUTINE TAKE-PEOPLE ()
+    <COND (<FSET? ,PRSO ,PERSONBIT> <TAKE-PEOPLE-A> <RTRUE>)> <RFALSE>>
+<ROUTINE TAKE-ALREADY-TAKEN ()
+    <COND (<IN? ,PRSO ,PLAYER> <TAKE-ALREADY-TAKEN-A> <RTRUE>)> <RFALSE>>
+<ROUTINE TAKE-SCENERY ()
+    <COND (<FSET? ,PRSO ,SCENERYBIT> <TAKE-SCENERY-A> <RTRUE>)> <RFALSE>>
+<ROUTINE TAKE-FIXED ()
+    <COND (<FSET? ,PRSO ,FIXEDBIT> <TAKE-FIXED-A> <RTRUE>)> <RFALSE>>
+<ROUTINE TAKE-STANDARD () <MOVE ,PRSO ,PLAYER> <FSET ,PRSO ,HANDLEDBIT> <RFALSE>>
+<ROUTINE TAKE-REPORT () <TAKE-REPORT-A> <RFALSE>>
 
 ;"------------------------------------------------------------ dropping"
-<ROUTINE DROPPING-CHECK ()
-    <COND (<NOT <IN? ,PRSO ,PLAYER>> <TELL "You haven't got that." CR> <RTRUE>)>
-    <RFALSE>>
-<ROUTINE DROPPING-CARRY-OUT () <FCLEAR ,PRSO ,WORNBIT> <MOVE ,PRSO ,HERE> <RFALSE>>
-<ROUTINE DROPPING-REPORT () <TELL "Dropped." CR> <RFALSE>>
+<ROUTINE DROP-NOT-HELD ()
+    <COND (<NOT <IN? ,PRSO ,PLAYER>> <DROP-NOT-HELD-A> <RTRUE>)> <RFALSE>>
+<ROUTINE DROP-STANDARD () <FCLEAR ,PRSO ,WORNBIT> <MOVE ,PRSO ,HERE> <RFALSE>>
+<ROUTINE DROP-REPORT () <DROP-REPORT-A> <RFALSE>>
 
 ;"--------------------------------------------------------------- going"
+;"Inform 7's action variables for going, set before any rule runs, so
+  that Before rules can already see them: the room gone from, the room
+  gone to (0 = 'going nowhere') and the door gone through (0 = none)."
+<GLOBAL GOING-FROM 0>
 <GLOBAL GOING-TO 0>
-<ROUTINE GOING-CHECK ("AUX" DIR PT)
+<GLOBAL GOING-DOOR 0>
+<ROUTINE GOING-VARIABLES ("AUX" DIR PT)
+    <SETG GOING-FROM ,HERE> <SETG GOING-TO 0> <SETG GOING-DOOR 0>
     <SET DIR <GETP ,PRSO ,P?DIR-PROP>>        ;"0 if the noun is not a direction"
     <COND (.DIR <SET PT <GETPT ,HERE .DIR>>)>
-    <COND (<OR <ZERO? .PT> <NOT <EQUAL? <PTSIZE .PT> 1>>>
-           <TELL "You can't go that way." CR> <RTRUE>)>
-    <SETG GOING-TO <GETB .PT 0>>
-    ;"an exit may lead to a door: then through it, if it is open"
-    <COND (<FSET? ,GOING-TO ,DOORBIT>
-           <COND (<NOT <FSET? ,GOING-TO ,OPENBIT>>
-                  <TELL "You can't, since "> <SAY-THE ,GOING-TO>
-                  <SAY-IS-ARE ,GOING-TO> <TELL " closed." CR> <RTRUE>)>
-           <SETG GOING-TO <OTHER-SIDE ,GOING-TO>>)>
+    <COND (<AND .PT <EQUAL? <PTSIZE .PT> 1>> <SETG GOING-TO <GETB .PT 0>>)>
+    ;"an exit may lead to a door: then through it, to the other side"
+    <COND (<AND ,GOING-TO <FSET? ,GOING-TO ,DOORBIT>>
+           <SETG GOING-DOOR ,GOING-TO>
+           <SETG GOING-TO <OTHER-SIDE ,GOING-DOOR>>)>>
+<ROUTINE GO-CLOSED-DOOR ()
+    <COND (<AND ,GOING-DOOR <NOT <FSET? ,GOING-DOOR ,OPENBIT>>> <GO-CLOSED-DOOR-A> <RTRUE>)>
     <RFALSE>>
-<ROUTINE GOING-CARRY-OUT () <MOVE-PLAYER-TO ,GOING-TO> <RFALSE>>
-<ROUTINE GOING-REPORT () <DESCRIBE-ROOM> <RFALSE>>
+<ROUTINE GO-THAT-WAY ()
+    <COND (<ZERO? ,GOING-TO> <GO-THAT-WAY-A> <RTRUE>)> <RFALSE>>
+<ROUTINE GO-MOVE () <MOVE-PLAYER-TO ,GOING-TO> <RFALSE>>
+<ROUTINE GO-DESCRIBE () <DESCRIBE-ROOM> <RFALSE>>
 
 ;"---------------------------------------------------- taking inventory"
-<ROUTINE INVENTORY-CARRY-OUT ()
-    <COND (<ZERO? <COUNT-LISTED ,PLAYER ,ANY-THING?>>
-           <TELL "You are carrying nothing." CR> <RFALSE>)>
-    <TELL "You are carrying:" CR>
+<ROUTINE INVENTORY-EMPTY ()
+    <COND (<ZERO? <COUNT-LISTED ,PLAYER ,ANY-THING?>> <INVENTORY-EMPTY-A> <RTRUE>)>
+    <RFALSE>>
+<ROUTINE INVENTORY-STANDARD ()
+    <INVENTORY-STANDARD-A>
     <MAP-CONTENTS (O ,PLAYER)
         <TELL "  "> <SAY-A .O>
         <COND (<FSET? .O ,WORNBIT> <TELL " (being worn)">)>
@@ -69,98 +127,97 @@
 <ROUTINE ANY-THING? (O) <RTRUE>>
 
 ;"------------------------------------------ putting it on / inserting"
-<ROUTINE IMPLICITLY-TAKE ()
+<ROUTINE IMPLICITLY-TAKE ()            ;"the carrying requirements rule"
     ;"Inform 7 picks a thing up first: '(first taking the cloak)'"
     <COND (<IN? ,PRSO ,PLAYER> <RFALSE>)>
     <TELL "(first taking "> <SAY-THE ,PRSO> <TELL ")" CR>
     <TRY ,V?TAKING ,V-TAKING ,PRSO 0 1>
     <NOT <IN? ,PRSO ,PLAYER>>>
-<ROUTINE PUTTING-CHECK ()
-    <COND (<EQUAL? ,PRSO ,PRSI> <TELL "You can't put something on top of itself." CR> <RTRUE>)
-          (<NOT <FSET? ,PRSI ,SUPPORTERBIT>>
-           <TELL "Putting things on "> <SAY-THE ,PRSI> <TELL " would achieve nothing." CR> <RTRUE>)>
-    <IMPLICITLY-TAKE>>
-<ROUTINE PUTTING-CARRY-OUT () <FCLEAR ,PRSO ,WORNBIT> <MOVE ,PRSO ,PRSI> <RFALSE>>
-<ROUTINE PUTTING-REPORT ()
-    <TELL "You put "> <SAY-THE ,PRSO> <TELL " on "> <SAY-THE ,PRSI> <TELL "." CR> <RFALSE>>
-<ROUTINE INSERTING-CHECK ()
-    <COND (<EQUAL? ,PRSO ,PRSI> <TELL "You can't put something inside itself." CR> <RTRUE>)
-          (<NOT <FSET? ,PRSI ,CONTAINERBIT>>
-           <SAY-CAP-THE ,PRSI> <TELL " can't contain things." CR> <RTRUE>)
-          (<AND <FSET? ,PRSI ,OPENABLEBIT> <NOT <FSET? ,PRSI ,OPENBIT>>>
-           <SAY-CAP-THE ,PRSI> <SAY-IS-ARE ,PRSI> <TELL " closed." CR> <RTRUE>)>
-    <IMPLICITLY-TAKE>>
-<ROUTINE INSERTING-CARRY-OUT () <FCLEAR ,PRSO ,WORNBIT> <MOVE ,PRSO ,PRSI> <RFALSE>>
-<ROUTINE INSERTING-REPORT ()
-    <TELL "You put "> <SAY-THE ,PRSO> <TELL " into "> <SAY-THE ,PRSI> <TELL "." CR> <RFALSE>>
+<ROUTINE PUT-ON-ITSELF ()
+    <COND (<EQUAL? ,PRSO ,PRSI> <PUT-ON-ITSELF-A> <RTRUE>)> <RFALSE>>
+<ROUTINE PUT-NOT-SUPPORTER ()
+    <COND (<NOT <FSET? ,PRSI ,SUPPORTERBIT>> <PUT-NOT-SUPPORTER-A> <RTRUE>)> <RFALSE>>
+<ROUTINE PUT-STANDARD () <FCLEAR ,PRSO ,WORNBIT> <MOVE ,PRSO ,PRSI> <RFALSE>>
+<ROUTINE PUT-REPORT () <PUT-REPORT-A> <RFALSE>>
+<ROUTINE INSERT-ITSELF ()
+    <COND (<EQUAL? ,PRSO ,PRSI> <INSERT-ITSELF-A> <RTRUE>)> <RFALSE>>
+<ROUTINE INSERT-NOT-CONTAINER ()
+    <COND (<NOT <FSET? ,PRSI ,CONTAINERBIT>> <INSERT-NOT-CONTAINER-A> <RTRUE>)> <RFALSE>>
+<ROUTINE INSERT-CLOSED ()
+    <COND (<AND <FSET? ,PRSI ,OPENABLEBIT> <NOT <FSET? ,PRSI ,OPENBIT>>>
+           <INSERT-CLOSED-A> <RTRUE>)>
+    <RFALSE>>
+<ROUTINE INSERT-STANDARD () <FCLEAR ,PRSO ,WORNBIT> <MOVE ,PRSO ,PRSI> <RFALSE>>
+<ROUTINE INSERT-REPORT () <INSERT-REPORT-A> <RFALSE>>
 
 ;"------------------------------------------------- wearing / taking off"
-<ROUTINE WEARING-CHECK ()
-    <COND (<NOT <FSET? ,PRSO ,WEARABLEBIT>> <TELL "You can't wear that!" CR> <RTRUE>)
-          (<FSET? ,PRSO ,WORNBIT> <TELL "You're already wearing that!" CR> <RTRUE>)>
-    <IMPLICITLY-TAKE>>
-<ROUTINE WEARING-CARRY-OUT () <FSET ,PRSO ,WORNBIT> <RFALSE>>
-<ROUTINE WEARING-REPORT () <TELL "You put on "> <SAY-THE ,PRSO> <TELL "." CR> <RFALSE>>
-<ROUTINE TAKING-OFF-CHECK ()
-    <COND (<NOT <FSET? ,PRSO ,WORNBIT>> <TELL "You're not wearing that." CR> <RTRUE>)>
-    <RFALSE>>
-<ROUTINE TAKING-OFF-CARRY-OUT () <FCLEAR ,PRSO ,WORNBIT> <RFALSE>>
-<ROUTINE TAKING-OFF-REPORT () <TELL "You take off "> <SAY-THE ,PRSO> <TELL "." CR> <RFALSE>>
+<ROUTINE WEAR-NOT-CLOTHING ()
+    <COND (<NOT <FSET? ,PRSO ,WEARABLEBIT>> <WEAR-NOT-CLOTHING-A> <RTRUE>)> <RFALSE>>
+<ROUTINE WEAR-ALREADY ()
+    <COND (<FSET? ,PRSO ,WORNBIT> <WEAR-ALREADY-A> <RTRUE>)> <RFALSE>>
+<ROUTINE WEAR-STANDARD () <FSET ,PRSO ,WORNBIT> <RFALSE>>
+<ROUTINE WEAR-REPORT () <WEAR-REPORT-A> <RFALSE>>
+<ROUTINE TAKE-OFF-NOT-WORN ()
+    <COND (<NOT <FSET? ,PRSO ,WORNBIT>> <TAKE-OFF-NOT-WORN-A> <RTRUE>)> <RFALSE>>
+<ROUTINE TAKE-OFF-STANDARD () <FCLEAR ,PRSO ,WORNBIT> <RFALSE>>
+<ROUTINE TAKE-OFF-REPORT () <TAKE-OFF-REPORT-A> <RFALSE>>
 
 ;"--------------------------------------------------- opening / closing"
-<ROUTINE OPENING-CHECK ()
-    <COND (<NOT <FSET? ,PRSO ,OPENABLEBIT>> <TELL "That's not something you can open." CR> <RTRUE>)
-          (<FSET? ,PRSO ,LOCKEDBIT> <TELL "It seems to be locked." CR> <RTRUE>)
-          (<FSET? ,PRSO ,OPENBIT> <TELL "That's already open." CR> <RTRUE>)>
-    <RFALSE>>
-<ROUTINE OPENING-CARRY-OUT () <FSET ,PRSO ,OPENBIT> <RFALSE>>
-<ROUTINE OPENING-REPORT () <TELL "You open "> <SAY-THE ,PRSO> <TELL "." CR> <RFALSE>>
-<ROUTINE CLOSING-CHECK ()
-    <COND (<NOT <FSET? ,PRSO ,OPENABLEBIT>> <TELL "That's not something you can close." CR> <RTRUE>)
-          (<NOT <FSET? ,PRSO ,OPENBIT>> <TELL "That's already closed." CR> <RTRUE>)>
-    <RFALSE>>
-<ROUTINE CLOSING-CARRY-OUT () <FCLEAR ,PRSO ,OPENBIT> <RFALSE>>
-<ROUTINE CLOSING-REPORT () <TELL "You close "> <SAY-THE ,PRSO> <TELL "." CR> <RFALSE>>
+<ROUTINE OPEN-UNOPENABLE ()
+    <COND (<NOT <FSET? ,PRSO ,OPENABLEBIT>> <OPEN-UNOPENABLE-A> <RTRUE>)> <RFALSE>>
+<ROUTINE OPEN-LOCKED ()
+    <COND (<FSET? ,PRSO ,LOCKEDBIT> <OPEN-LOCKED-A> <RTRUE>)> <RFALSE>>
+<ROUTINE OPEN-ALREADY ()
+    <COND (<FSET? ,PRSO ,OPENBIT> <OPEN-ALREADY-A> <RTRUE>)> <RFALSE>>
+<ROUTINE OPEN-STANDARD () <FSET ,PRSO ,OPENBIT> <RFALSE>>
+<ROUTINE OPEN-REPORT () <OPEN-REPORT-A> <RFALSE>>
+<ROUTINE CLOSE-UNOPENABLE ()
+    <COND (<NOT <FSET? ,PRSO ,OPENABLEBIT>> <CLOSE-UNOPENABLE-A> <RTRUE>)> <RFALSE>>
+<ROUTINE CLOSE-ALREADY ()
+    <COND (<NOT <FSET? ,PRSO ,OPENBIT>> <CLOSE-ALREADY-A> <RTRUE>)> <RFALSE>>
+<ROUTINE CLOSE-STANDARD () <FCLEAR ,PRSO ,OPENBIT> <RFALSE>>
+<ROUTINE CLOSE-REPORT () <CLOSE-REPORT-A> <RFALSE>>
 
 ;"------------------------------------------------- locking / unlocking"
-<ROUTINE LOCKING-CHECK ()
-    <COND (<NOT <FSET? ,PRSO ,LOCKABLEBIT>>
-           <TELL "That doesn't seem to be something you can lock." CR> <RTRUE>)
-          (<FSET? ,PRSO ,LOCKEDBIT> <TELL "It's locked at the moment." CR> <RTRUE>)
-          (<FSET? ,PRSO ,OPENBIT> <TELL "First you would have to close "> <SAY-THE ,PRSO> <TELL "." CR> <RTRUE>)
-          (<NOT <EQUAL? <GETP ,PRSO ,P?WITH-KEY> ,PRSI>>
-           <TELL "That doesn't seem to fit the lock." CR> <RTRUE>)>
+<ROUTINE LOCK-NO-LOCK ()
+    <COND (<NOT <FSET? ,PRSO ,LOCKABLEBIT>> <LOCK-NO-LOCK-A> <RTRUE>)> <RFALSE>>
+<ROUTINE LOCK-ALREADY ()
+    <COND (<FSET? ,PRSO ,LOCKEDBIT> <LOCK-ALREADY-A> <RTRUE>)> <RFALSE>>
+<ROUTINE LOCK-OPEN ()
+    <COND (<FSET? ,PRSO ,OPENBIT> <LOCK-OPEN-A> <RTRUE>)> <RFALSE>>
+<ROUTINE LOCK-WRONG-KEY ()
+    <COND (<NOT <EQUAL? <GETP ,PRSO ,P?WITH-KEY> ,PRSI>> <LOCK-WRONG-KEY-A> <RTRUE>)>
     <RFALSE>>
-<ROUTINE LOCKING-CARRY-OUT () <FSET ,PRSO ,LOCKEDBIT> <RFALSE>>
-<ROUTINE LOCKING-REPORT () <TELL "You lock "> <SAY-THE ,PRSO> <TELL "." CR> <RFALSE>>
-<ROUTINE UNLOCKING-CHECK ()
-    <COND (<NOT <FSET? ,PRSO ,LOCKABLEBIT>>
-           <TELL "That doesn't seem to be something you can unlock." CR> <RTRUE>)
-          (<NOT <FSET? ,PRSO ,LOCKEDBIT>> <TELL "It's unlocked at the moment." CR> <RTRUE>)
-          (<NOT <EQUAL? <GETP ,PRSO ,P?WITH-KEY> ,PRSI>>
-           <TELL "That doesn't seem to fit the lock." CR> <RTRUE>)>
+<ROUTINE LOCK-STANDARD () <FSET ,PRSO ,LOCKEDBIT> <RFALSE>>
+<ROUTINE LOCK-REPORT () <LOCK-REPORT-A> <RFALSE>>
+<ROUTINE UNLOCK-NO-LOCK ()
+    <COND (<NOT <FSET? ,PRSO ,LOCKABLEBIT>> <UNLOCK-NO-LOCK-A> <RTRUE>)> <RFALSE>>
+<ROUTINE UNLOCK-ALREADY ()
+    <COND (<NOT <FSET? ,PRSO ,LOCKEDBIT>> <UNLOCK-ALREADY-A> <RTRUE>)> <RFALSE>>
+<ROUTINE UNLOCK-WRONG-KEY ()
+    <COND (<NOT <EQUAL? <GETP ,PRSO ,P?WITH-KEY> ,PRSI>> <UNLOCK-WRONG-KEY-A> <RTRUE>)>
     <RFALSE>>
-<ROUTINE UNLOCKING-CARRY-OUT () <FCLEAR ,PRSO ,LOCKEDBIT> <RFALSE>>
-<ROUTINE UNLOCKING-REPORT () <TELL "You unlock "> <SAY-THE ,PRSO> <TELL "." CR> <RFALSE>>
+<ROUTINE UNLOCK-STANDARD () <FCLEAR ,PRSO ,LOCKEDBIT> <RFALSE>>
+<ROUTINE UNLOCK-REPORT () <UNLOCK-REPORT-A> <RFALSE>>
 
 ;"------------------------------------------------------- switching"
-<ROUTINE SWITCHING-ON-CHECK ()
-    <COND (<NOT <FSET? ,PRSO ,DEVICEBIT>> <TELL "That isn't something you can switch." CR> <RTRUE>)
-          (<FSET? ,PRSO ,ONBIT> <TELL "That's already on." CR> <RTRUE>)>
-    <RFALSE>>
-<ROUTINE SWITCHING-ON-CARRY-OUT () <FSET ,PRSO ,ONBIT> <RFALSE>>
-<ROUTINE SWITCHING-ON-REPORT () <TELL "You switch "> <SAY-THE ,PRSO> <TELL " on." CR> <RFALSE>>
-<ROUTINE SWITCHING-OFF-CHECK ()
-    <COND (<NOT <FSET? ,PRSO ,DEVICEBIT>> <TELL "That isn't something you can switch." CR> <RTRUE>)
-          (<NOT <FSET? ,PRSO ,ONBIT>> <TELL "That's already off." CR> <RTRUE>)>
-    <RFALSE>>
-<ROUTINE SWITCHING-OFF-CARRY-OUT () <FCLEAR ,PRSO ,ONBIT> <RFALSE>>
-<ROUTINE SWITCHING-OFF-REPORT () <TELL "You switch "> <SAY-THE ,PRSO> <TELL " off." CR> <RFALSE>>
+<ROUTINE SWITCH-ON-UNSWITCHABLE ()
+    <COND (<NOT <FSET? ,PRSO ,DEVICEBIT>> <SWITCH-ON-UNSWITCHABLE-A> <RTRUE>)> <RFALSE>>
+<ROUTINE SWITCH-ON-ALREADY ()
+    <COND (<FSET? ,PRSO ,ONBIT> <SWITCH-ON-ALREADY-A> <RTRUE>)> <RFALSE>>
+<ROUTINE SWITCH-ON-STANDARD () <FSET ,PRSO ,ONBIT> <RFALSE>>
+<ROUTINE SWITCH-ON-REPORT () <SWITCH-ON-REPORT-A> <RFALSE>>
+<ROUTINE SWITCH-OFF-UNSWITCHABLE ()
+    <COND (<NOT <FSET? ,PRSO ,DEVICEBIT>> <SWITCH-OFF-UNSWITCHABLE-A> <RTRUE>)> <RFALSE>>
+<ROUTINE SWITCH-OFF-ALREADY ()
+    <COND (<NOT <FSET? ,PRSO ,ONBIT>> <SWITCH-OFF-ALREADY-A> <RTRUE>)> <RFALSE>>
+<ROUTINE SWITCH-OFF-STANDARD () <FCLEAR ,PRSO ,ONBIT> <RFALSE>>
+<ROUTINE SWITCH-OFF-REPORT () <SWITCH-OFF-REPORT-A> <RFALSE>>
 
 ;"--------------------------------------------------------------- misc"
-<ROUTINE WAITING-REPORT () <TELL "Time passes." CR> <RFALSE>>
+<ROUTINE WAIT-REPORT () <WAIT-REPORT-A> <RFALSE>>
 
-<ROUTINE SCORE-CARRY-OUT ()
+<ROUTINE SCORE-ANNOUNCE ()             ;"the announce the score rule"
     <COND (<NOT ,SCORING> <TELL "There is no score in this story." CR> <RFALSE>)>
     <TELL "You have so far scored " N ,SCORE " out of a possible " N ,MAX-SCORE
           ", in " N ,TURN-COUNT " turn">
@@ -168,23 +225,23 @@
     <TELL "." CR>
     <RFALSE>>
 
-<ROUTINE SAVING-CARRY-OUT ("AUX" R)
+<ROUTINE SAVE-GAME ("AUX" R)           ;"the save the game rule"
     <SET R <SAVE>>
     <COND (<EQUAL? .R 2> <TELL "Ok." CR>)          ;"we are back after a RESTORE"
           (.R <TELL "Ok." CR>)
           (ELSE <TELL "Save failed." CR>)>
     <RFALSE>>
 
-<ROUTINE RESTORING-CARRY-OUT ()
+<ROUTINE RESTORE-GAME ()               ;"the restore the game rule"
     <COND (<NOT <RESTORE>> <TELL "Restore failed." CR>)>
     <RFALSE>>
 
-<ROUTINE QUITTING-CARRY-OUT ()
+<ROUTINE QUIT-GAME ()                  ;"the quit the game rule"
     <TELL "Are you sure you want to quit? ">
     <COND (<YES?> <QUIT>)>
     <RFALSE>>
 
-<ROUTINE YES? ()
+<ROUTINE YES? ()                       ;"'if the player consents'"
     <REPEAT ()
         <COND (<READ-COMMAND>
                <COND (<EQUAL? <WORD-AT 1> ,W?YES ,W?Y> <RTRUE>)

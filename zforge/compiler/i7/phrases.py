@@ -84,7 +84,10 @@ class PhraseLowerer:
         p = strip_article(phrase).lower().strip()
         fixed = {"noun": ",PRSO", "second noun": ",PRSI", "player": ",PLAYER",
                  "yourself": ",PLAYER", "location": ",HERE", "score": ",SCORE",
-                 "turn count": ",TURN-COUNT", "nothing": "0"}
+                 "turn count": ",TURN-COUNT", "nothing": "0",
+                 # going's action variables (lib/i7/standard.zil GOING-VARIABLES)
+                 "door gone through": ",GOING-DOOR", "room gone to": ",GOING-TO",
+                 "room gone from": ",GOING-FROM"}
         if p in fixed:
             return fixed[p]
         if p in DIRECTION_NAMES:
