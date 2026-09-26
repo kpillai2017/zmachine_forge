@@ -727,6 +727,32 @@
         "Illegal opcode"
       ],
       "expect": "Inform 6-compiled v8 game (305 KB): plays; zforge reports Standard 1.1; restore brings back the dropped ticket; undo works"
+    },
+    {
+      "id": "hello-i7",
+      "suite": "v2",
+      "type": "cross_version",
+      "source": "examples/hello.ni",
+      "versions": [
+        5,
+        7,
+        8
+      ],
+      "script": [
+        "look",
+        "wait",
+        "score",
+        "quit",
+        "y"
+      ],
+      "must_contain": [
+        "Hello, world!",
+        "Hello World\nAn Interactive Fiction by A Student",
+        "Lab\nA small, tidy lab.",
+        "Time passes.",
+        "There is no score in this story."
+      ],
+      "expect": "examples/hello.ni (Inform 7) compiles for z5, z7 and z8 and plays identical transcripts: greeting, banner, room, standard actions"
     }
   ]
 }

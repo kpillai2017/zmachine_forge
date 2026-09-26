@@ -1,0 +1,90 @@
+"zforge/lib/i7/say.zil - printing names, articles and lists.
+
+ The compiler gives every thing an ARTICLE property, worked out when the
+ game is compiled: 1 = 'a', 2 = 'an', 3 = 'some' (plural-named), 0 = none
+ (proper-named, like 'Roger'). So the running game never needs to look at
+ the letters of a name to choose 'a' or 'an'."
+
+<PROPDEF ARTICLE 1>
+
+<ROUTINE SAY-A (O "AUX" A)
+    ;"[a noun]: 'a brass hook', 'an apple', 'some water', 'Roger'"
+    <SET A <GETP .O ,P?ARTICLE>>
+    <COND (<FSET? .O ,PROPERBIT>)
+          (<EQUAL? .A 2> <TELL "an ">)
+          (<EQUAL? .A 3> <TELL "some ">)
+          (<EQUAL? .A 1> <TELL "a ">)>
+    <TELL D .O>>
+
+<ROUTINE SAY-CAP-A (O "AUX" A)
+    ;"[A noun]"
+    <SET A <GETP .O ,P?ARTICLE>>
+    <COND (<FSET? .O ,PROPERBIT>)
+          (<EQUAL? .A 2> <TELL "An ">)
+          (<EQUAL? .A 3> <TELL "Some ">)
+          (<EQUAL? .A 1> <TELL "A ">)>
+    <TELL D .O>>
+
+<ROUTINE SAY-THE (O)
+    ;"[the noun]"
+    <COND (<NOT <FSET? .O ,PROPERBIT>> <TELL "the ">)>
+    <TELL D .O>>
+
+<ROUTINE SAY-CAP-THE (O)
+    ;"[The noun]"
+    <COND (<NOT <FSET? .O ,PROPERBIT>> <TELL "The ">)>
+    <TELL D .O>>
+
+<ROUTINE SAY-TEXT (O PROP "AUX" R)
+    ;"print a text property (description, initial appearance, ...): the
+      compiler makes every one a routine; true if there was one"
+    <COND (<SET R <GETP .O .PROP>> <APPLY .R> <RTRUE>)>
+    <RFALSE>>
+
+<ROUTINE SAY-IS-ARE (O)
+    <COND (<FSET? .O ,PLURALBIT> <TELL " are">) (ELSE <TELL " is">)>>
+
+;"---------------------------------------------------------------- lists"
+
+<ROUTINE COUNT-LISTED (PARENT TEST "AUX" N)
+    ;"how many children of PARENT pass TEST (a routine: true = list it)"
+    <SET N 0>
+    <MAP-CONTENTS (O .PARENT)
+        <COND (<APPLY .TEST .O> <SET N <+ .N 1>>)>>
+    .N>
+
+<ROUTINE SAY-LIST (PARENT TEST "AUX" TOTAL DONE)
+    ;"'a brass hook, a lamp and some water': the children passing TEST"
+    <SET TOTAL <COUNT-LISTED .PARENT .TEST>>
+    <SET DONE 0>
+    <MAP-CONTENTS (O .PARENT)
+        <COND (<APPLY .TEST .O>
+               <SAY-A .O>
+               <SET DONE <+ .DONE 1>>
+               <COND (<EQUAL? .DONE <- .TOTAL 1>> <TELL " and ">)
+                     (<L? .DONE .TOTAL> <TELL ", ">)>)>>
+    .TOTAL>
+
+;"------------------------------------------------------------- numbers"
+
+<ROUTINE SAY-IN-WORDS (N "AUX" TENS)
+    ;"[N in words], for 0 to 999"
+    <COND (<L? .N 0> <TELL "minus "> <SET N <- 0 .N>>)>
+    <COND (<G? .N 99>
+           <SAY-UNITS </ .N 100>> <TELL " hundred">
+           <SET N <MOD .N 100>>
+           <COND (<ZERO? .N> <RTRUE>)>
+           <TELL " and ">)>
+    <COND (<L? .N 20> <SAY-UNITS .N> <RTRUE>)>
+    <SET TENS </ .N 10>>
+    <COND (<EQUAL? .TENS 2> <TELL "twenty">) (<EQUAL? .TENS 3> <TELL "thirty">)
+          (<EQUAL? .TENS 4> <TELL "forty">)  (<EQUAL? .TENS 5> <TELL "fifty">)
+          (<EQUAL? .TENS 6> <TELL "sixty">)  (<EQUAL? .TENS 7> <TELL "seventy">)
+          (<EQUAL? .TENS 8> <TELL "eighty">) (ELSE <TELL "ninety">)>
+    <COND (<NOT <ZERO? <MOD .N 10>>> <TELL "-"> <SAY-UNITS <MOD .N 10>>)>>
+
+<GLOBAL UNIT-WORDS <TABLE "zero" "one" "two" "three" "four" "five" "six" "seven"
+    "eight" "nine" "ten" "eleven" "twelve" "thirteen" "fourteen" "fifteen"
+    "sixteen" "seventeen" "eighteen" "nineteen">>
+
+<ROUTINE SAY-UNITS (N) <PRINT <GET ,UNIT-WORDS .N>>>

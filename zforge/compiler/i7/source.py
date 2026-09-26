@@ -1,0 +1,165 @@
+"""Reading I7 source: comments, headings, sentences and rule bodies.
+
+Inform 7 source is prose. This module only finds where each sentence
+starts and ends; what a sentence MEANS is sentences.py's job.
+
+* [Square brackets] outside quoted text are comments (they may span lines).
+* A sentence ends with '.' outside quotes, or with a quoted text whose
+  last character is . ! or ? ("You are standing here." ends a sentence).
+* A RULE is a preamble ending in ':' followed by phrases: on the same
+  line separated by ';', or on the following indented lines. The rule
+  ends at a blank line (or at the next unindented line).
+* Headings (Volume/Book/Part/Chapter/Section ...) are skipped."""
+
+from __future__ import annotations
+
+import re
+from dataclasses import dataclass, field
+
+from zforge.compiler.i7.problems import Location
+
+HEADING = re.compile(r"^(volume|book|part|chapter|section)\b", re.IGNORECASE)
+TITLE = re.compile(r'^"[^"]+"(\s+by\s+.+)?\.?$')
+RULE_START = re.compile(
+    r"^(when play begins|when play ends|every turn|instead of|before|after|check|"
+    r"carry out|report|to )", re.IGNORECASE)
+
+
+@dataclass
+class BodyLine:
+    """One phrase line of a rule body; indent counts tab stops."""
+    text: str
+    where: Location
+    indent: int
+
+
+@dataclass
+class Sentence:
+    text: str
+    where: Location
+    body: list[BodyLine] = field(default_factory=list)   # rules only
+
+    @property
+    def is_rule(self) -> bool:
+        return bool(self.body) or self.text.rstrip().endswith(":")
+
+
+def strip_comments(text: str) -> str:
+    """Blank out [comments] outside quoted text, keeping every newline so
+    line numbers stay right. Brackets INSIDE quotes are substitutions."""
+    out, depth, in_quote = [], 0, False
+    for ch in text:
+        if depth == 0 and ch == '"':
+            in_quote = not in_quote
+        if not in_quote and ch == "[":
+            depth += 1
+        if depth:
+            out.append("\n" if ch == "\n" else " ")
+        else:
+            out.append(ch)
+        if not in_quote and ch == "]" and depth:
+            depth -= 1
+    return "".join(out)
+
+
+def indent_of(line: str) -> int:
+    """Tabs count one each; four spaces count as one tab."""
+    tabs = spaces = 0
+    for ch in line:
+        if ch == "\t":
+            tabs += 1
+        elif ch == " ":
+            spaces += 1
+        else:
+            break
+    return tabs + spaces // 4
+
+
+def colon_outside_quotes(text: str) -> int:
+    """Index of the first ':' outside quotes, or -1."""
+    in_quote = False
+    for i, ch in enumerate(text):
+        if ch == '"':
+            in_quote = not in_quote
+        elif ch == ":" and not in_quote:
+            return i
+    return -1
+
+
+def split_sentences(text: str, where: Location) -> list[Sentence]:
+    """Split one run of assertion text into sentences."""
+    out, buf, start, in_quote = [], "", None, False
+    line, col = where.line, where.column
+    for i, ch in enumerate(text):
+        if start is None and not ch.isspace():
+            start = Location(line, col)
+        buf += ch
+        if ch == '"':
+            in_quote = not in_quote
+            ends = (not in_quote and len(buf) >= 2 and buf[-2] in ".!?"
+                    and (i + 1 == len(text) or text[i + 1].isspace()))
+        else:
+            ends = ch == "." and not in_quote
+        if ends and buf.strip():
+            out.append(Sentence(buf.strip(), start or where))
+            buf, start = "", None
+        if ch == "\n":
+            line, col = line + 1, 1
+        else:
+            col += 1
+    if buf.strip():
+        out.append(Sentence(buf.strip(), start or where))
+    return out
+
+
+def read_sentences(source: str) -> list[Sentence]:
+    """The whole source as sentences, in order; rules carry their bodies."""
+    lines = strip_comments(source).replace("\r\n", "\n").split("\n")
+    out: list[Sentence] = []
+    i = 0
+    # The first line, if it is quoted ("Title" by Author), is the titling
+    # sentence by itself - it needs no full stop and no blank line after it.
+    while i < len(lines) and not lines[i].strip():
+        i += 1
+    if i < len(lines) and TITLE.match(lines[i].strip()):
+        out.append(Sentence(lines[i].strip().rstrip("."), Location(i + 1, 1)))
+        i += 1
+    while i < len(lines):
+        raw = lines[i]
+        text = raw.strip()
+        if not text or HEADING.match(text):
+            i += 1
+            continue
+        where = Location(i + 1, len(raw) - len(raw.lstrip()) + 1)
+        colon = colon_outside_quotes(text)
+        if RULE_START.match(text) and colon >= 0:
+            i = read_rule(lines, i, text, colon, where, out)
+            continue
+        # an assertion paragraph: gather lines up to a blank line or a rule
+        chunk, first = [raw], i
+        i += 1
+        while i < len(lines) and lines[i].strip() and not RULE_START.match(lines[i].strip()):
+            chunk.append(lines[i])
+            i += 1
+        out.extend(split_sentences("\n".join(chunk), Location(first + 1, 1)))
+    return out
+
+
+def read_rule(lines: list[str], i: int, text: str, colon: int,
+              where: Location, out: list[Sentence]) -> int:
+    """A rule: 'preamble: phrase; phrase.' and/or indented lines after it."""
+    preamble = text[:colon].strip()
+    rest = text[colon + 1:].strip()
+    rule = Sentence(preamble + ":", where)
+    base = indent_of(lines[i])
+    if rest:
+        rule.body.append(BodyLine(rest, Location(where.line, where.column + colon + 1),
+                                  base + 1))
+    i += 1
+    while i < len(lines) and lines[i].strip() and indent_of(lines[i]) > base:
+        raw = lines[i]
+        rule.body.append(BodyLine(raw.strip(), Location(i + 1, len(raw) - len(raw.lstrip()) + 1),
+                                  indent_of(raw)))
+        i += 1
+    out.append(rule)
+    return i

@@ -3,6 +3,7 @@
     zforge run STORY.z5 [--ui auto|curses|plain] [--script FILE] [--seed N]
                         [--transcript FILE] [--trace FILE]
     zforge compile GAME.zil [-o GAME.z5] [--emit-asm] [--emit-tokens] [--emit-ast]
+    zforge compile GAME.ni  [-o GAME.z8] [--emit-zil] [--emit-asm]      (Inform 7, I7-lite)
     zforge asm GAME.zas [-o GAME.z5]
     zforge disasm STORY.z5 [--routine 0xADDR]
     zforge info STORY.z5 [--header] [--objects] [--dictionary]
@@ -92,6 +93,9 @@ def _explicit_target(args) -> Target | None:
     return None if target.origin == "the source" else target
 
 
+I7_SUFFIXES = (".ni", ".i7")
+
+
 def cmd_compile(args) -> int:
     from zforge.compiler.driver import compile_zil
 
@@ -99,6 +103,8 @@ def cmd_compile(args) -> int:
     if not src.exists():
         raise ZForgeError(f"{args.source}: no such file")
     target = _explicit_target(args)
+    if src.suffix.lower() in I7_SUFFIXES:
+        return compile_inform7(args, src, target)
     result = compile_zil(src.read_text(), str(src), target.version if target else None)
     origin = target.origin if target else "the source"
     out = Path(args.output) if args.output else src.with_suffix(f".z{result.version}")
@@ -115,6 +121,29 @@ def cmd_compile(args) -> int:
     if args.emit_ast:
         out.with_suffix(".ast").write_text(pprint.pformat(result.program, width=100) + "\n")
         extras.append(out.with_suffix(".ast").name)
+    also = f" (+ {', '.join(extras)})" if extras else ""
+    print(f"compiled {src} -> {out}  ({len(result.story)} bytes, "
+          f"target z{result.version} from {origin}){also}")
+    return 0
+
+
+def compile_inform7(args, src: Path, target) -> int:
+    """An Inform 7 (I7-lite) source: .ni -> ZIL-lite -> story (default z8)."""
+    from zforge.compiler.i7.driver import DEFAULT_TARGET, compile_i7
+
+    result = compile_i7(src.read_text(), str(src), target.version if target else None)
+    origin = target.origin if target else f"the I7-lite default (z{DEFAULT_TARGET})"
+    out = Path(args.output) if args.output else src.with_suffix(f".z{result.version}")
+    out.write_bytes(result.story)
+    extras = []
+    if args.emit_zil:
+        out.with_suffix(".zil").write_text(result.zil)
+        extras.append(out.with_suffix(".zil").name)
+    if args.emit_asm:
+        out.with_suffix(".zas").write_text(result.compiled.assembly)
+        extras.append(out.with_suffix(".zas").name)
+    for note in result.notes:
+        print(f"note: {note}")
     also = f" (+ {', '.join(extras)})" if extras else ""
     print(f"compiled {src} -> {out}  ({len(result.story)} bytes, "
           f"target z{result.version} from {origin}){also}")
@@ -194,11 +223,14 @@ def build_parser() -> argparse.ArgumentParser:
     r.add_argument("-v", "--verbose", action="store_true", help="print VM warnings")
     r.set_defaults(func=cmd_run)
 
-    c = sub.add_parser("compile", help="compile ZIL-lite source to a story file")
+    c = sub.add_parser("compile",
+                       help="compile ZIL-lite (.zil) or Inform 7 (.ni) source to a story file")
     c.add_argument("source")
     c.add_argument("-o", "--output")
     c.add_argument("--target", help="z5, z7 or z8 (default: zforge.toml, $ZFORGE_TARGET, "
                                     "then the source's <VERSION>)")
+    c.add_argument("--emit-zil", action="store_true",
+                   help="(Inform 7 sources) also write the generated ZIL-lite")
     c.add_argument("--emit-asm", action="store_true", help="also write the .zas assembly")
     c.add_argument("--emit-tokens", action="store_true", help="also write the token stream")
     c.add_argument("--emit-ast", action="store_true", help="also write the AST")

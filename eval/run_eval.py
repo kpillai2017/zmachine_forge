@@ -35,6 +35,9 @@ class Skip(Exception):
 
 def _compile(path: str, target: int | None = None) -> bytes:
     src = ROOT / path            # absolute, so INSERT-FILE resolves from any cwd
+    if src.suffix == ".ni":      # Inform 7 (I7-lite)
+        from zforge.compiler.i7.driver import compile_i7
+        return compile_i7(src.read_text(), str(src), target).story
     return compile_zil(src.read_text(), str(src), target).story
 
 
