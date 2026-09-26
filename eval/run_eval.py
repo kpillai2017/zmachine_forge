@@ -41,6 +41,14 @@ def _compile(path: str, target: int | None = None) -> bytes:
 def _check_text(case: dict, text: str) -> list[str]:
     problems = [f"missing {s!r}" for s in case.get("must_contain", []) if s not in text]
     problems += [f"unexpected {s!r}" for s in case.get("must_not_contain", []) if s in text]
+    if "must_contain_in_order" in case:           # e.g. restored, THEN the lamp is back
+        at = 0
+        for piece in case["must_contain_in_order"]:
+            found = text.find(piece, at)
+            if found < 0:
+                problems.append(f"missing {piece!r} after position {at} (in-order check)")
+                break
+            at = found + len(piece)
     if "must_contain_lines" in case:
         lines = [line.strip() for line in text.splitlines() if line.strip()]
         want = case["must_contain_lines"]
@@ -54,7 +62,10 @@ def run_story_case(case: dict) -> list[str]:
     if not path.exists():
         raise Skip(case.get("skip_hint") or
                    f"{case['story']} not downloaded (python -m zbuilder stories)")
-    result = play(path.read_bytes(), case.get("script", []))
+    with tempfile.TemporaryDirectory() as tmp:        # for {save_file} in scripts
+        save_file = str(Path(tmp) / "game.qzl")
+        script = [line.replace("{save_file}", save_file) for line in case.get("script", [])]
+        result = play(path.read_bytes(), script)
     problems = _check_text(case, result.transcript + "\n" + result.reason)
     if "matches_file" in case:
         problems += _compare_with_reference(case, result.transcript)

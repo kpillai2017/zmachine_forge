@@ -124,6 +124,10 @@ DEFAULT_PLAN: list[Task] = [
     Task("v2-conformance-z8", 6, "czech.z8 conformance (skips until compiled)",
          ["zbuilder/tools/fetch_stories.py", "stories/urls.txt"], ["§1"],
          ["czech-conformance-z8", "czech-reference-z5"], []),
+    Task("v2-play-real-z8", 6, "Real v8 games: Advent_Crowther (Inform 7) + Jigsaw (Inform 6)",
+         ["stories/urls.txt", "eval/run_eval.py", "zforge/vm/screen/plain.py",
+          "zforge/vm/screen/base.py"], ["§1.2.3", "§8", "Quetzal"],
+         ["play-real-z8-advent", "play-real-z8-jigsaw"], ["tests/test_screen.py"]),
 ]
 
 

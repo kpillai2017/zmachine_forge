@@ -199,3 +199,19 @@ v8, which §1 calls "identical to Version 5 except as stated at 1.1.4 and
    report, which the czech README says differs between interpreters. That
    makes the 19 print tests (which czech cannot judge itself) checked too.
    Without czech.z8 the case SKIPS with the instruction.
+
+## ADR-024: Real v8 games as regression anchors
+*spec: §1.2.3, §8, Quetzal* **Context.** czech tests opcodes one by one;
+real games test them working together. **Decision.** Pin two freely
+available IF Archive games that are both over 256 KB (so they need 8P
+packing) and come from different compilers: `Advent_Crowther.z8`
+(Crowther's 1976 Adventure, Inform 7 port by Chris Conley; its I7 source is
+also on the archive, a reference for the I7-lite work) and `Jigsaw.z8`
+(Graham Nelson, Inform 6). They were chosen from four candidates (plus Lost
+Pig, Acheton), all of which played correctly. Each case checks key facts IN
+ORDER (`must_contain_in_order`), so a restore that prints "Ok." but does not
+bring the state back fails: this was verified by patching restore to keep
+the current memory. **Found on the way.** `PlainScreen.read_line` echoed
+input without moving the screen model's cursor, so games that re-prompt on
+the same line ("Please respond yes or no. >") wrapped earlier every turn.
+Fixed with `_next_lower_row()`; covered by a unit test.

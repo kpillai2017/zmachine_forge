@@ -8,3 +8,10 @@
 https://ifarchive.org/if-archive/infocom/interpreters/tools/czech_0_8.zip d0795723e98563050575c4d3c08fdd29ade2543e132d8190255763e3bf6fef6a
 https://ifarchive.org/if-archive/infocom/interpreters/tools/praxix.zip c654d656fb426ae1b386e5ab9c44cc5062eade4a8c3bce69c9e61191221501ad
 https://ifarchive.org/if-archive/infocom/interpreters/tools/strictz.z5 2a15122eded657266ea2df07880663c7462d20f263170ede655826d6a52d1cfb
+# Real v8 games (play-real-z8). Both are over 256 KB, so they need v8's 8P
+# packed addresses. Advent_Crowther is compiled by Inform 7 (build 6L38),
+# Jigsaw by Inform 6 - two different compilers' code.
+#   Adventure (Crowther's 1976 original), Inform 7 port by Chris Conley, release 4
+https://ifarchive.org/if-archive/games/zcode/Advent_Crowther.z8 93be8c77302b7931567995ef1246b3739086d0b3e2e02a2bd751ec83cd0fdc19
+#   Jigsaw, by Graham Nelson (1995), release 3
+https://ifarchive.org/if-archive/games/zcode/Jigsaw.z8 1776c051db9cc3ceccd876e0cc8808188494db06957c231a9f27bc61e3f16fcf

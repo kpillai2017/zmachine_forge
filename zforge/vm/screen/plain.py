@@ -82,6 +82,7 @@ class PlainScreen(GridScreen):
         self.render()
         text = self._read_raw_line()[:max_length]
         self.transcript.append(text + "\n")
+        self._next_lower_row()          # the echo ended the line: wrap from column 0 again
         self.lines_since_input = 0
         return text
 

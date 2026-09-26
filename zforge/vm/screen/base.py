@@ -143,18 +143,25 @@ class GridScreen:
 
     def _lower_newline(self, wrapped: bool = False) -> None:
         self._emit("\n")
-        row, _col = self.lower_cursor
-        if row + 1 >= self.height:
-            self._scroll_lower()
-        else:
-            row += 1
-        self.lower_cursor = (row, 0)
+        self._next_lower_row()
         self._just_wrapped = wrapped
         self.lines_since_input += 1
         lower_lines = self.height - self.upper_height
         if self.lines_since_input >= lower_lines - 1:
             self.more_prompt()
             self.lines_since_input = 0
+
+    def _next_lower_row(self) -> None:
+        """Move the lower-window cursor to the start of the next row,
+        scrolling at the bottom. Emits nothing: callers that have already
+        shown the newline themselves (PlainScreen's input echo) use it to
+        keep the model - and so the word-wrap column - in step."""
+        row, _col = self.lower_cursor
+        if row + 1 >= self.height:
+            self._scroll_lower()
+        else:
+            row += 1
+        self.lower_cursor = (row, 0)
 
     def _scroll_lower(self) -> None:
         top = self.upper_height

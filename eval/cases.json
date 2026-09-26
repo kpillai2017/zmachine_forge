@@ -634,6 +634,99 @@
       "ignore_from": "Header (No tests)",
       "ignore_until": "Print opcodes",
       "expect": "czech.z5 matches the author's czech.out5 line for line (incl. the 19 print tests), except the interpreter-specific header report"
+    },
+    {
+      "id": "play-real-z8-advent",
+      "suite": "v2",
+      "type": "story",
+      "story": "stories/Advent_Crowther.z8",
+      "script": [
+        "no",
+        "look",
+        "inventory",
+        "enter building",
+        "take lamp",
+        "take keys",
+        "take food",
+        "inventory",
+        "save",
+        "{save_file}",
+        "out",
+        "drop lamp",
+        "restore",
+        "{save_file}",
+        "inventory",
+        "drop food",
+        "undo",
+        "inventory",
+        "xyzzy"
+      ],
+      "must_contain_in_order": [
+        "Release 4 / Serial number 150118 / Inform 7 build 6L38",
+        "Welcome to Adventure!! Would you like instructions?",
+        "You are standing at the end of a road before a small brick building.",
+        "You are carrying nothing.",
+        "You are inside a building, a well house for a large spring.",
+        "some food",
+        "some keys",
+        "a lamp",
+        "Ok.",
+        "You're at End of Road again.",
+        "Ok.",
+        "some food",
+        "some keys",
+        "a lamp",
+        "[Previous turn undone.]",
+        "some food",
+        "It is now pitch black."
+      ],
+      "must_not_contain": [
+        "error:",
+        "Illegal opcode"
+      ],
+      "expect": "Inform 7-compiled v8 game (431 KB): plays; restore brings back the state saved in the building (lamp dropped outside is back); undo returns the dropped food; XYZZY works"
+    },
+    {
+      "id": "play-real-z8-jigsaw",
+      "suite": "v2",
+      "type": "story",
+      "story": "stories/Jigsaw.z8",
+      "script": [
+        "",
+        "inventory",
+        "examine me",
+        "save",
+        "{save_file}",
+        "drop ticket",
+        "inventory",
+        "restore",
+        "{save_file}",
+        "inventory",
+        "north",
+        "undo",
+        "south"
+      ],
+      "must_contain_in_order": [
+        "Welcome to JIGSAW",
+        "Release 3 / Serial number 951129",
+        "Standard interpreter 1.1",
+        "Century Park",
+        "a white party ticket",
+        "As good-looking as ever.",
+        "Ok.",
+        "Dropped.",
+        "You are carrying nothing.",
+        "Ok.",
+        "a white party ticket",
+        "But, that way lies the party.",
+        "[Previous turn undone.]",
+        "There are only trees and railings that way."
+      ],
+      "must_not_contain": [
+        "error:",
+        "Illegal opcode"
+      ],
+      "expect": "Inform 6-compiled v8 game (305 KB): plays; zforge reports Standard 1.1; restore brings back the dropped ticket; undo works"
     }
   ]
 }
