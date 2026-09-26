@@ -46,10 +46,11 @@
     <COND (,STORY-ENDED <END-OF-STORY> <RTRUE>)>
     <BANNER>
     <SETG LIT <LIGHT-HERE?>>
-    <DESCRIBE-ROOM>
+    <TRY ,V?LOOKING ,V-LOOKING 0 0>    ;"Inform 7's first look is the looking action"
     <TURN-LOOP>>
 
 <ROUTINE BANNER ("AUX" S)
+    <PARA-ABSORB>
     <CRLF>
     <HLIGHT 2> <TELL ,STORY-TITLE> <HLIGHT 0> <CRLF>
     <TELL ,STORY-HEADLINE " by " ,STORY-AUTHOR CR>
@@ -61,6 +62,7 @@
     <REPEAT ()
         <SETG LIT <LIGHT-HERE?>>
         <STATUS-LINE>
+        <PARA-ABSORB>                      ;"the prompt has its own blank line"
         <TELL CR ">">
         <SETG OUT-OF-WORLD 0>
         <COND (<NOT <PARSER>>)
@@ -92,6 +94,7 @@
     <SCREEN 0>>
 
 <ROUTINE END-OF-STORY ()
+    <PARA-ABSORB>
     <CRLF> <CRLF>
     <TELL "    *** ">
     <COND (,END-SAYING <PRINT ,END-SAYING>)

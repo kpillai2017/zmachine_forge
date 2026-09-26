@@ -46,7 +46,8 @@
     ;"run the rules in an LTABLE in order; true as soon as one decides"
     <SET N <GET .TBL 0>>
     <DO (I 1 .N)
-        <COND (<APPLY <GET .TBL .I>> <RTRUE>)>>   ;"RTRUE leaves the routine, not just the loop"
+        <COND (<APPLY <GET .TBL .I>> <PARA-DIVIDE> <RTRUE>)>  ;"RTRUE leaves the routine"
+        <PARA-DIVIDE>>
     <RFALSE>>
 
 <ROUTINE TRY (ACTION FN O I "OPT" QUIET "AUX" OLD-A OLD-O OLD-I OLD-QUIET)

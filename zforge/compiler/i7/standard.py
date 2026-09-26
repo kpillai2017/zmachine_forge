@@ -222,10 +222,12 @@ OPPOSITE = {name: opposite for name, _, opposite in DIRECTIONS}
 
 
 def zil_string(s: str) -> str:
-    """A ZIL string literal. Runs of spaces and newlines become one space (as
-    in Inform 7), but a leading or trailing space is kept: it matters in
-    "You see " followed by a name. '|' is ZIL's newline, so it is avoided."""
-    s = re.sub(r"\s+", " ", s).replace("\\", "\\\\").replace('"', '\\"').replace("|", "/")
+    """A ZIL string literal. A line break in the source text, with the spaces
+    around it, becomes one space (as in Inform 7); other spaces are kept
+    ('...instructions?[paragraph break]  ' prompts with two). '|' is ZIL's
+    newline, so it is avoided."""
+    s = re.sub(r"[ \t]*\n\s*", " ", s).replace("\\", "\\\\").replace('"', '\\"')
+    s = s.replace("|", "/")
     return f'"{s}"'
 
 

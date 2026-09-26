@@ -24,6 +24,7 @@
 <ROUTINE DESCRIBE-ROOM () <FOLLOW-RULES <GET ,LOOKING-RULES ,CARRY-OUT-STAGE>>>
 
 <ROUTINE LOOK-HEADING ()               ;"the room description heading rule"
+    <PARA-FLUSH>
     <HLIGHT 2>
     <COND (,LIT <TELL D ,HERE>) (ELSE <LOOK-HEADING-A>)>
     <HLIGHT 0> <CRLF>
@@ -31,7 +32,7 @@
 
 <ROUTINE LOOK-BODY ()                  ;"the room description body text rule"
     <COND (<NOT ,LIT> <LOOK-BODY-A>)
-          (<SAY-TEXT ,HERE ,P?DESCRIPTION> <CRLF>)>
+          (<GETP ,HERE ,P?DESCRIPTION> <PARA-FLUSH> <SAY-TEXT ,HERE ,P?DESCRIPTION> <CRLF>)>
     <RFALSE>>
 
 <ROUTINE LOOK-OBJECTS ()     ;"the room description paragraphs about objects rule"
@@ -42,14 +43,15 @@
     <MAP-CONTENTS (O ,HERE)
         <COND (<SHOWS-INITIAL? .O>
                <SETG PRIOR-NAMED .O>
-               <CRLF> <SAY-TEXT .O ,P?INITIAL-APPEARANCE> <CRLF>)>>
+               <PARA-ABSORB> <CRLF> <SAY-TEXT .O ,P?INITIAL-APPEARANCE> <CRLF>)>>
     <COND (<NOT <ZERO? <COUNT-LISTED ,HERE ,LISTED-HERE?>>>
+           <PARA-ABSORB>
            <CRLF> <TELL "You can see "> <SAY-LIST ,HERE ,LISTED-HERE?> <TELL " here." CR>)>
     ;"what is on scenery supporters (Inform 7 mentions these too)"
     <MAP-CONTENTS (O ,HERE)
         <COND (<AND <FSET? .O ,SCENERYBIT> <FSET? .O ,SUPPORTERBIT>
                     <NOT <ZERO? <COUNT-LISTED .O ,VISIBLE-THING?>>>>
-               <CRLF> <TELL "On "> <SAY-THE .O> <TELL " ">
+               <PARA-ABSORB> <CRLF> <TELL "On "> <SAY-THE .O> <TELL " ">
                <COND (<EQUAL? <COUNT-LISTED .O ,VISIBLE-THING?> 1> <TELL "is ">)
                      (ELSE <TELL "are ">)>
                <SAY-LIST .O ,VISIBLE-THING?> <TELL "." CR>)>>
@@ -63,7 +65,8 @@
 <GLOBAL EXAMINE-SAID 0>                ;"has an examining rule said something?"
 <ROUTINE EXAMINE-STANDARD ()           ;"the standard examining rule"
     <SETG EXAMINE-SAID 0>
-    <COND (<SAY-TEXT ,PRSO ,P?DESCRIPTION> <CRLF> <SETG EXAMINE-SAID 1>)>
+    <COND (<GETP ,PRSO ,P?DESCRIPTION>
+           <PARA-FLUSH> <SAY-TEXT ,PRSO ,P?DESCRIPTION> <CRLF> <SETG EXAMINE-SAID 1>)>
     <RFALSE>>
 <ROUTINE EXAMINE-UNDESCRIBED ()        ;"the examine undescribed things rule"
     <COND (<NOT ,EXAMINE-SAID> <EXAMINE-UNDESCRIBED-A>)>
@@ -218,6 +221,7 @@
 <ROUTINE WAIT-REPORT () <WAIT-REPORT-A> <RFALSE>>
 
 <ROUTINE SCORE-ANNOUNCE ()             ;"the announce the score rule"
+    <PARA-FLUSH>
     <COND (<NOT ,SCORING> <TELL "There is no score in this story." CR> <RFALSE>)>
     <TELL "You have so far scored " N ,SCORE " out of a possible " N ,MAX-SCORE
           ", in " N ,TURN-COUNT " turn">

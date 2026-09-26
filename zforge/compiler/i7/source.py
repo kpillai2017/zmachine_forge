@@ -23,7 +23,7 @@ HEADING = re.compile(r"^(volume|book|part|chapter|section)\b", re.IGNORECASE)
 TITLE = re.compile(r'^"[^"]+"(\s+by\s+.+)?\.?$')
 RULE_START = re.compile(
     r"^(when play begins|when play ends|every turn|instead of|before|after|check|"
-    r"carry out|report|to )", re.IGNORECASE)
+    r"carry out|report|to |this is the )", re.IGNORECASE)
 
 
 @dataclass

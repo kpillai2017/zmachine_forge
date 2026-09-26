@@ -23,7 +23,7 @@ DIRECTION_NAMES = {name for name, _, _ in DIRECTIONS}
 
 # either/or properties the library understands: adjective -> (flag, value)
 ADJECTIVES = {
-    "lit": ("LITBIT", True), "dark": ("LITBIT", False),
+    "lit": ("LITBIT", True), "lighted": ("LITBIT", True), "dark": ("LITBIT", False),
     "scenery": ("SCENERYBIT", True), "fixed in place": ("FIXEDBIT", True),
     "portable": ("FIXEDBIT", False),
     "open": ("OPENBIT", True), "closed": ("OPENBIT", False),
@@ -102,11 +102,25 @@ class Action:
 
 @dataclass
 class Rule:
-    stage: str                  # "when play begins", "every turn", or a STAGES name
+    stage: str                  # "when play begins", "every turn", a STAGES name, or ""
+                                # ("This is the X rule:" - in no rulebook until listed)
     preamble: str               # what follows the stage words, e.g. "going north in the Foyer"
     body: list[BodyLine]
     where: Location
     number: int = 0
+    named: str | None = None    # "(this is the Crowther's heading rule)" -> that name
+
+
+@dataclass
+class Listing:
+    """A sentence moving a named rule: 'The X rule is not listed in the Y
+    rulebook.', '... is listed instead of the Z rule in the Y rulebook.'"""
+    how: str                    # "not listed", "instead of", "before", "after",
+                                # "first", "last" or "in"
+    rule: str                   # "the room description heading rule" -> without 'the'
+    other: str | None           # the rule it is placed relative to (instead of/before/after)
+    rulebook: tuple[str, str] | None   # (stage, action); None = any rulebook
+    where: Location
 
 
 @dataclass
@@ -136,6 +150,12 @@ class WorldModel:
     direction_words: dict[str, list[str]] = field(default_factory=dict)  # 'north' -> ['plugh']
     verbs: dict[str, tuple[str, str]] = field(default_factory=dict)      # 'flow': (flow, flows)
     command_synonyms: list[tuple[str, str]] = field(default_factory=list)  # ('grab', 'take')
+    property_owners: dict[str, str] = field(default_factory=dict)  # 'visit count' -> 'room'
+    listings: list[Listing] = field(default_factory=list)
+    # (rule name, response letter) -> (the author's text, where)
+    response_edits: dict[tuple[str, str], tuple[Text, Location]] = field(default_factory=dict)
+    forgotten_commands: dict[str, Location] = field(default_factory=dict)  # "open" -> where
+    ungrammatical: dict[str, Location] = field(default_factory=dict)       # 'Understand nothing as'
     notes: list[str] = field(default_factory=list)
 
     # ------------------------------------------------------------ queries
@@ -234,6 +254,11 @@ class ModelBuilder:
         if m:
             name, parent = m.group(1).lower(), strip_article(m.group(2)).lower()
             self.m.kinds[name] = Kind(name, parent, where=s.where)
+            return
+        m = re.match(r"^(?:an?|every) .+? (?:has|have) an? (number|text|truth state) called (.+)$",
+                     t, re.I)
+        if m:                                        # properties, so later is fine too
+            self.m.value_properties[strip_article(m.group(2)).lower()] = m.group(1).lower()
 
     def new_object(self, phrase: str, kind: str, where: Location) -> Obj:
         name = strip_article(phrase)
@@ -408,7 +433,8 @@ class ModelBuilder:
         if kind in self.m.kinds and prop == "printed name":
             self.m.kinds[kind].printed = unquote(value)
             return
-        if kind not in self.m.kinds or prop not in TEXT_PROPERTIES:
+        if kind not in self.m.kinds or (prop not in TEXT_PROPERTIES
+                                         and self.m.value_properties.get(prop) != "text"):
             self.p.problem(s.where, s.text, "I7-lite can only give a kind a usual printed "
                            f"name, {' or '.join(TEXT_PROPERTIES)}.")
             return
@@ -479,12 +505,20 @@ class ModelBuilder:
         self.last_object = obj
 
     def adjectives(self, s, m):
-        """X is scenery. / It is fixed in place and lit. / The Bar is dark."""
-        obj = self.subject(s, m.group(1))
+        """X is scenery. / It is fixed in place and lit. / The Bar is dark.
+        Also 'A, B, and C are lighted.' when each of A, B, C already exists."""
+        parts = [p for p in re.split(r",\s*(?:and\s+)?|\s+and\s+", m.group(1)) if p.strip()]
+        found = [self.m.find(p) for p in parts]
+        if len(parts) > 1 and all(found):
+            objs = found
+        else:
+            objs = [self.subject(s, m.group(1))]
         for adj in re.split(r",\s*|\s+and\s+", m.group(2)):
-            if not self.apply_adjective(obj, adj.strip().lower()):
-                self.p.problem(s.where, s.text, f"'{adj.strip()}' is not a property I know.")
-        self.last_object = obj
+            for obj in objs:
+                if not self.apply_adjective(obj, adj.strip().lower()):
+                    self.p.problem(s.where, s.text, f"'{adj.strip()}' is not a property I know.")
+                    break
+        self.last_object = objs[-1]
 
     def apply_adjective(self, obj: Obj, adj: str) -> bool:
         if adj in NAMING:
@@ -501,10 +535,25 @@ class ModelBuilder:
     def text_property(self, s, m):
         """The description of X is "...". (also printed name, initial appearance)"""
         prop, subject, value = m.group(1).lower(), m.group(2), m.group(3)
-        if prop not in (*TEXT_PROPERTIES, "printed name", "indefinite article") \
-                and prop not in self.m.value_properties:
+        if not self.is_property(prop):
             return False                    # 'The set of keys is in ...' is not a property
-        obj = self.subject(s, subject)
+        self.set_property(s, self.subject(s, subject), prop, value)
+
+    def own_property(self, s, m):
+        """The short description is "...".  (of the room or thing just named)"""
+        prop = m.group(1).lower()
+        if not self.is_property(prop):
+            return False
+        if self.last_object is None:
+            self.p.problem(s.where, s.text, f"there is no room or thing to give a {prop} to.")
+            return None
+        self.set_property(s, self.last_object, prop, m.group(2))
+
+    def is_property(self, prop: str) -> bool:
+        return prop in (*TEXT_PROPERTIES, "printed name", "indefinite article") \
+            or prop in self.m.value_properties
+
+    def set_property(self, s, obj: Obj, prop: str, value: str) -> None:
         if prop in ("printed name", "indefinite article"):
             if not re.fullmatch(r'"[^"\[\]]*"', value.strip()):
                 self.p.problem(s.where, s.text, f"the {prop} must be plain text in I7-lite "
@@ -513,7 +562,7 @@ class ModelBuilder:
                 obj.printed = unquote(value)
             else:
                 obj.article = unquote(value)
-        elif prop in TEXT_PROPERTIES:
+        elif prop in TEXT_PROPERTIES or self.m.value_properties.get(prop) == "text":
             self.set_text(s, obj, prop, value)
         elif prop in self.m.value_properties:
             obj.values[prop] = value.strip()
@@ -532,8 +581,12 @@ class ModelBuilder:
             self.m.either_or[adjs[1]] = (flag, False)
 
     def value_property(self, s, m):
-        """A thing has a number called weight."""
-        self.m.value_properties[m.group(3).lower()] = m.group(2).lower()
+        """A thing has a number called weight.  /  Every room has a text called ..."""
+        prop = strip_article(m.group(3)).lower()
+        self.m.value_properties[prop] = m.group(2).lower()
+        owner = re.sub(r"^(?:an?|every)\s+", "", m.group(1).strip(), flags=re.I).lower()
+        if owner in self.m.kinds:
+            self.m.property_owners[prop] = owner
 
     def variable(self, s, m):
         """The trample count is a number that varies."""
@@ -574,8 +627,69 @@ class ModelBuilder:
         applying = 0 if "nothing" in spec else 2 if "two" in spec else 1
         self.m.actions[name] = Action(name, applying, None, "out of world" in spec)
 
+    # -- rules by name: listing sentences and response edits
+    @staticmethod
+    def rule_name(text: str) -> str:
+        return strip_article(" ".join(text.split())).lower()
+
+    def rulebook(self, s, text: str) -> tuple[str, str] | None:
+        """'the carry out looking rulebook' -> ('carry out', 'looking')."""
+        t = strip_article(text).lower().removesuffix(" rulebook").strip()
+        for words, stage in self.STAGE_WORDS[2:]:      # the six action stages
+            if t.startswith(words + " "):
+                return stage, t[len(words) + 1:].strip()
+        self.p.problem(s.where, s.text, f"'{text}' is not a rulebook I7-lite knows: it has "
+                       "the six rulebooks of each action, e.g. 'the check taking rulebook'.")
+        return None
+
+    def not_listed(self, s, m):
+        anywhere = m.group(2).lower() == "any rulebook"
+        book = None if anywhere else self.rulebook(s, m.group(2))
+        if not anywhere and book is None:
+            return
+        self.m.listings.append(Listing("not listed", self.rule_name(m.group(1)), None, book,
+                                       s.where))
+
+    def listed_relative(self, s, m):
+        book = self.rulebook(s, m.group(4))
+        if book:
+            self.m.listings.append(Listing(m.group(2).lower(), self.rule_name(m.group(1)),
+                                           self.rule_name(m.group(3)), book, s.where))
+
+    def listed_at(self, s, m):
+        book = self.rulebook(s, m.group(3))
+        if book:
+            how = (m.group(2) or "in").strip().lower()
+            self.m.listings.append(Listing(how, self.rule_name(m.group(1)), None, book, s.where))
+
+    def response_edit(self, s, m):
+        """The standard report taking rule response (A) is "OK."."""
+        try:
+            text = parse_text(m.group(3))
+        except TextError as e:
+            self.p.problem(s.where, m.group(3), f"the text is malformed: {e}.")
+            return
+        self.m.response_edits[(self.rule_name(m.group(1)), m.group(2).upper())] = (text, s.where)
+
+    def forget_commands(self, s, m):
+        """Understand the commands "open", "close" as something new."""
+        for w in re.split(r"\s*(?:,|\band\b|\bor\b)\s*", m.group(1)):
+            if w.strip():
+                self.m.forgotten_commands[unquote(w).lower()] = s.where
+
+    def forget_action_grammar(self, s, m):
+        """Understand nothing as dropping."""
+        self.m.ungrammatical[strip_article(m.group(1)).lower()] = s.where
+
     # (pattern, handler): the first that matches wins, so order matters
     PATTERNS = [
+        (r"^(.+? rule) response \(([a-z])\) is (\".*\")$", response_edit),
+        (r"^(.+? rule) is not listed in (any rulebook|.+? rulebook)$", not_listed),
+        (r"^(.+? rule) is listed (instead of|before|after) (.+? rule) in (.+? rulebook)$",
+         listed_relative),
+        (r"^(.+? rule) is listed (first |last )?in (.+? rulebook)$", listed_at),
+        (r"^understand the commands? (.+?) as something new$", forget_commands),
+        (r"^understand nothing as (.+)$", forget_action_grammar),
         (r"^the story (headline|genre|description|release number) is (.+)$", story_property),
         (r"^the release number is (\d+)$",
          lambda self, s, m: setattr(self.m, "release", int(m.group(1)))),
@@ -598,10 +712,12 @@ class ModelBuilder:
          r"outside) is (.+)$", map_in_paragraph),
         (r"^(?:the )?(description|printed name|initial appearance|[a-z ]+?) of (.+?) is "
          r'(".*"|-?\d+|.+)$', text_property),
+        (r'^the ([a-z ]+?) is (".*")$', own_property),
         (r"^(.+?) (?:is|are) an? (number|text|truth state|room|thing|object) that varies$",
          variable),
         (r"^(an? .+?|.+?) can be (.+)$", either_or),
-        (r"^(an? .+?) (?:has|have) an? (number|text|truth state) called (.+)$", value_property),
+        (r"^((?:an?|every) .+?) (?:has|have) an? (number|text|truth state) called (.+)$",
+         value_property),
         (r"^understand (.+?) as (.+)$", understand),
         (r"^the player (carries|wears) (.+)$", possession),
         (r"^(in|on) (.+?) (?:is|are) an? (.+?) called (.+)$", placed_called),
@@ -666,15 +782,25 @@ class ModelBuilder:
                    ("check", "check"), ("carry out", "carry out"), ("report", "report"))
 
     def rule(self, s: Sentence) -> None:
-        preamble = s.text.rstrip(":").strip()
+        preamble = " ".join(s.text.rstrip(":").split())
         low = preamble.lower()
         if low.startswith("to "):
             self.m.phrases.append(PhraseDef(preamble, s.body, s.where))
             return
+        number = len(self.m.rules) + 1
+        m = re.match(r"^this is the (.+? rule)$", preamble, re.I)       # This is the X rule:
+        if m:
+            self.m.rules.append(Rule("", "", s.body, s.where, number, self.rule_name(m.group(1))))
+            return
+        named = None                                     # Carry out looking (this is the X rule):
+        m = re.match(r"^(.*?)\s*\(this is the (.+? rule)\)$", preamble, re.I)
+        if m:
+            preamble, named = m.group(1), self.rule_name(m.group(2))
+            low = preamble.lower()
         for words, stage in self.STAGE_WORDS:
             if low.startswith(words):
                 rest = preamble[len(words):].strip()
-                self.m.rules.append(Rule(stage, rest, s.body, s.where, len(self.m.rules) + 1))
+                self.m.rules.append(Rule(stage, rest, s.body, s.where, number, named))
                 return
         self.p.unsupported(s.where, s.text, "this kind of rule")
 

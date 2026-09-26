@@ -147,6 +147,11 @@ DEFAULT_PLAN: list[Task] = [
          "[regarding X], the story's own verbs)",
          ["zforge/compiler/i7/", "zforge/lib/i7/say.zil", "tests/samples/adaptive.ni"],
          ["I7_LITE.md"], ["i7-adaptive-text"], ["tests/test_i7.py"]),
+    Task("v2-i7-rules", 7, "I7-lite: Inform 7's named library rules, rule swapping, "
+         "response edits; Advent's opening matches the real game (ADR-028)",
+         ["zforge/compiler/i7/", "zforge/lib/i7/", "examples/advent_opening.ni",
+          "eval/differential.py"],
+         ["I7_LITE.md", "ADR-028"], ["i7-advent-differential"], ["tests/test_i7.py"]),
 ]
 
 

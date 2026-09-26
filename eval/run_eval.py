@@ -14,6 +14,7 @@ run `python -m zbuilder stories` first.
 """
 from __future__ import annotations
 
+import functools
 import inspect
 import json
 import subprocess
@@ -315,13 +316,36 @@ def run_cross_version(case: dict) -> list[str]:
     return problems + _check_text(case, transcripts[first])
 
 
+@functools.cache
+def _reference_transcript(story: str, commands: tuple[str, ...]) -> str:
+    """The real game's side, played once per run (it is the same for every target)."""
+    return play((ROOT / story).read_bytes(), list(commands)).transcript
+
+
+def run_i7_differential(case: dict) -> list[str]:
+    """Our build of a port and the real Inform 7 game, the same commands:
+    every response the same (eval/differential.py says how exactly)."""
+    from eval.differential import differences, responses
+    from zforge.compiler.i7.driver import compile_i7
+    reference = ROOT / case["reference"]
+    if not reference.exists():
+        raise Skip(f"{case['reference']} not downloaded (python -m zbuilder stories)")
+    commands, banner = case["commands"], case["banner"]
+    real = responses(_reference_transcript(case["reference"], tuple(commands)), commands, banner)
+    src = ROOT / case["source"]
+    story = compile_i7(src.read_text(), str(src), target=case["target"]).story
+    ours = responses(play(story, commands).transcript, commands, banner)
+    return differences(commands, real, ours)
+
+
 RUNNERS = {"story": run_story_case, "compile_run": run_compile_run, "screen": run_screen,
            "save_restore": run_save_restore, "compile_error": run_compile_error,
            "reject": run_reject, "reject_truncated": run_reject_truncated,
            "disasm": run_disasm, "audit": run_audit, "spec_opcodes": run_spec_opcodes,
            "golden": run_golden, "pytest": run_pytest, "asm_run": run_asm_run,
            "reject_cli": run_reject_cli, "illegal_opcode": run_illegal_opcode,
-           "cross_version": run_cross_version, "i7_problems": run_i7_problems}
+           "cross_version": run_cross_version, "i7_problems": run_i7_problems,
+           "i7_differential": run_i7_differential}
 
 
 def expand_targets(cases: list[dict]) -> list[dict]:

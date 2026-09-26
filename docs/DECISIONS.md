@@ -261,3 +261,41 @@ now a problem message. Both usually mean a short name matched an existing
 object ("The stream is scenery in the Stream Bank." - "stream" is the
 Stream Bank), which Inform 7 also reports.
 
+
+## ADR-028: Inform 7's named library rules, rule swapping and response edits
+
+**Context.** The Advent comparison (I7_SURVEY) showed that real Inform 7
+authors reshape the library: Advent replaces the room description rules,
+edits 33 responses and forgets built-in grammar. The survey had put this
+out of scope; the user chose to add it so that an I7-lite port of Advent's
+opening could match the real game exactly.
+
+**Decision.**
+- The library is Inform 7's named rules in Inform 7's order: 72 rules, each
+  one ZIL routine, with 50 responses written as Inform 7 text (catalogue in
+  `compiler/i7/standard.py`, listed in I7_LITE.md section 9).
+- Authors can name rules, unlist rules, list them instead of / before /
+  after / first / last / in a rulebook, and edit responses. Rulebooks are
+  ordered as in Inform 7 (specificity, then library before author, then
+  source order); a replacement takes the replaced rule's place.
+- Runtime behaviours copied from Inform 7 because the comparison depends on
+  them: the game starts with `try looking`; arrivals run the carry out
+  looking rules; the check new arrival rule marks rooms visited; writing an
+  object's paragraph makes it the thing last named; a blank line separates
+  one rule's finished sentence from a later rule's output.
+- Also: forgetting grammar (`as something new`, `Understand nothing as`),
+  going's action variables, `going nowhere`, `encloses`, `the player
+  consents`, kind-owned properties (`Every room has ...`: every room gets
+  the property, because `put_prop` needs it, §15), text properties with
+  substitutions, lists of subjects, spaces kept inside texts.
+
+**Still out.** Activities (so the banner cannot move), action variables,
+kinds of action, author rulebooks, `does nothing`. The Advent port says the
+same things with ordinary rules.
+
+**Evidence.** Eval `i7-advent-differential`: the port of Advent's opening
+(`examples/advent_opening.ni`), on z5 and z8, prints what the real Inform 7
+game prints for all 31 responses of a 30-command walkthrough, line for line
+and blank line for blank line. One normalisation: the banner and its blank
+lines are set aside (Advent moves it with an activity). Mutations of one
+word or one blank line are caught.

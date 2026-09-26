@@ -16,10 +16,11 @@ import re
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
-from zforge.compiler.i7.model import ADJECTIVES, BUILTIN_KINDS, PhraseDef, strip_article, unquote
+from zforge.compiler.i7.model import ADJECTIVES, BUILTIN_KINDS, TEXT_PROPERTIES, PhraseDef, \
+    strip_article, unquote
 from zforge.compiler.i7.problems import Location
 from zforge.compiler.i7.source import BodyLine
-from zforge.compiler.i7.standard import DIRECTIONS, zil_string
+from zforge.compiler.i7.standard import DIRECTIONS, zil_name, zil_string
 from zforge.compiler.i7.text import IfText, Literal, OneOf, Substitution, Text, TextError, \
     ends_sentence, parse_text
 
@@ -104,11 +105,15 @@ class PhraseLowerer:
         p = strip_article(phrase).lower().strip()
         if p in ("score", "turn count") or re.fullmatch(r"-?\d+", p):
             return "number"
+        kind = None
         if p in self.L.m.variables:
             kind = self.L.m.variables[p].kind
-            return "number" if kind in ("number", "truth state") else \
-                "text" if kind == "text" else "object"
-        return "object"
+        elif m := re.match(r"^(.+?) of (.+)$", p):          # the visit count of the Lab
+            kind = self.L.m.value_properties.get(strip_article(m.group(1)))
+        if kind is None:
+            return "object"
+        return "number" if kind in ("number", "truth state") else \
+            "text" if kind == "text" else "object"
 
     # ------------------------------------------------------------ values
     def value(self, text: str, where: Location) -> str:
@@ -146,6 +151,16 @@ class PhraseLowerer:
                 return f"<{routine}>"
         if low in ("in darkness", "in the dark"):
             return "<NOT ,LIT>"
+        if low == "the player consents":           # asks: yes or no?
+            return "<YES?>"
+        m = re.match(r'^(.+?) (is|is not) ""$', t, re.I)     # a text that is empty (or unset)
+        if m:
+            test = f"<ZERO? {self.value(m.group(1), where)}>"
+            return test if m.group(2).lower() == "is" else f"<NOT {test}>"
+        m = re.match(r"^(.+?) (does not enclose|encloses) (.+)$", t, re.I)
+        if m:
+            test = f"<ENCLOSES? {self.value(m.group(1), where)} {self.value(m.group(3), where)}>"
+            return test if m.group(2).lower() == "encloses" else f"<NOT {test}>"
         m = re.match(r"^a random chance of (\d+) in (\d+) succeeds$", low)
         if m:
             return f"<NOT <G? <RANDOM {m.group(2)}> {m.group(1)}>>"
@@ -229,6 +244,10 @@ class PhraseLowerer:
                 verbs = " ".join(f",V?{self.L.action_atom[a[0]]}" for a in excluded)
                 guards.insert(0, f"<NOT <EQUAL? ,PRSA {verbs}>>")
             return ActionPattern(actions, self.all_of(guards), tuple(spec))
+        if low == "going nowhere":                  # no exit that way (room gone to is nothing)
+            spec[0] = 1
+            return ActionPattern(["going"], self.all_of(["<ZERO? ,GOING-TO>"] + guards),
+                                 tuple(spec))
         actions, noun_guards = [], []
         alternatives = split_outside_quotes(text, " or ")
         for alt in alternatives:
@@ -390,7 +409,7 @@ class PhraseLowerer:
         if m:
             target, amount = self.value(m.group(2), where), self.value(m.group(3), where)
             op = "+" if m.group(1).lower() == "increase" else "-"
-            return [f"<SETG {target[1:]} <{op} {target} {amount}>>"]
+            return [self.assign(target, f"<{op} {target} {amount}>", where, t)]
         m = re.match(r"^move (.+?) to (.+)$", t, re.I)
         if m:
             obj, dest = self.value(m.group(1), where), self.value(m.group(2), where)
@@ -449,26 +468,39 @@ class PhraseLowerer:
                 on = value != negated
                 return f"<{'FSET' if on else 'FCLEAR'} {self.value(subject, where)} ,{flag}>"
             target = self.value(subject, where)
-            if target.startswith(","):
-                return f"<SETG {target[1:]} {self.value(m.group(3), where)}>"
+            if target.startswith((",", "<GETP ")):
+                return self.assign(target, self.value(m.group(3), where), where, text)
         return self.problem(where, text, "I7-lite cannot make this true with 'now'.")
+
+    def assign(self, target: str, new: str, where: Location, wrote: str) -> str:
+        """Store into a variable (,X -> SETG) or a property (GETP -> PUTP)."""
+        if target.startswith(","):
+            return f"<SETG {target[1:]} {new}>"
+        m = re.fullmatch(r"<GETP (.+) (,P\?[A-Z0-9-]+)>", target)
+        if m:
+            return f"<PUTP {m.group(1)} {m.group(2)} {new}>"
+        return self.problem(where, wrote, "this is not a variable or property I can change.")
 
     # ------------------------------------------------------------ texts
     def say(self, what: str, where: Location) -> list[str]:
         if what.startswith('"'):
             try:
-                return [self.tell(parse_text(what), sentence_break=True)]
+                return [self.tell(parse_text(what), sentence_break=True, where=where)]
             except TextError as e:
                 return [self.problem(where, what, f"the text is malformed: {e}.")]
         low = what.lower()
         if low in self.say_phrases:
             return [f"<{self.say_phrases[low]}>"]
+        if low in ("line break", "paragraph break"):     # say line break;
+            return [self.tell(parse_text(f"[{low}]"), sentence_break=False, where=where)]
         return [self.print_value(what, where)]
 
-    def tell(self, text: Text, sentence_break: bool) -> str:
-        forms = self.parts(text.parts, Location(0))
+    def tell(self, text: Text, sentence_break: bool, where: Location | None = None) -> str:
+        forms = self.parts(text.parts, where or Location(0))
+        if forms:                           # a blank line owed by an earlier rule
+            forms.insert(0, "<PARA-FLUSH>")
         if sentence_break and ends_sentence(text):
-            forms.append("<CRLF>")
+            forms.append("<SENTENCE-BREAK>")
         return " ".join(self.merge(forms)) or "<RTRUE>"
 
     @staticmethod
@@ -570,6 +602,8 @@ class PhraseLowerer:
             return "<SAY-PRONOUN {} {} {}>".format(*(zil_string(x) for x in self.PRONOUNS[w]))
         if w in self.FIXED:
             return f"<TELL {zil_string(self.FIXED[w])}>"
+        if w.lower() in ("regarding it", "regarding nothing"):
+            return "<SETG PRIOR-NAMED 0>"
         m = re.match(r"^regarding (.+)$", w, re.I)
         if m:
             return f"<SETG PRIOR-NAMED {self.value(m.group(1), where)}>"
@@ -582,6 +616,11 @@ class PhraseLowerer:
         return None
 
     def print_value(self, what: str, where: Location) -> str:
+        m = re.match(r"^(?:the )?(.+?) of (.+)$", what.strip(), re.I)
+        if m and (m.group(1).lower() in TEXT_PROPERTIES
+                  or self.L.m.value_properties.get(m.group(1).lower()) == "text"):
+            obj = self.value(m.group(2), where)   # a text property: string or routine
+            return f"<SAY-TEXT {obj} ,P?{zil_name(m.group(1))}>"
         kind = self.kind_of_value(what)
         value = self.value(what, where)
         if kind == "number":

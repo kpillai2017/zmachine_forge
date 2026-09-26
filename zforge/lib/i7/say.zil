@@ -12,6 +12,26 @@
   the object named most recently - the 'prior named object' - and makes
   verbs and pronouns agree with it: '[regarding the keys][They] [are]'
   prints 'They are'. Every routine here that prints a name sets it."
+;"Paragraphs, as in Inform 7: a say that ends a sentence leaves a
+  paragraph pending (SAY-P, Inform 7's say__p). Between two rules a
+  pending paragraph becomes a pending break, printed only if something
+  more is printed (so a turn never ends with an extra blank line)."
+<GLOBAL SAY-P 0>
+<GLOBAL PARA-BREAK 0>
+
+<ROUTINE SENTENCE-BREAK ()      ;"the line break after 'say \"Taken.\"'"
+    <CRLF> <SETG SAY-P 1>>
+
+<ROUTINE PARA-FLUSH ()          ;"before printing: the blank line owed, if any"
+    <SETG SAY-P 0>
+    <COND (,PARA-BREAK <CRLF> <SETG PARA-BREAK 0>)>>
+
+<ROUTINE PARA-ABSORB ()         ;"before a print that starts with its own blank line"
+    <SETG SAY-P 0> <SETG PARA-BREAK 0>>
+
+<ROUTINE PARA-DIVIDE ()         ;"between two rules"
+    <COND (,SAY-P <SETG PARA-BREAK 1> <SETG SAY-P 0>)>>
+
 <GLOBAL PRIOR-NAMED 0>
 
 <ROUTINE PRIOR-PLURAL? ()

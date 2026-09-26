@@ -12,7 +12,7 @@ from dataclasses import dataclass
 
 from zforge.compiler.i7.model import Obj, Rule, WorldModel
 from zforge.compiler.i7.phrases import PhraseLowerer
-from zforge.compiler.i7.problems import Problems
+from zforge.compiler.i7.problems import Location, Problems
 from zforge.compiler.i7.standard import DIRECTIONS, LIBRARY_RULES, STAGES, zil_name, \
     zil_string
 from zforge.compiler.i7.text import parse_text
@@ -89,6 +89,7 @@ class Lowerer:
         self.variables()
         self.rules()
         self.actions()
+        self.check_listings()
         self.responses()
         if self.extra_globals:
             self.emit('"--- state for [one of] texts"', *self.extra_globals, "")
@@ -118,8 +119,7 @@ class Lowerer:
                   f"<CONSTANT MAX-SCORE {m.max_score}>",
                   f"<CONSTANT FIRST-ROOM ,{self.atom[rooms[0].name]}>", "")
 
-    def where0(self):
-        from zforge.compiler.i7.problems import Location
+    def where0(self) -> Location:
         return Location(1)
 
     # ------------------------------------------------------------ world
@@ -165,10 +165,16 @@ class Lowerer:
             lines.append(f"    (ARTICLE-TEXT {zil_string(o.article)})")
         for prop, text in self.texts_of(o).items():
             routine = self.text_routine(f"{atom}-{zil_name(prop)}", text,
-                                        f"the {prop} of {o.name}")
+                                        f"the {prop} of {o.name}", o.where)
             lines.append(f"    ({zil_name(prop)} ,{routine})")
         for prop, value in o.values.items():
             lines.append(f"    ({zil_name(prop)} {self.phrases.value(value, o.where)})")
+        for prop, owner in self.m.property_owners.items():
+            # 'Every room has a number called ...': each room has it, so it can be
+            # changed (put_prop needs the property to be there, §15)
+            if prop not in o.values and prop not in self.texts_of(o) \
+                    and self.m.is_a(o.kind, owner):
+                lines.append(f"    ({zil_name(prop)} 0)")
         for direction, to in self.exits_of(o):
             lines.append(f"    ({DIRECTION_PROPS[direction]} TO {self.atom[to]})")
         if o.sides:                                   # a door: its two rooms
@@ -223,9 +229,9 @@ class Lowerer:
             flags.add("PROPERBIT")
         return flags
 
-    def text_routine(self, base: str, text, what: str) -> str:
+    def text_routine(self, base: str, text, what: str, where: Location | None = None) -> str:
         name = self.names.new(base)
-        body = self.phrases.tell(text, sentence_break=False)
+        body = self.phrases.tell(text, sentence_break=False, where=where)
         self.routines.append(f'<ROUTINE {name} ()   ;"{what}"\n    {body}>')
         return name
 
@@ -246,11 +252,15 @@ class Lowerer:
 
     # ------------------------------------------------------------ rules
     def rules(self) -> None:
+        self.named_rules: dict[str, str] = {}          # author's rule name -> routine
         for rule in self.m.rules:
             self.rule(rule)
 
     def rule(self, rule: Rule) -> None:
         stage = rule.stage
+        if stage == "":                                 # This is the X rule: (unlisted)
+            self.named_rules[rule.named] = self.rule_routine(rule, "", default="<RFALSE>")
+            return
         if stage in ("when play begins", "every turn"):
             guard = ""
             if stage == "every turn" and rule.preamble.lower().startswith("when "):
@@ -264,12 +274,14 @@ class Lowerer:
             return
         default = "<RTRUE>" if stage in ("instead", "after") else "<RFALSE>"
         name = self.rule_routine(rule, pattern.guard, default)
+        if rule.named:
+            self.named_rules[rule.named] = name
         for action in pattern.actions or [""]:        # "" = every action ('doing something')
             self.add_rule(action, stage, pattern.specificity, name)
 
     def rule_routine(self, rule: Rule, guard: str, default: str) -> str:
         name = self.names.new(f"RULE-{rule.number}")
-        heading = " ".join(f"{rule.stage} {rule.preamble}".split())
+        heading = " ".join(f"{rule.stage} {rule.preamble}".split()) or f"the {rule.named}"
         lines = [f'<ROUTINE {name} ()   ;"{heading} (line {rule.where.line})"']
         if guard:
             lines.append(f"    <COND (<NOT {guard}> <RFALSE>)>")
@@ -296,9 +308,11 @@ class Lowerer:
                 prelude += f"<{action.standard.variables}> "
             self.routines.append(f'<ROUTINE V-{atom} ()   ;"the {name} action"\n'
                                  f"    {prelude}<RUN-ACTION ,{atom}-RULES>>")
-            grammar = [(g, self.where0()) for g in (action.standard.grammar
-                                                    if action.standard else ())]
+            library = Location(0)                     # before every line of the source
+            grammar = [(g, library) for g in (action.standard.grammar
+                                              if action.standard else ())]
             grammar += action.grammar
+            grammar = [(g, w) for g, w in grammar if not self.forgotten(g, name, w)]
             for line, where in grammar:
                 for g in self.expand_grammar(line, action.applying, name, where):
                     words = " ".join([g.verb, *g.tokens])
@@ -326,18 +340,93 @@ class Lowerer:
         self.emit(f"<GLOBAL DOORS <LTABLE {' '.join(',' + d for d in doors)}>>")
         self.emit("<SYNTAX UNDO = V-UNDO>", "<ROUTINE V-UNDO () <RTRUE>>", "")
 
+    def forgotten(self, line: str, action: str, where) -> bool:
+        """'Understand the command "open" as something new.' / 'Understand
+        nothing as dropping.': grammar written before such a sentence (the
+        library's included) no longer counts."""
+        verb = line.split()[0].lower()
+        for said in (self.m.forgotten_commands.get(verb), self.m.ungrammatical.get(action)):
+            if said is not None and where.line < said.line:
+                return True
+        return False
+
     def rulebook_global(self, global_name: str, action: str) -> str:
         """Six LTABLEs, one per stage: the library's rules and the author's,
-        most specific first (ties: library first, then source order)."""
+        most specific first (ties: library first, then source order).
+        Listing sentences move named rules first: a rule 'listed instead of'
+        another takes its place, 'before'/'after' goes next to it."""
         std = self.m.actions[action].standard if action else None
         tables = []
         for stage in STAGES:
-            entries = [((0,), -1, r.routine) for r in (std.rules.get(stage, ()) if std else ())]
-            entries += [(spec, i, r) for i, (spec, r)
+            # an entry: [group, specificity, order, routine, name]; group 0 = listed first,
+            # 1 = normal, 2 = listed last; order: library i, the author's 1000 + i
+            entries = [[1, (0,), i, r.routine, r.name]
+                       for i, r in enumerate(std.rules.get(stage, ()) if std else ())]
+            entries += [[1, spec, 1000 + i, r, self.rule_name_of(r)] for i, (spec, r)
                         in enumerate(self.rulebooks.get(action, {}).get(stage, []))]
-            entries.sort(key=lambda e: (tuple(-x for x in e[0]), e[1]))
-            tables.append("<LTABLE " + " ".join("," + r for _, _, r in entries) + ">")
+            if action:
+                entries = self.apply_listings(entries, (stage, action))
+            entries.sort(key=lambda e: (e[0], tuple(-x for x in e[1]), e[2]))
+            tables.append("<LTABLE " + " ".join("," + e[3] for e in entries) + ">")
         return f"<GLOBAL {global_name} <TABLE {' '.join(tables)}>>"
+
+    def rule_name_of(self, routine: str) -> str | None:
+        return next((n for n, r in self.named_rules.items() if r == routine), None)
+
+    def apply_listings(self, entries: list, book: tuple[str, str]) -> list:
+        for li in self.m.listings:
+            if li.how == "not listed":
+                if li.rulebook in (None, book):
+                    entries = [e for e in entries if e[4] != li.rule]
+                continue
+            if li.rulebook != book:
+                continue
+            routine = self.named_rules.get(li.rule)
+            if routine is None:                     # only the author's rules can be listed
+                continue
+            if li.how in ("in", "first", "last"):
+                group = {"in": 1, "first": 0, "last": 2}[li.how]
+                entries = [e for e in entries if e[3] != routine]
+                entries.append([group, (0,), 999, routine, li.rule])
+                continue
+            target = next((e for e in entries if e[4] == li.other), None)
+            if target is None:
+                continue                            # reported by check_listings
+            entries = [e for e in entries if e[3] != routine]
+            if li.how == "instead of":
+                target[3], target[4] = routine, li.rule
+            else:                                   # before / after: right next to it
+                step = -0.5 if li.how == "before" else 0.5
+                entries.append([target[0], target[1], target[2] + step, routine, li.rule])
+        return entries
+
+    def check_listings(self) -> None:
+        """Every rule named in a listing or response edit must exist."""
+        known = set(LIBRARY_RULES) | set(self.named_rules)
+        for li in self.m.listings:
+            for name in (li.rule, li.other):
+                if name and name not in known:
+                    self.p.problem(li.where, f"the {name}", self.unknown_rule(name))
+            if li.how != "not listed" and li.rule in LIBRARY_RULES:
+                self.p.unsupported(li.where, f"the {li.rule}",
+                                   "moving a library rule (it can be unlisted, or another "
+                                   "rule listed instead of it)")
+            if li.rulebook and li.rulebook[1] not in self.m.actions:
+                self.p.problem(li.where, f"the {' '.join(li.rulebook)} rulebook",
+                               f"'{li.rulebook[1]}' is not an action I know.")
+        for (name, letter), (_, where) in self.m.response_edits.items():
+            rule = LIBRARY_RULES.get(name)
+            if rule is None:
+                self.p.problem(where, f"the {name} response ({letter})", self.unknown_rule(name))
+            elif letter not in dict(rule.responses):
+                self.p.problem(where, f"the {name} response ({letter})",
+                               f"that rule has no response ({letter}) in I7-lite (it has "
+                               f"{', '.join(dict(rule.responses)) or 'none'}).")
+
+    @staticmethod
+    def unknown_rule(name: str) -> str:
+        return (f"there is no rule called '{name}'. (I7-lite's library rules are listed in "
+                "docs/I7_LITE.md; the author's own are named with '(this is the ... rule)'.)")
 
     # ------------------------------------------------------------ responses
     def responses(self) -> None:
@@ -345,7 +434,8 @@ class Lowerer:
         library rule calls to print it: Inform 7's text, or the author's."""
         for rule in sorted(LIBRARY_RULES.values(), key=lambda r: r.routine):
             for letter, default in rule.responses:
-                text = parse_text(default)
+                edit = self.m.response_edits.get((rule.name, letter))
+                text = edit[0] if edit else parse_text(default)
                 body = self.phrases.tell(text, sentence_break=True)
                 self.routines.append(f'<ROUTINE {rule.routine}-{letter} ()   '
                                      f';"the {rule.name} response ({letter})"\n    {body}>')

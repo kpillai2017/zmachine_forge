@@ -81,6 +81,9 @@ of the name also works alone in commands, in any order (`velvet`,
 | `The trample count is a number that varies.` `... The trample count is 0.` | global variable (number, truth state, text, object) | 7a |
 | `A treasure is a kind of thing.` | new kind | 7a |
 | `A room is usually dark.` / `The printed name of a forest is usually "Forest".` | kind defaults | 7b |
+| `Every room has a number called the visit count.` | every room gets it (starting at 0) | Advent |
+| `Every room has a text called the short description.` `The short description is "[We]['re] here again."` | a text property; the short form means the last thing named | Advent |
+| `The Lab, the Hall and the Yard are lighted.` | several subjects at once | Advent |
 
 ## 4. Understanding the player
 
@@ -91,6 +94,8 @@ of the name also works alone in commands, in any order (`velvet`,
 | `Understand "xyzzy" as casting xyzzy.` | grammar for a new action | 7a |
 | `Understand "plugh" as north.` | a word for a direction | 7b |
 | `Understand the command "grab" as "take".` | verb synonym | 7b |
+| `Understand the commands "open", "close" as something new.` | forget their earlier grammar | Advent |
+| `Understand nothing as dropping.` | forget an action's earlier grammar | Advent |
 | `... when the location is the Bar` (on an Understand line) | only there | after Cloak (decision in I7_SURVEY) |
 
 Tokens: `[something]`, `[someone]`, `[things]` (treated as `[something]`),
@@ -130,6 +135,31 @@ they finish; `Before`, `Check`, `Carry out`, `Report` continue unless they
 say `stop the action` (or end a phrase with `instead`, 7b).
 `continue the action` overrides the default.
 
+Named rules and rule swapping (ADR-028). The library's rules are Inform
+7's named rules (section 9), and the author can name rules too:
+
+    Carry out looking (this is the lamp glow rule): ...
+    This is the Crowther's room description heading rule: ...
+
+    The can't take scenery rule is not listed in the check taking rulebook.
+    The fixed rule is not listed in any rulebook.
+    The X rule is listed instead of the room description heading rule
+        in the carry out looking rulebook.
+    The X rule is listed before / after the Y rule in the check going rulebook.
+    The X rule is listed first / last / in the report taking rulebook.
+    The standard report taking rule response (A) is "OK."
+
+Rules are ordered as in Inform 7: more specific first, then the library
+before the author, then source order; a rule listed instead of another
+takes its place. A response edit may use substitutions.
+
+Other rule forms: `going nowhere` (a direction with no exit), `[the door
+gone through]`, `[the room gone to]`, `[the room gone from]`.
+
+Spacing follows Inform 7: when a rule's text ends a sentence and a later
+rule prints, a blank line separates them (so an every turn rule's text
+stands in its own paragraph).
+
 ## 7. Phrases (inside rules)
 
 | Phrase | Step |
@@ -146,11 +176,14 @@ say `stop the action` (or end a phrase with `instead`, 7b).
 | `try <action>` / `silently try <action>` | 7b |
 | `<phrase> instead` (do it, then stop) | 7b |
 | `To <phrase> (N - a number): ...` user phrases; `To decide whether ...`; `To say <name>: ...` | 7a |
+| `say line break` / `say paragraph break` | Advent |
 
 Conditions: `X is Y`, `X is not Y`, `X is in Y`, `X is on Y`, `the player
 carries X`, `the player is in Y`, `X is <property>`, `the noun is X`,
 `N is greater than / less than / at least / at most M` (and `>` `<`
-`>=` `<=`), `A and B`, `A or B`, `a random chance of 1 in 3 succeeds`.
+`>=` `<=`), `A and B`, `A or B`, `a random chance of 1 in 3 succeeds`,
+`X encloses Y`, `the player consents` (a yes/no question), `in darkness`,
+`X is ""` (a text property with no text).
 The location, the noun, the second noun, the player, the score, the turn
 count are built in.
 
@@ -173,11 +206,195 @@ count are built in.
 with X: `[regarding the stream][flow]` -> "flows", `[regarding the keys]
 [are]` -> "are". There is no story-viewpoint switching.
 
+## 9. The library's rules and responses (ADR-028)
+
+Every rule an author can unlist, replace or edit, by action and stage, in
+the order they run. Response letters and default texts follow Inform 7.
+
+**looking**
+
+| Stage | Rule | Responses |
+|---|---|---|
+| carry out | room description heading rule | (A) "Darkness" |
+| carry out | room description body text rule | (A) "It is pitch dark, and you can't see a thing." |
+| carry out | room description paragraphs about objects rule | - |
+| carry out | check new arrival rule | - |
+
+**examining**
+
+| Stage | Rule | Responses |
+|---|---|---|
+| carry out | standard examining rule | - |
+| carry out | examine undescribed things rule | (A) "You see nothing special about [the noun]." |
+
+**taking**
+
+| Stage | Rule | Responses |
+|---|---|---|
+| check | can't take yourself rule | (A) "You are always self-possessed." |
+| check | can't take other people rule | (A) "I don't suppose [the noun] would care for that." |
+| check | can't take what's already taken rule | (A) "You already have that." |
+| check | can't take scenery rule | (A) "That's hardly portable." |
+| check | can't take what's fixed in place rule | (A) "That's fixed in place." |
+| carry out | standard taking rule | - |
+| report | standard report taking rule | (A) "Taken." |
+
+**dropping**
+
+| Stage | Rule | Responses |
+|---|---|---|
+| check | can't drop what's not held rule | (A) "You haven't got that." |
+| carry out | standard dropping rule | - |
+| report | standard report dropping rule | (A) "Dropped." |
+
+**going**
+
+| Stage | Rule | Responses |
+|---|---|---|
+| check | can't go through closed doors rule | (A) "You can't, since [the door gone through] [are] closed." |
+| check | can't go that way rule | (A) "You can't go that way." |
+| carry out | move player and vehicle rule | - |
+| report | describe room gone into rule | - |
+
+**taking inventory**
+
+| Stage | Rule | Responses |
+|---|---|---|
+| carry out | print empty inventory rule | (A) "You are carrying nothing." |
+| carry out | print standard inventory rule | (A) "You are carrying:[line break]" |
+
+**putting it on**
+
+| Stage | Rule | Responses |
+|---|---|---|
+| check | can't put something on itself rule | (A) "You can't put something on top of itself." |
+| check | can't put onto what's not a supporter rule | (A) "Putting things on [the second noun] would achieve nothing." |
+| check | carrying requirements rule | - |
+| carry out | standard putting rule | - |
+| report | standard report putting rule | (A) "You put [the noun] on [the second noun]." |
+
+**inserting it into**
+
+| Stage | Rule | Responses |
+|---|---|---|
+| check | can't insert something into itself rule | (A) "You can't put something inside itself." |
+| check | can't insert into what's not a container rule | (A) "[The second noun] can't contain things." |
+| check | can't insert into closed containers rule | (A) "[The second noun] [are] closed." |
+| check | carrying requirements rule | - |
+| carry out | standard inserting rule | - |
+| report | standard report inserting rule | (A) "You put [the noun] into [the second noun]." |
+
+**wearing**
+
+| Stage | Rule | Responses |
+|---|---|---|
+| check | can't wear what's not clothing rule | (A) "You can't wear that!" |
+| check | can't wear what's already worn rule | (A) "You're already wearing that!" |
+| check | carrying requirements rule | - |
+| carry out | standard wearing rule | - |
+| report | standard report wearing rule | (A) "You put on [the noun]." |
+
+**taking off**
+
+| Stage | Rule | Responses |
+|---|---|---|
+| check | can't take off what's not worn rule | (A) "You're not wearing that." |
+| carry out | standard taking off rule | - |
+| report | standard report taking off rule | (A) "You take off [the noun]." |
+
+**opening**
+
+| Stage | Rule | Responses |
+|---|---|---|
+| check | can't open unless openable rule | (A) "That's not something you can open." |
+| check | can't open what's locked rule | (A) "It seems to be locked." |
+| check | can't open what's already open rule | (A) "That's already open." |
+| carry out | standard opening rule | - |
+| report | standard report opening rule | (A) "You open [the noun]." |
+
+**closing**
+
+| Stage | Rule | Responses |
+|---|---|---|
+| check | can't close unless openable rule | (A) "That's not something you can close." |
+| check | can't close what's already closed rule | (A) "That's already closed." |
+| carry out | standard closing rule | - |
+| report | standard report closing rule | (A) "You close [the noun]." |
+
+**locking it with**
+
+| Stage | Rule | Responses |
+|---|---|---|
+| check | can't lock without a lock rule | (A) "That doesn't seem to be something you can lock." |
+| check | can't lock what's already locked rule | (A) "It's locked at the moment." |
+| check | can't lock what's open rule | (A) "First you would have to close [the noun]." |
+| check | can't lock without the correct key rule | (A) "That doesn't seem to fit the lock." |
+| carry out | standard locking rule | - |
+| report | standard report locking rule | (A) "You lock [the noun]." |
+
+**unlocking it with**
+
+| Stage | Rule | Responses |
+|---|---|---|
+| check | can't unlock without a lock rule | (A) "That doesn't seem to be something you can unlock." |
+| check | can't unlock what's already unlocked rule | (A) "It's unlocked at the moment." |
+| check | can't unlock without the correct key rule | (A) "That doesn't seem to fit the lock." |
+| carry out | standard unlocking rule | - |
+| report | standard report unlocking rule | (A) "You unlock [the noun]." |
+
+**switching on**
+
+| Stage | Rule | Responses |
+|---|---|---|
+| check | can't switch on unless switchable rule | (A) "That isn't something you can switch." |
+| check | can't switch on what's already on rule | (A) "That's already on." |
+| carry out | standard switching on rule | - |
+| report | standard report switching on rule | (A) "You switch [the noun] on." |
+
+**switching off**
+
+| Stage | Rule | Responses |
+|---|---|---|
+| check | can't switch off unless switchable rule | (A) "That isn't something you can switch." |
+| check | can't switch off what's already off rule | (A) "That's already off." |
+| carry out | standard switching off rule | - |
+| report | standard report switching off rule | (A) "You switch [the noun] off." |
+
+**waiting**
+
+| Stage | Rule | Responses |
+|---|---|---|
+| report | standard report waiting rule | (A) "Time passes." |
+
+**requesting the score**
+
+| Stage | Rule | Responses |
+|---|---|---|
+| carry out | announce the score rule | - |
+
+**saving the game**
+
+| Stage | Rule | Responses |
+|---|---|---|
+| carry out | save the game rule | - |
+
+**restoring the game**
+
+| Stage | Rule | Responses |
+|---|---|---|
+| carry out | restore the game rule | - |
+
+**quitting the game**
+
+| Stage | Rule | Responses |
+|---|---|---|
+| carry out | quit the game rule | - |
+
 ## Not supported (a problem message says so)
 
-Relations and relation verbs, tables, activities (`Rule for ...`),
-response edits (`... response (A) is`), Inform 6 inclusions `(- -)`,
-extensions (`Include`), rulebook changes (`is listed instead of`,
-`does nothing`), `Definition:`, backdrops, regions, scenes, kinds of
-value, `[text]` tokens, `Understand ... as something new`, units,
+Relations and relation verbs, tables, activities (`Rule for ...`,
+`After printing the banner text`), Inform 6 inclusions `(- -)`,
+extensions (`Include`), `does nothing`, action variables, kinds of action
+(`... is attempting entry`), rulebooks the author makes, `Definition:`,
+backdrops, regions, scenes, kinds of value, `[text]` tokens, units,
 lists, and any viewpoint other than second person present.

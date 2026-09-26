@@ -167,3 +167,14 @@ things with initial appearances, a device (lamp), darkness, a locked door
   game would cover more.
 - The counts are pattern counts, not a parse. They are good to within a
   few, and each is re-checkable with the `grep -cE` patterns.
+
+## Update (ADR-028): rule swapping and response edits are in
+
+After the Tier 7 work the user chose to add Inform 7's named library rules,
+rule swapping and response edits. The rows above marked "out
+(library-coupled)" for response edits and rulebook changes now apply only to
+rules I7-lite's library does not have (its 72 named rules are listed in
+I7_LITE.md section 9). With them, an I7-lite port of Advent's opening
+matches the real game exactly (eval `i7-advent-differential`). Advent as a
+whole still cannot be compiled: it also uses activities, action variables,
+kinds of action and its own rulebooks.

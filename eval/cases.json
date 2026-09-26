@@ -939,6 +939,56 @@
         "There is nothing to do now."
       ],
       "expect": "7c adaptive text, fixed viewpoint: [We] [are] [have] [here] [now] [There], [regarding X], pronouns, and the story's own verbs agree with the object named last; 'x me' finds the player; identical on z5, z7 and z8"
+    },
+    {
+      "id": "i7-advent-differential",
+      "suite": "v2",
+      "type": "i7_differential",
+      "why": "examples/advent_opening.ni (Crowther's Adventure, its opening, in I7-lite) and the real Inform 7 game show the same text for the same commands, blank lines included: rule swapping, response edits, the player's own actions, Inform 7's paragraph spacing. Allowed for: wrapped lines are joined, and the banner goes (serial and compiler differ; Advent prints it before its intro, 'after printing the banner text', which I7-lite lacks). The walkthrough never looks at the Building twice: its food is 'ambiguously plural' (Advent 640), which I7-lite lacks.",
+      "source": "examples/advent_opening.ni",
+      "reference": "stories/Advent_Crowther.z8",
+      "targets": [
+        5,
+        8
+      ],
+      "banner": [
+        "Adventure",
+        "Colossal Cave by .*",
+        "An Interactive Fiction by .*",
+        "Release \\d+ / Serial number .*"
+      ],
+      "commands": [
+        "no",
+        "in",
+        "take keys",
+        "take lamp",
+        "i",
+        "out",
+        "s",
+        "s",
+        "n",
+        "s",
+        "n",
+        "s",
+        "n",
+        "s",
+        "n",
+        "s",
+        "n",
+        "s",
+        "s",
+        "unlock grate with keys",
+        "open grate",
+        "d",
+        "turn on lamp",
+        "look",
+        "x lamp",
+        "u",
+        "close grate",
+        "lock grate with keys",
+        "n",
+        "score"
+      ]
     }
   ]
 }

@@ -208,3 +208,102 @@ def test_adaptive_text_lowers_to_agreement_routines():
 def test_a_short_name_that_means_an_existing_room_is_a_problem():
     m, problems = model_of("The Stream Bank is a room. The stream is scenery in the Stream Bank.")
     assert len(problems) == 1 and "inside itself" in problems[0]
+
+
+# ------------------------------------------------------------------ rule swapping
+def played(src, commands, target=8):
+    return play(compile_i7(src, "t.ni", target).story, commands).transcript
+
+
+LAB = 'The Lab is a room. "A small lab." The statue is scenery in the Lab. '
+
+
+def test_a_library_rule_can_be_unlisted():
+    src = LAB + "The can't take scenery rule is not listed in the check taking rulebook."
+    assert "Taken." in played(src, ["take statue"])
+    assert "That's hardly portable." in played(LAB, ["take statue"])
+
+
+def test_the_authors_rule_can_take_a_library_rules_place():
+    src = LAB + ("The loud report rule is listed instead of the standard report taking rule "
+                 "in the report taking rulebook.\nThe pebble is in the Lab.\n\n"
+                 'This is the loud report rule:\n\tsay "You grab [the noun]!"\n')
+    text = played(src, ["take pebble"])
+    assert "You grab the pebble!" in text and "Taken." not in text
+
+
+def test_a_response_can_be_edited_and_keeps_substitutions():
+    src = LAB + ("The pebble is in the Lab. "
+                 'The standard report taking rule response (A) is "[The noun]: got it."')
+    assert "The pebble: got it." in played(src, ["take pebble"])
+
+
+def test_unknown_rule_names_are_problems():
+    src = LAB + 'The fly away rule response (A) is "Whee."'
+    with pytest.raises(I7Problem) as e:
+        compile_i7(src, "t.ni")
+    assert "there is no rule called 'fly away rule'" in str(e.value)
+
+
+def test_a_command_can_be_understood_as_something_new():
+    src = LAB + ('Understand the command "take" as something new. Snatching is an action '
+                 'applying to one thing. Understand "take [something]" as snatching.\n\n'
+                 'Report snatching: say "Snatched!"')
+    assert "Snatched!" in played(src, ["take statue"])
+
+
+def test_rooms_have_their_properties_and_they_can_change():
+    src = ('Every room has a number called the visit count. The Lab is a room.\n\n'
+           'Every turn: increase the visit count of the location by 1; '
+           'say "Turn [visit count of the location]."')
+    text = played(src, ["wait", "wait"])
+    assert "Turn 1." in text and "Turn 2." in text
+
+
+def test_going_nowhere_and_the_door_gone_through():
+    src = LAB + '\n\nBefore going nowhere: say "No exit there."'
+    assert "No exit there." in played(src, ["north"])
+
+
+def test_a_list_of_subjects_and_encloses():
+    m, problems = model_of("The Lab is a room. The Hall is north of the Lab. "
+                           "A room is usually dark. The Lab and the Hall are lighted.")
+    assert problems == []
+    assert "LITBIT" in m.objects["Lab"].flags and "LITBIT" in m.objects["Hall"].flags
+    src = LAB + ('The box is a container in the Lab. The coin is in the box.\n\n'
+                 'Every turn when the Lab encloses the coin: say "Coin here."')
+    assert "Coin here." in played(src, ["wait"])
+
+
+def test_rules_are_separated_by_a_blank_line_as_in_inform_7():
+    src = LAB + ('The pebble is in the Lab.\n\nBefore taking the pebble: say "You reach down."'
+                 '\n\nEvery turn: say "Tick."')
+    text = played(src, ["take pebble"])
+    assert "You reach down.\n\nTaken.\n\nTick.\n" in text
+
+
+def test_spaces_are_kept_and_source_line_breaks_become_one_space():
+    from zforge.compiler.i7.standard import zil_string
+    assert zil_string("two  spaces") == '"two  spaces"'
+    assert zil_string("across\n   lines") == '"across lines"'
+
+
+def test_differential_responses_are_split_at_each_command():
+    from eval.differential import differences, responses
+    real = "Title\nBy X\n\nHello.\n\n>look\nLab\n\n>wait\nTime passes.\n\n>"
+    ours = "Hello.\n\nTitle\nBy Y\n\n>look\nLab\n\n>wait\nNothing.\n\n>"
+    banner = ["Title", "By .*"]
+    r, o = responses(real, ["look", "wait"], banner), responses(ours, ["look", "wait"], banner)
+    assert r[0] == o[0] == ["Hello."] and r[1] == o[1] == ["Lab"]
+    assert differences(["look", "wait"], r, o) == [
+        "'>wait': Inform 7 printed 'Time passes.', we printed 'Nothing.'"]
+
+
+def test_every_library_rule_is_listed_in_the_docs():
+    from pathlib import Path
+
+    from zforge.compiler.i7.standard import ACTIONS
+    doc = (Path(__file__).parent.parent / "docs" / "I7_LITE.md").read_text()
+    names = [r.name for a in ACTIONS for rules in a.rules.values() for r in rules]
+    assert len(set(names)) == 72    # the carrying requirements rule serves three actions
+    assert [n for n in names if f"| {n} |" not in doc] == []

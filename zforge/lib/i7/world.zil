@@ -52,3 +52,10 @@
     <SETG HERE .ROOM>
     <PLACE-DOORS>
     <SETG LIT <LIGHT-HERE?>>>
+
+<ROUTINE ENCLOSES? (OUTER O)
+    ;"'the location encloses the keys': O is in OUTER, at any depth"
+    <REPEAT ()
+        <SET O <LOC .O>>
+        <COND (<ZERO? .O> <RFALSE>)
+              (<EQUAL? .O .OUTER> <RTRUE>)>>>
