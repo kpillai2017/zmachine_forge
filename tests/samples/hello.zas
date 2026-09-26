@@ -1,0 +1,10 @@
+; hello.zas - the smallest useful story file (Tier 0 walking skeleton)
+.release 1
+.serial "260926"
+.main main
+
+.routine main
+    print "Hello, world!"
+    new_line
+    quit
+.end

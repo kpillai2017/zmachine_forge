@@ -1,0 +1,139 @@
+"""§11 The header: the first 64 bytes of every story file.
+
+Offsets are named constants so code reads `H_DICTIONARY` rather than 0x08.
+Only the fields that matter to a version-5 interpreter are listed.
+"""
+from __future__ import annotations
+
+from dataclasses import dataclass
+
+from zforge.common.errors import StoryFileError, UnsupportedVersion
+
+HEADER_SIZE = 64
+
+H_VERSION = 0x00          # Version number (1 to 6)
+H_FLAGS1 = 0x01           # Flags 1 (v4+ meaning: interpreter capabilities)
+H_RELEASE = 0x02          # Release number (word)
+H_HIGH_MEMORY = 0x04      # Base of high memory
+H_INITIAL_PC = 0x06       # Initial PC (byte address in v1-5)
+H_DICTIONARY = 0x08       # Location of dictionary
+H_OBJECTS = 0x0A          # Location of object table
+H_GLOBALS = 0x0C          # Location of global variables table
+H_STATIC_MEMORY = 0x0E    # Base of static memory
+H_FLAGS2 = 0x10           # Flags 2 (word)
+H_SERIAL = 0x12           # Serial code: 6 ASCII characters
+H_ABBREVIATIONS = 0x18    # Location of abbreviations table
+H_FILE_LENGTH = 0x1A      # Length of file, divided by 4 in v4-5 (§11.1.6)
+H_CHECKSUM = 0x1C         # Checksum of file
+H_INTERPRETER_NUMBER = 0x1E
+H_INTERPRETER_VERSION = 0x1F
+H_SCREEN_HEIGHT_LINES = 0x20   # 255 = infinite
+H_SCREEN_WIDTH_CHARS = 0x21
+H_SCREEN_WIDTH_UNITS = 0x22    # word
+H_SCREEN_HEIGHT_UNITS = 0x24   # word
+H_FONT_WIDTH_UNITS = 0x26      # v5: width of '0'
+H_FONT_HEIGHT_UNITS = 0x27     # v5
+H_DEFAULT_BACKGROUND = 0x2C
+H_DEFAULT_FOREGROUND = 0x2D
+H_TERMINATING_CHARS = 0x2E     # address of terminating characters table
+H_STANDARD_REVISION = 0x32     # two bytes: major, minor
+H_ALPHABET_TABLE = 0x34        # 0 = default alphabets
+H_EXTENSION_TABLE = 0x36       # header extension table
+
+# Flags 1 bits (from version 4) - set by the INTERPRETER
+F1_COLOURS = 1 << 0
+F1_PICTURES = 1 << 1
+F1_BOLD = 1 << 2
+F1_ITALIC = 1 << 3
+F1_FIXED = 1 << 4
+F1_SOUND = 1 << 5
+F1_TIMED_INPUT = 1 << 7
+
+# Flags 2 bits - set by the GAME; the interpreter clears requests it can't meet
+F2_TRANSCRIPT = 1 << 0
+F2_FIXED_PITCH = 1 << 1
+F2_PICTURES = 1 << 3
+F2_UNDO = 1 << 4
+F2_MOUSE = 1 << 5
+F2_COLOURS = 1 << 6
+F2_SOUND = 1 << 7
+F2_MENUS = 1 << 8
+
+# Header extension table word indexes (§11.1.7)
+HX_MOUSE_X = 1
+HX_MOUSE_Y = 2
+HX_UNICODE_TABLE = 3
+HX_FLAGS3 = 4
+
+FILE_LENGTH_DIVISOR_V5 = 4      # §11.1.6
+PACKED_ADDRESS_FACTOR_V5 = 4    # §1.2.3: v4-5 packed address P -> 4P
+SUPPORTED_VERSION = 5
+
+
+def word(data: bytes | bytearray, offset: int) -> int:
+    return (data[offset] << 8) | data[offset + 1]
+
+
+@dataclass(frozen=True)
+class Header:
+    """A read-only snapshot of the fields a loader needs."""
+    version: int
+    release: int
+    high_memory: int
+    initial_pc: int
+    dictionary: int
+    objects: int
+    globals: int
+    static_memory: int
+    abbreviations: int
+    file_length: int
+    checksum: int
+    serial: str
+    alphabet_table: int
+    extension_table: int
+    terminating_chars: int
+
+    @classmethod
+    def parse(cls, data: bytes | bytearray) -> "Header":
+        if len(data) < HEADER_SIZE:
+            raise StoryFileError("Not a valid story file: shorter than the 64-byte header")
+        version = data[H_VERSION]
+        if version != SUPPORTED_VERSION:
+            if 1 <= version <= 8:
+                raise UnsupportedVersion(
+                    f"Unsupported story version {version}: zforge implements version 5 only")
+            raise StoryFileError(f"Not a valid story file: version byte is {version}")
+        h = cls(
+            version=version,
+            release=word(data, H_RELEASE),
+            high_memory=word(data, H_HIGH_MEMORY),
+            initial_pc=word(data, H_INITIAL_PC),
+            dictionary=word(data, H_DICTIONARY),
+            objects=word(data, H_OBJECTS),
+            globals=word(data, H_GLOBALS),
+            static_memory=word(data, H_STATIC_MEMORY),
+            abbreviations=word(data, H_ABBREVIATIONS),
+            file_length=word(data, H_FILE_LENGTH) * FILE_LENGTH_DIVISOR_V5,
+            checksum=word(data, H_CHECKSUM),
+            serial=bytes(data[H_SERIAL:H_SERIAL + 6]).decode("latin-1"),
+            alphabet_table=word(data, H_ALPHABET_TABLE),
+            extension_table=word(data, H_EXTENSION_TABLE),
+            terminating_chars=word(data, H_TERMINATING_CHARS),
+        )
+        h.validate(len(data))
+        return h
+
+    def validate(self, actual_size: int) -> None:
+        if self.static_memory < HEADER_SIZE or self.static_memory > actual_size:
+            raise StoryFileError("Not a valid story file: bad static memory base")
+        if not HEADER_SIZE <= self.initial_pc < actual_size:
+            raise StoryFileError("Not a valid story file: initial PC outside the file")
+        if self.file_length and self.file_length > actual_size:
+            raise StoryFileError(
+                f"Not a valid story file: header says {self.file_length} bytes, "
+                f"file has {actual_size} (truncated?)")
+
+
+def compute_checksum(data: bytes | bytearray, file_length: int) -> int:
+    """§15 verify: sum of all bytes from 0x40 to the file length, mod 0x10000."""
+    return sum(data[HEADER_SIZE:file_length]) & 0xFFFF

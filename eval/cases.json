@@ -1,0 +1,436 @@
+{
+  "_doc": "Acceptance cases from the proforma, Section 1b. Run: python -m eval.run_eval",
+  "cases": [
+    {
+      "id": "spec-grounding",
+      "type": "spec_opcodes",
+      "expect": "spec/opcodes.json lists 98 v5 opcodes and matches zforge/common/opcodes.py"
+    },
+    {
+      "id": "czech-conformance",
+      "type": "story",
+      "story": "stories/czech.z5",
+      "script": [],
+      "must_contain": [
+        "Failed: 0"
+      ],
+      "must_not_contain": [
+        "error:"
+      ]
+    },
+    {
+      "id": "praxix-conformance",
+      "type": "story",
+      "story": "stories/praxix.z5",
+      "script": [
+        "all"
+      ],
+      "must_contain": [
+        "All tests passed"
+      ]
+    },
+    {
+      "id": "strictz-no-crash",
+      "type": "story",
+      "story": "stories/strictz.z5",
+      "script": [
+        "n",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ],
+      "must_not_contain": [
+        "error:"
+      ]
+    },
+    {
+      "id": "compile-hello",
+      "type": "compile_run",
+      "source": "examples/hello.zil",
+      "script": [],
+      "must_contain": [
+        "Hello, world!"
+      ]
+    },
+    {
+      "id": "compile-arith-edges",
+      "type": "compile_run",
+      "source": "tests/samples/arith.zil",
+      "script": [],
+      "must_contain_lines": [
+        "-3",
+        "-1",
+        "1",
+        "-32768",
+        "24464",
+        "-5",
+        "10",
+        "3",
+        "8",
+        "14",
+        "-1",
+        "logic ok",
+        "equal? chain ok"
+      ]
+    },
+    {
+      "id": "mini-adventure-win",
+      "type": "compile_run",
+      "source": "examples/cloak.zil",
+      "script": [
+        "look",
+        "n",
+        "w",
+        "drop cloak",
+        "take cloak",
+        "hang cloak on hook",
+        "e",
+        "s",
+        "read message"
+      ],
+      "must_contain": [
+        "Dropped.",
+        "Taken.",
+        "You hang the velvet cloak",
+        "*** You have won ***",
+        "You scored 2 out of 2"
+      ]
+    },
+    {
+      "id": "mini-adventure-lose",
+      "type": "compile_run",
+      "source": "examples/cloak.zil",
+      "script": [
+        "s",
+        "look",
+        "x floor",
+        "w",
+        "n",
+        "w",
+        "hang cloak",
+        "e",
+        "s",
+        "read message"
+      ],
+      "must_contain": [
+        "Blundering around",
+        "*** You have lost ***"
+      ]
+    },
+    {
+      "id": "undo",
+      "type": "compile_run",
+      "source": "examples/cloak.zil",
+      "script": [
+        "w",
+        "hang cloak",
+        "undo",
+        "i"
+      ],
+      "must_contain": [
+        "[Previous turn undone.]",
+        "(being worn)"
+      ]
+    },
+    {
+      "id": "status-line-upper-window",
+      "type": "screen",
+      "source": "examples/cloak.zil",
+      "script": [
+        "w"
+      ],
+      "row0_contains": [
+        "Cloakroom",
+        "Score: 0",
+        "Moves: 1"
+      ],
+      "row0_reverse": true
+    },
+    {
+      "id": "save-restore-quetzal",
+      "type": "save_restore",
+      "source": "examples/cloak.zil",
+      "script": [
+        "w",
+        "hang cloak",
+        "save",
+        "{save_file}",
+        "e",
+        "restore",
+        "{save_file}",
+        "i"
+      ],
+      "must_contain": [
+        "Saved.",
+        "Restored.",
+        "A velvet cloak hangs on the brass hook.",
+        "You are empty-handed."
+      ]
+    },
+    {
+      "id": "compile-errors-reported",
+      "type": "compile_error",
+      "source": "tests/samples/broken.zil",
+      "expect_errors": [
+        "4:13",
+        "5:5",
+        "6:11"
+      ]
+    },
+    {
+      "id": "reject-non-v5",
+      "type": "reject",
+      "expect": "Unsupported story version 3"
+    },
+    {
+      "id": "reject-truncated",
+      "type": "reject_truncated",
+      "expect": "Not a valid story file"
+    },
+    {
+      "id": "disasm-shows-text",
+      "type": "disasm",
+      "source": "examples/hello.zil",
+      "must_contain": [
+        "print",
+        "'Hello, world!\\n'",
+        "quit"
+      ]
+    },
+    {
+      "id": "readability-audit",
+      "type": "audit",
+      "expect": "every opcode handler has a docstring citing the spec (\u00a7)"
+    },
+    {
+      "id": "grammar-adventure-win",
+      "type": "compile_run",
+      "source": "examples/cloak_syntax.zil",
+      "script": [
+        "w",
+        "drop cloak",
+        "take black cloak",
+        "put cloak onto the brass hook",
+        "e",
+        "s",
+        "read message"
+      ],
+      "must_contain": [
+        "Dropped.",
+        "Taken.",
+        "You hang the velvet cloak",
+        "*** You have won ***",
+        "You scored 2 out of 2"
+      ]
+    },
+    {
+      "id": "grammar-parser-messages",
+      "type": "compile_run",
+      "source": "examples/cloak_syntax.zil",
+      "script": [
+        "take",
+        "wear",
+        "xyzzy",
+        "take hook",
+        "look at the velvet cloak",
+        "hang cloak",
+        "w",
+        "put cloak on cloak"
+      ],
+      "must_contain": [
+        "What do you want to take?",
+        "(the velvet cloak)",
+        "You're already wearing it.",
+        "I don't know the word \"xyzzy\".",
+        "You can't see any hook here.",
+        "A handsome cloak",
+        "There's nothing to hang it on here.",
+        "You can only hang things on the hook."
+      ]
+    },
+    {
+      "id": "grammar-lose-in-dark",
+      "type": "compile_run",
+      "source": "examples/cloak_syntax.zil",
+      "script": [
+        "s",
+        "wait",
+        "e",
+        "n",
+        "w",
+        "hang cloak",
+        "e",
+        "s",
+        "x message"
+      ],
+      "must_contain": [
+        "In the dark? You could easily disturb something!",
+        "Blundering around in the dark",
+        "*** You have lost ***",
+        "You scored 1 out of 2"
+      ]
+    },
+    {
+      "id": "prog-bind",
+      "type": "compile_run",
+      "source": "tests/samples/prog.zil",
+      "script": [],
+      "must_contain_lines": [
+        "prog-return 20",
+        "prog-again 4",
+        "bind-value 8",
+        "bind-return 105",
+        "sum 30"
+      ]
+    },
+    {
+      "id": "grammar-errors-reported",
+      "type": "compile_error",
+      "source": "tests/samples/broken_grammar.zil",
+      "expect_errors": [
+        "3:1",
+        "3:27",
+        "4:1",
+        "5:1",
+        "6:34",
+        "7:23"
+      ]
+    },
+    {
+      "id": "parser-disambiguation",
+      "type": "compile_run",
+      "source": "examples/parser_demo.zil",
+      "script": [
+        "take key",
+        "key",
+        "rusty",
+        "i",
+        "take book",
+        "blue",
+        "take the key",
+        "brass"
+      ],
+      "must_contain": [
+        "Which do you mean, the brass key, the iron key or the rusty key?",
+        "You take the rusty key.",
+        "Which do you mean, the red book or the blue book?",
+        "You take the blue book.",
+        "You take the brass key."
+      ]
+    },
+    {
+      "id": "parser-reply-is-new-command",
+      "type": "compile_run",
+      "source": "examples/parser_demo.zil",
+      "script": [
+        "take book",
+        "look",
+        "take iron key"
+      ],
+      "must_contain": [
+        "Which do you mean, the red book or the blue book?",
+        "look\nThe Locksmith's Study",
+        "You take the iron key."
+      ]
+    },
+    {
+      "id": "parser-pronouns",
+      "type": "compile_run",
+      "source": "examples/parser_demo.zil",
+      "script": [
+        "x it",
+        "take red book",
+        "x it",
+        "put it in box",
+        "drop it"
+      ],
+      "must_contain": [
+        "I'm not sure what \"it\" refers to.",
+        "'A Treatise on Tumblers'",
+        "You put the red book in the wooden box.",
+        "You aren't holding the red book."
+      ]
+    },
+    {
+      "id": "parser-pronoun-out-of-scope",
+      "type": "compile_run",
+      "source": "examples/cloak_syntax.zil",
+      "script": [
+        "x cloak",
+        "w",
+        "hang cloak",
+        "e",
+        "x it",
+        "w",
+        "take it"
+      ],
+      "must_contain": [
+        "You can't see the velvet cloak here.",
+        "Taken."
+      ]
+    },
+    {
+      "id": "parser-orphan-object",
+      "type": "compile_run",
+      "source": "examples/parser_demo.zil",
+      "script": [
+        "take",
+        "brass key",
+        "put",
+        "brass key",
+        "in the box",
+        "take",
+        "look"
+      ],
+      "must_contain": [
+        "What do you want to take?",
+        "You take the brass key.",
+        "What do you want to put?",
+        "What do you want to put the brass key in?",
+        "You put the brass key in the wooden box.",
+        "look\nThe Locksmith's Study"
+      ]
+    },
+    {
+      "id": "parser-orphan-not-here",
+      "type": "compile_run",
+      "source": "examples/cloak_syntax.zil",
+      "script": [
+        "take",
+        "message",
+        "drop",
+        ""
+      ],
+      "must_contain": [
+        "What do you want to take?",
+        "You can't see any message here.",
+        "What do you want to drop?",
+        "I beg your pardon?"
+      ]
+    },
+    {
+      "id": "parser-prefers-context",
+      "type": "compile_run",
+      "source": "examples/parser_demo.zil",
+      "script": [
+        "take brass key",
+        "put key in box",
+        "take key from box",
+        "rusty",
+        "drop key"
+      ],
+      "must_contain": [
+        "(the brass key)\nYou put the brass key in the wooden box.",
+        "Which do you mean, the brass key or the rusty key?",
+        "You take the rusty key.",
+        "(the rusty key)\nYou drop the rusty key."
+      ]
+    }
+  ]
+}

@@ -1,0 +1,6 @@
+# zforge and zbuilder need ONLY the Python standard library (3.11+).
+# These are for development: the test runner and the linter.
+pytest>=8
+ruff>=0.5
+# Windows has no built-in curses:
+windows-curses>=2.3; sys_platform == "win32"

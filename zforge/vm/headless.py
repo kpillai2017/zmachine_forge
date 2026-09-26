@@ -1,0 +1,36 @@
+"""Run a story with no terminal: scripted input, a VirtualScreen, a step
+limit. Used by the tests, the eval harness and zbuilder's run_story tool."""
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+
+from zforge.common.errors import ZForgeError
+from zforge.vm.machine import ZMachine
+from zforge.vm.screen.virtual import VirtualScreen
+
+
+@dataclass
+class PlayResult:
+    reason: str                     # "quit", "scripted input exhausted", "error: ..."
+    transcript: str                 # everything shown in the lower window + input
+    screen: VirtualScreen
+    vm: ZMachine
+    steps: int
+    error_trace: list[str] = field(default_factory=list)
+
+    @property
+    def ok(self) -> bool:
+        return not self.reason.startswith("error")
+
+
+def play(story: bytes, script: list[str] | None = None, seed: int = 1,
+         max_steps: int = 20_000_000, width: int = 80, height: int = 24) -> PlayResult:
+    screen = VirtualScreen(script=list(script or []), width=width, height=height)
+    vm = ZMachine(story, screen, seed=seed)
+    trace: list[str] = []
+    try:
+        reason = vm.run(max_steps=max_steps)
+    except ZForgeError as exc:
+        reason, trace = f"error: {exc}", vm.recent_trace()
+    screen.flush()
+    return PlayResult(reason, screen.transcript_text(), screen, vm, vm.steps, trace)
