@@ -7,7 +7,7 @@ A **study-friendly Z-machine toolchain (versions 5, 7 and 8)** in plain Python, 
 
 | | |
 |---|---|
-| **interpreter** | versions 5, 7 and 8 (every rule that differs lives in `zforge/common/versions.py`); every v5 opcode, object tree, dictionary, output streams, the upper/lower window screen model, Quetzal save/restore, undo. Passes `czech.z5` (406/406) and `praxix.z5` |
+| **interpreter** | versions 5, 7 and 8 (every rule that differs lives in `zforge/common/versions.py`); every v5 opcode, object tree, dictionary, output streams, the upper/lower window screen model, Quetzal save/restore, undo. Passes `czech.z5` and `czech.z8` (406/406, and the print tests match the author's reference output) and `praxix.z5` |
 | **compiler** | ZIL-lite (a documented subset of Infocom's ZIL, incl. SYNTAX grammar and PROG/BIND) -> `.zas` assembly -> `.z5`, `.z7` or `.z8` (`--target`) |
 | **assembler / disassembler** | readable `.zas` text, branch relaxation, linker, checksum; recursive-descent disassembler and `info` dumps |
 | **CLI** | curses terminal UI (status line, reverse video, colours) or plain text for pipes |

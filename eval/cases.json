@@ -600,8 +600,11 @@
       "must_not_contain": [
         "error:"
       ],
-      "skip_hint": "stories/czech.z8 needs compiling: czech 0.8 ships only czech.z5 + czech.inf; run `inform6 -v8 stories/czech.inf stories/czech.z8` (expected output: stories/czech.out8)",
-      "expect": "the czech conformance suite, compiled for v8, reports 0 failures"
+      "matches_file": "stories/czech.out8",
+      "ignore_from": "Header (No tests)",
+      "ignore_until": "Print opcodes",
+      "skip_hint": "stories/czech.z8 needs compiling: czech 0.8 ships only czech.z5 + czech.inf; run `inform -v8 stories/czech.inf stories/czech.z8` (Inform 6, e.g. `brew install inform6`)",
+      "expect": "the czech suite compiled for v8 reports 0 failures AND matches the author's czech.out8 line for line, except the interpreter-specific header report"
     },
     {
       "id": "target-setting",
@@ -617,6 +620,20 @@
       "tests": "tests/test_versions.py",
       "select": "size_limit",
       "expect": "§1.1.4: a >256K story is refused for z5 with a clear message and builds for z8 (and z7, with offsets)"
+    },
+    {
+      "id": "czech-reference-z5",
+      "suite": "v2",
+      "type": "story",
+      "story": "stories/czech.z5",
+      "script": [],
+      "must_contain": [
+        "Failed: 0"
+      ],
+      "matches_file": "stories/czech.out5",
+      "ignore_from": "Header (No tests)",
+      "ignore_until": "Print opcodes",
+      "expect": "czech.z5 matches the author's czech.out5 line for line (incl. the 19 print tests), except the interpreter-specific header report"
     }
   ]
 }

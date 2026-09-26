@@ -123,7 +123,7 @@ DEFAULT_PLAN: list[Task] = [
          ["tests/test_cli.py"]),
     Task("v2-conformance-z8", 6, "czech.z8 conformance (skips until compiled)",
          ["zbuilder/tools/fetch_stories.py", "stories/urls.txt"], ["§1"],
-         ["czech-conformance-z8"], []),
+         ["czech-conformance-z8", "czech-reference-z5"], []),
 ]
 
 

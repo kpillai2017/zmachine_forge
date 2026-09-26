@@ -193,5 +193,9 @@ v8, which §1 calls "identical to Version 5 except as stated at 1.1.4 and
    one v1 test (a v3 story used to exit 1). `reject-non-v5` still passes
    unchanged; `reject-below-v5` adds the exit code and the new wording.
 6. *czech.z8.* czech 0.8 ships only `czech.z5` plus `czech.inf` and the
-   expected outputs `czech.out3/4/5/8`, so `czech.z8` must be compiled with
-   Inform 6. Until then `czech-conformance-z8` SKIPS with that instruction.
+   expected outputs `czech.out3/4/5/8`, so `czech.z8` is compiled locally
+   with Inform 6 (`inform -v8`; 6.44 used). The case checks "Failed: 0" AND
+   matches `czech.out8` line for line, except the 10-line "Header (No tests)"
+   report, which the czech README says differs between interpreters. That
+   makes the 19 print tests (which czech cannot judge itself) checked too.
+   Without czech.z8 the case SKIPS with the instruction.

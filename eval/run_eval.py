@@ -55,7 +55,45 @@ def run_story_case(case: dict) -> list[str]:
         raise Skip(case.get("skip_hint") or
                    f"{case['story']} not downloaded (python -m zbuilder stories)")
     result = play(path.read_bytes(), case.get("script", []))
-    return _check_text(case, result.transcript + "\n" + result.reason)
+    problems = _check_text(case, result.transcript + "\n" + result.reason)
+    if "matches_file" in case:
+        problems += _compare_with_reference(case, result.transcript)
+    return problems
+
+
+def _without_block(lines: list[str], start: str | None, end: str | None) -> list[str]:
+    """Drop the lines from the one starting with `start` up to (not including)
+    the one starting with `end` - e.g. an interpreter-specific header report."""
+    if not start:
+        return lines
+    out, skipping = [], False
+    for line in lines:
+        if line.startswith(start):
+            skipping = True
+        elif skipping and end and line.startswith(end):
+            skipping = False
+        if not skipping:
+            out.append(line)
+    return out
+
+
+def _compare_with_reference(case: dict, transcript: str) -> list[str]:
+    """Compare with an expected-output file shipped with a test suite (e.g.
+    czech.out8), ignoring the block the case names as interpreter-specific."""
+    ref_path = ROOT / case["matches_file"]
+    if not ref_path.exists():
+        raise Skip(f"{case['matches_file']} not downloaded (python -m zbuilder stories)")
+    start, end = case.get("ignore_from"), case.get("ignore_until")
+    want = _without_block(ref_path.read_text(encoding="latin-1").replace("\r", "").splitlines(),
+                          start, end)
+    got = _without_block(transcript.splitlines(), start, end)
+    want, got = [w.rstrip() for w in want], [g.rstrip() for g in got]
+    for n, (w, g) in enumerate(zip(want, got, strict=False)):
+        if w != g:
+            return [f"differs from {case['matches_file']} at line {n + 1}: {g!r} != {w!r}"]
+    if len(want) != len(got):
+        return [f"{len(got)} lines, {case['matches_file']} has {len(want)}"]
+    return []
 
 
 def run_compile_run(case: dict) -> list[str]:
