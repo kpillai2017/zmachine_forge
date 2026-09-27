@@ -217,6 +217,28 @@ DEFAULT_PLAN: list[Task] = [
          ["zforge/vm/screen/curses_screen.py"],
          ["§8.8", "§15", "ADR-032"], ["curses-renderer", "curses-real-terminal"],
          ["tests/test_curses_screen.py", "tests/test_curses_tty.py"]),
+    # ---- Tier 10: study aids, and a second real Inform 7 game
+    Task("v2-second-real-game", 10, "Check I7-lite against Cold Iron: supporters are fixed in "
+         "place, 'all' reaches what is on a supporter (worn things and the rest verified too)",
+         ["zforge/compiler/i7/model.py", "zforge/lib/parser.zil", "eval/run_eval.py",
+          "tests/samples/coldiron_house.ni", "stories/urls.txt"],
+         ["ADR-037", "KNOWN_GAPS.md"], ["i7-coldiron-table"], ["tests/test_i7_multiple.py"]),
+    Task("v2-testing-commands", 10, "Inform's testing commands RULES, ACTIONS and TREE in a "
+         "--testing build; ordinary builds unchanged",
+         ["zforge/compiler/i7/standard.py", "zforge/compiler/i7/model.py",
+          "zforge/compiler/i7/lower.py", "zforge/compiler/i7/driver.py",
+          "zforge/lib/i7/testing.zil", "zforge/cli.py"],
+         ["ADR-038"], ["i7-testing-commands"], ["tests/test_i7_testing_commands.py"]),
+    Task("v2-versions-table", 10, "zforge info --versions: how z5-z8 differ, worked out from "
+         "VersionProfile, with the spec section and field of each row",
+         ["zforge/common/versions.py", "zforge/cli.py"],
+         ["§1.1.4", "§1.2.3", "§5.4", "§11.1.6", "§14"], ["info-versions"],
+         ["tests/test_versions.py"]),
+    Task("v2-study-docs", 10, "The docs in plain English: README, a guided tour of one "
+         "command, DESIGN's reading order, KNOWN_GAPS; the tour tested against real output",
+         ["README.md", "docs/TOUR.md", "docs/DESIGN.md", "docs/KNOWN_GAPS.md",
+          "docs/I7_LITE.md", "zforge/compiler/i7/phrases.py"],
+         ["ADR-037", "ADR-038"], ["tour-is-true", "readability-audit"], ["tests/test_tour.py"]),
 ]
 
 

@@ -207,6 +207,24 @@ ACTIONS: tuple[StandardAction, ...] = (
     StandardAction("quitting the game", 0, ("quit", "q"),
                    {"carry out": (R("quit the game rule", "QUIT-GAME"),)}, out_of_world=True),
 )
+
+# Inform 7's testing commands. Inform leaves them out of a released game;
+# zforge adds them only when asked ('zforge compile --testing'), so an
+# ordinary build is exactly what it was. Routines: lib/i7/testing.zil.
+TESTING_ACTIONS: tuple[StandardAction, ...] = (
+    StandardAction("switching rules tracing on", 0, ("rules", "rules on"),
+                   {"carry out": (R("rules tracing on rule", "RULES-ON"),)}, out_of_world=True),
+    StandardAction("switching rules tracing off", 0, ("rules off",),
+                   {"carry out": (R("rules tracing off rule", "RULES-OFF"),)}, out_of_world=True),
+    StandardAction("switching actions listing on", 0, ("actions", "actions on"),
+                   {"carry out": (R("actions listing on rule", "ACTIONS-ON"),)},
+                   out_of_world=True),
+    StandardAction("switching actions listing off", 0, ("actions off",),
+                   {"carry out": (R("actions listing off rule", "ACTIONS-OFF"),)},
+                   out_of_world=True),
+    StandardAction("showing the object tree", 0, ("tree",),
+                   {"carry out": (R("object tree rule", "SHOW-TREE"),)}, out_of_world=True),
+)
 del R
 
 # Every library rule by its Inform 7 name (a rule such as the carrying

@@ -107,6 +107,9 @@ def cmd_compile(args) -> int:
     target = _explicit_target(args)
     if src.suffix.lower() in I7_SUFFIXES:
         return compile_inform7(args, src, target)
+    if args.testing:
+        raise ZForgeError("--testing adds Inform 7's testing commands (RULES, ACTIONS, "
+                          "TREE), so it is for Inform 7 (.ni) sources only")
     result = compile_zil(src.read_text(), str(src), target.version if target else None)
     origin = target.origin if target else "the source"
     out = Path(args.output) if args.output else src.with_suffix(f".z{result.version}")
@@ -133,7 +136,8 @@ def compile_inform7(args, src: Path, target) -> int:
     """An Inform 7 (I7-lite) source: .ni -> ZIL-lite -> story (default z8)."""
     from zforge.compiler.i7.driver import DEFAULT_TARGET, compile_i7
 
-    result = compile_i7(src.read_text(), str(src), target.version if target else None)
+    result = compile_i7(src.read_text(), str(src), target.version if target else None,
+                        testing=args.testing)
     origin = target.origin if target else f"the I7-lite default (z{DEFAULT_TARGET})"
     out = Path(args.output) if args.output else src.with_suffix(f".z{result.version}")
     out.write_bytes(result.story)
@@ -178,8 +182,14 @@ def cmd_info(args) -> int:
     from zforge.asm import info
     from zforge.common.header import Header
 
+    if args.versions:                         # no story needed: the four versions
+        from zforge.common.versions import comparison_table
+        print(comparison_table())
+        return 0
+    if not args.story:
+        raise ZForgeError("info: give a story file (or --versions for the version table)")
     story = _read_story(args.story)
-    Header.parse(story)                       # validates: v5 only, sane addresses
+    Header.parse(story)                       # validates: z5-z8, sane addresses
     everything = not (args.header or args.objects or args.dictionary)
     if args.header or everything:
         print("Header (§11):\n" + info.header_report(story))
@@ -234,6 +244,8 @@ def build_parser() -> argparse.ArgumentParser:
                                     "then the source's <VERSION>)")
     c.add_argument("--emit-zil", action="store_true",
                    help="(Inform 7 sources) also write the generated ZIL-lite")
+    c.add_argument("--testing", action="store_true",
+                   help="(Inform 7 sources) add the testing commands RULES, ACTIONS and TREE")
     c.add_argument("--emit-asm", action="store_true", help="also write the .zas assembly")
     c.add_argument("--emit-tokens", action="store_true", help="also write the token stream")
     c.add_argument("--emit-ast", action="store_true", help="also write the AST")
@@ -251,7 +263,9 @@ def build_parser() -> argparse.ArgumentParser:
     d.set_defaults(func=cmd_disasm)
 
     i = sub.add_parser("info", help="dump header, object tree and dictionary")
-    i.add_argument("story")
+    i.add_argument("story", nargs="?")
+    i.add_argument("--versions", action="store_true",
+                   help="show how z5, z6, z7 and z8 differ (no story needed)")
     i.add_argument("--header", action="store_true")
     i.add_argument("--objects", action="store_true")
     i.add_argument("--dictionary", action="store_true")

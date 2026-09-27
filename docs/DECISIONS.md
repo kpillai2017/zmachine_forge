@@ -676,3 +676,88 @@ is parsed from inside the parser).
 **Consequences.** Several objects now work in every position I7-lite's
 grammar allows, as Inform 7 does it. Not done: Inform 7's "deciding whether
 all includes" activity; editing the "(first taking ... off)" message.
+
+## ADR-037: A second real game - supporters, "all" and the table (Cold Iron)
+
+**Context.** Three things in ADR-035/036 rested on memory rather than on a
+real game: whether "all" leaves out worn things, how "Which do you mean"
+behaves inside a list, and whether Inform 7 makes a supporter fixed in
+place. We looked for a second game built by Inform 7 to Z-code, with its
+source published, and pinned Andrew Plotkin's *Cold Iron* (release 6,
+Inform 7 build 6G60, 2010; `stories/urls.txt`). We also played Stephen
+Granade's *Fragile Shells* (build 5Z71, 2009) without pinning it: it
+comes as a Blorb file, and only one of its answers is used below.
+
+**What the real games showed.**
+1. *Cold Iron* says "The table is a supporter in House." and nothing
+   more: no "fixed in place", and no rule about taking it. Yet
+   `take table` answers "That's fixed in place." So **a supporter is
+   fixed in place unless the author says otherwise.** I7-lite let you pick
+   one up. Now the supporter kind carries FIXEDBIT, like doors, and
+   "portable" still overrides it.
+2. `take all` in *Cold Iron*'s front room takes the book lying **on** the
+   table, and prints it as a list ("book: ..."): the fixed table counts as
+   a thing you could have meant. I7-lite's "all" only looked at the floor.
+   Now it also looks at what's on each supporter in the room (one level,
+   the same as the parser's scope), right after that supporter.
+3. *Fragile Shells* starts you wearing a spacesuit, holding nothing.
+   `drop all` answers "There are none at all available!", and the source
+   has no rule that would make it so. So "all" leaves worn things out, as
+   I7-lite already did.
+4. Neither game has two things that honestly share a name early on.
+   *Fragile Shells* seems to (two "walls"), but its author's "Does the
+   player mean" rule makes the choice, so it tells us nothing about
+   Inform's own. **"Which do you mean" in a list stays unchecked.**
+5. The 2009 and 2010 builds answer "all" after a word like "on", "at" or
+   "off" with "You can't see any such thing" (`put book on all`,
+   `take off all`), and `put book on table and book` with "I only
+   understood you as far as ...". The 2014 build of *Adventure* answers
+   the same kind of command with "one thing at a time". Inform's parser
+   changed between these builds, so the older games can't settle which
+   error wins when grammar lines disagree. We follow the 2014 build and
+   leave that question open.
+
+**Decision.** Fix 1 and 2. Keep the rest, and list the unchecked points in
+KNOWN_GAPS. Open containers stay out of "all": no game has shown what
+Inform does with them.
+
+**How it's checked.** `tests/samples/coldiron_house.ni` rebuilds the front
+room in I7-lite, with the author's own rule for picking up the book. The
+eval case `i7-coldiron-table` plays the same commands on it and on the
+real `coldiron.z8`, and compares the replies (not the game's long
+opening, which the port doesn't reproduce; `"replies_only": true`). The
+port found one gap of its own: "The book is not lifted." isn't understood
+after "The book can be lifted.", so the port names both states.
+
+## ADR-038: Inform's testing commands, for studying a game
+
+**Context.** The project is for studying how a game works, and Inform 7
+already has the right tools for it: `rules`, `actions` and `tree`, which
+it leaves out of a released game.
+
+**Decision.**
+1. `zforge compile --testing` (Inform 7 sources only) adds the three
+   commands. Ordinary builds are exactly what they were: the extra code is
+   in `lib/i7/testing.zil`, included only for such builds. A test checks
+   that a testing build plays the same as an ordinary one while the
+   commands aren't used.
+2. `rules` shows `[Rule "..." applies.]` for each rule once its opening
+   line matches, as Inform does. For your own rules, the check sits right
+   after the rule's conditions, and the rule is shown in the words you
+   wrote ("Instead of taking the lamp"), or by its name if it has one.
+   The library's rules are called through a small wrapper that prints
+   their Inform names. A library rule's conditions are just its action's,
+   so it applies whenever it is reached.
+3. `actions` prints `[taking the lamp]` when an action starts, and
+   `[taking the lamp - succeeded]` or `- failed` when it ends. The name
+   comes in two parts around the first thing, as Inform writes it
+   ("putting" + the book + "on" + the table). The testing commands don't
+   list themselves.
+4. `tree` prints each room with everything in it, indented once per level,
+   marks worn things, and ends with the things that are nowhere
+   (off-stage). The compiler gives it a list of every room and thing.
+
+**Not done.** Inform's `showme`, `scope`, `test` and `rules all`; tracing
+the library's own activity rules. The wording of the on/off messages
+follows Inform's as we remember it, and hasn't been checked against a
+real game (release builds leave the commands out).

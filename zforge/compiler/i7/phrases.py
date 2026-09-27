@@ -214,6 +214,15 @@ class PhraseLowerer:
         call = self.use_of("decide", t, where)
         if call:
             return call
+        return (self.special_condition(t, low, where)
+                or self.whereabouts_condition(t, where)
+                or self.general_condition(t, where)
+                or self.problem(where, text, "I7-lite does not understand this condition."))
+
+    def special_condition(self, t: str, low: str, where: Location) -> str | None:
+        """Conditions with a wording of their own: darkness, an activity going
+        on, 'the player consents', an empty text, 'encloses', a random chance.
+        None: not one of these (the next group is tried)."""
         if low in ("in darkness", "in the dark"):
             return "<NOT ,LIT>"
         m = re.match(r"^handling (the .+ activity)$", t, re.I)
@@ -235,6 +244,12 @@ class PhraseLowerer:
         m = re.match(r"^a random chance of (\d+) in (\d+) succeeds$", low)
         if m:
             return f"<NOT <G? <RANDOM {m.group(2)}> {m.group(1)}>>"
+        return None
+
+    def whereabouts_condition(self, t: str, where: Location) -> str | None:
+        """Where the player is and what they have: 'the player is in the Bar',
+        'the player carries the lamp', 'the cloak is held', 'something is on
+        the table'. None: not one of these."""
         m = re.match(r"^(?:the player|we) (?:is |are )?(not )?(?:in) (.+)$", t, re.I)
         if m:
             room = self.L.m.find(m.group(2))
@@ -259,6 +274,11 @@ class PhraseLowerer:
         if m:
             test = f"<FIRST? {self.value(m.group(2), where)}>"
             return test if m.group(1).lower() == "something" else f"<NOT {test}>"
+        return None
+
+    def general_condition(self, t: str, where: Location) -> str | None:
+        """Comparisons ('the score is greater than 3'), 'X is in/on Y', and last
+        'X is Y' in all its forms (is_test). None: not understood."""
         for word, form in COMPARISONS:
             if word in t:
                 a, b = t.split(word, 1)
@@ -272,7 +292,7 @@ class PhraseLowerer:
             subject, negated, what = m.group(1), bool(m.group(2)), m.group(3)
             test = self.is_test(subject, what, where, t)
             return f"<NOT {test}>" if negated else test
-        return self.problem(where, text, "I7-lite does not understand this condition.")
+        return None
 
     def is_test(self, subject: str, what: str, where: Location, whole: str) -> str:
         """'X is lit', 'X is a container', 'X is the Foyer', 'X is 3'."""
@@ -639,6 +659,22 @@ class PhraseLowerer:
             return [self.let(m.group(1), m.group(2), where)]
         if low.startswith("now "):
             return [self.now(t[4:], where)]
+        for group in (self.changing_phrase, self.steering_phrase):
+            code = group(t, low, where)
+            if code is not None:              # ([] is an answer too: 'do nothing')
+                return code
+        if low in self.do_phrases:
+            return [f"<{self.do_phrases[low]}>"]
+        call = self.use_of("do", t, where)
+        if call:
+            return [call]
+        self.problem(where, t, "I7-lite does not know this phrase.")
+        return []
+
+    def changing_phrase(self, t: str, low: str, where: Location) -> list[str] | None:
+        """Phrases that change a value or where something is: increase and
+        decrease (increment, decrement), move, remove from play. None: not
+        one of these."""
         m = re.match(r"^(increment|decrement) (.+)$", t, re.I)     # by one
         if m:
             verb = "increase" if m.group(1).lower() == "increment" else "decrease"
@@ -659,6 +695,12 @@ class PhraseLowerer:
         m = re.match(r"^remove (.+?) from play$", t, re.I)
         if m:
             return [f"<REMOVE {self.value(m.group(1), where)}>"]
+        return None
+
+    def steering_phrase(self, t: str, low: str, where: Location) -> list[str] | None:
+        """Phrases that steer the story: ending it, stopping or continuing the
+        action, beginning or ending an activity, trying another action.
+        None: not one of these."""
         m = re.match(r'^end the story( finally)?(?: saying (".*"))?$', t, re.I)
         if m:
             code = [f"<SETG STORY-ENDED {2 if m.group(1) else 1}>"]
@@ -685,13 +727,7 @@ class PhraseLowerer:
         m = re.match(r"^try (silently )?(.+)$", t, re.I)
         if m:
             return [self.try_action(m.group(2), bool(m.group(1)), where)]
-        if low in self.do_phrases:
-            return [f"<{self.do_phrases[low]}>"]
-        call = self.use_of("do", t, where)
-        if call:
-            return [call]
-        self.problem(where, t, "I7-lite does not know this phrase.")
-        return []
+        return None
 
     def try_action(self, text: str, silently: bool, where: Location) -> str:
         found = self.find_action(text, where)

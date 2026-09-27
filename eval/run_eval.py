@@ -360,6 +360,8 @@ def run_i7_differential(case: dict) -> list[str]:
     src = ROOT / case["source"]
     story = compile_i7(src.read_text(), str(src), target=case["target"]).story
     ours = responses(play(story, commands).transcript, commands, banner)
+    if case.get("replies_only"):             # a port of one room: the game's own
+        real[0] = ours[0] = []               # opening is not part of the check
     return differences(commands, real, ours)
 
 

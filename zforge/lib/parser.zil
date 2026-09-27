@@ -399,10 +399,16 @@
            <REPEAT ()
                <COND (<ZERO? .O> <RETURN>)>
                <COND (<NOT <EQUAL? .O ,PLAYER>> <SETG P-ALL-SEEN <+ ,P-ALL-SEEN 1>>)>
-               <COND (<NOT <OR <EQUAL? .O ,PLAYER> <FSET? .O ,SCENERYBIT>
-                               <FSET? .O ,FIXEDBIT> <FSET? .O ,PERSONBIT>>>
-                      <MULTI-ADD .O>)>
+               <COND (<NOT <EQUAL? .O ,PLAYER>> <ADD-IF-TAKEABLE .O>)>
+               <COND (<FSET? .O ,SUPPORTERBIT>          ;"and what is on a supporter"
+                      <MAP-CONTENTS (C .O)               ;"(Cold Iron's book on its table)"
+                          <SETG P-ALL-SEEN <+ ,P-ALL-SEEN 1>>
+                          <ADD-IF-TAKEABLE .C>>)>
                <SET O <NEXT? .O>>>)>>
+
+<ROUTINE ADD-IF-TAKEABLE (O)
+    <COND (<NOT <OR <FSET? .O ,SCENERYBIT> <FSET? .O ,FIXEDBIT> <FSET? .O ,PERSONBIT>>>
+           <MULTI-ADD .O>)>>
 
 <ROUTINE COUNT-HELD ("AUX" (N 0) O)
     <SET O <FIRST? ,PLAYER>>

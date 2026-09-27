@@ -55,7 +55,7 @@ listed in room descriptions (not yet checked against real Inform 7).
 | `North is the Cloakroom.` (inside a room's paragraph) | from the room being described | 7b |
 | `The Bar is dark.` / `lit` | darkness | 7a |
 | `A brass hook is in the Cloakroom.` | a thing, placed | 7a |
-| `The hook is a supporter in the Cloakroom.` | with a kind | 7a |
+| `The hook is a supporter in the Cloakroom.` | with a kind. A supporter is fixed in place unless you say it is portable, as in Inform 7 (checked against *Cold Iron*, ADR-037) | 7a |
 | `The cloak is on the hook.` / `in the box` | placement on a supporter / in a container | 7a |
 | `The player wears a velvet cloak.` / `carries` | the player's possessions | 7a |
 | `It is scenery.` / `It is fixed in place.` | `It` = the last thing named | 7a |
@@ -113,8 +113,9 @@ drop, put ... on / in and insert lines use `[things]` / `[things preferably
 held]`, so the player can type `take all`, `drop all except the lamp`,
 `take all but food`, `take lamp and keys`, `drop lamp, keys and food`.
 Each object's result is on its own line after its name (`keys: Taken.`),
-all in one turn. What ALL means: for take, what lies in the room - not
-scenery, not fixed in place, not people, not what is held; for drop and put,
+all in one turn. What ALL means: for take, what lies in the room or on a
+supporter in it (a book on a table: *Cold Iron*, ADR-037) - not scenery,
+not fixed in place, not people, not what is held; for drop and put,
 what is carried but not worn. `put all in the box` leaves out the box. ALL
 is one object, with `(the keys)`, only when ONE thing could have been meant;
 otherwise even a single thing left over is `bottle of water: Taken.`
@@ -563,3 +564,12 @@ extensions (`Include`), `does nothing`, action variables, kinds of action
 (`... is attempting entry`), rulebooks the author makes, `Definition:`,
 backdrops, regions, scenes, kinds of value, `[text]` tokens, units,
 lists, and any viewpoint other than second person present.
+
+## Testing commands
+
+Compile with `zforge compile --testing` to add three of Inform 7's testing
+commands, for studying a game while you play it: `rules` (and `rules off`)
+shows each rule as it applies, `actions` (and `actions off`) shows each
+action as it starts and how it ends, and `tree` shows where every room and
+thing is. An ordinary build doesn't have them, just as a released Inform 7
+game doesn't. See [TOUR.md](TOUR.md) for an example, and ADR-038.

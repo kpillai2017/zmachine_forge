@@ -18,3 +18,10 @@ https://ifarchive.org/if-archive/games/zcode/Jigsaw.z8 1776c051db9cc3ceccd876e0c
 #   ...and its Inform 7 SOURCE (a real-world reference for the I7-lite subset;
 #   see docs/I7_SURVEY.md)
 https://ifarchive.org/if-archive/games/source/inform/Advent_Crowther_source.txt 4a0ec6dc6c0cfe11689f623fd4bb7d987f7d500868a2737df24ef2904efeca27
+#   Cold Iron, by Andrew Plotkin (2010), release 6 - compiled by Inform 7
+#   build 6G60. A second real Inform 7 game: its front room has a table (a
+#   supporter the source never calls fixed in place) with a book on it, the
+#   check behind tests/samples/coldiron_house.ni (ADR-037).
+https://ifarchive.org/if-archive/games/zcode/coldiron.z8 5811d4d2e31a782d2d2670dc13c3642eb688eee34651fbdfc6cc7523fde53d19
+#   ...and its source, to show what the author did and did not write
+https://ifarchive.org/if-archive/games/source/inform/coldiron.ni 1d5dbad86e55aa34981813f35f35f2cae54959bc14701d0b15371ac5d88d4c89

@@ -39,18 +39,21 @@ class I7Result:
         return self.compiled.version
 
 
-def generate_zil(source: str, filename: str = "story.ni") -> tuple[WorldModel, str, list[str]]:
-    """The first half: I7 text -> (model, ZIL-lite text, notes)."""
+def generate_zil(source: str, filename: str = "story.ni",
+                 testing: bool = False) -> tuple[WorldModel, str, list[str]]:
+    """The first half: I7 text -> (model, ZIL-lite text, notes). TESTING adds
+    Inform's testing commands (RULES, ACTIONS, TREE)."""
     problems = Problems(Path(filename).name)
-    model = build_model(read_sentences(source), problems)
+    model = build_model(read_sentences(source), problems, testing)
     problems.raise_if_any()                        # no point lowering a broken model
     zil = lower_model(model, problems, Path(filename).with_suffix(".zil").name)
     problems.raise_if_any()
     return model, zil, model.notes
 
 
-def compile_i7(source: str, filename: str = "story.ni", target: int | None = None) -> I7Result:
-    model, zil, notes = generate_zil(source, filename)
+def compile_i7(source: str, filename: str = "story.ni", target: int | None = None,
+               testing: bool = False) -> I7Result:
+    model, zil, notes = generate_zil(source, filename, testing)
     generated = str(Path(filename).with_suffix(".generated.zil"))
     try:
         compiled = compile_zil(zil, generated, target if target is not None else DEFAULT_TARGET)

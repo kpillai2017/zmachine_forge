@@ -14,7 +14,7 @@ from zforge.compiler.i7.model import Obj, Rule, WorldModel
 from zforge.compiler.i7.phrases import PhraseLowerer
 from zforge.compiler.i7.problems import Location, Problems
 from zforge.compiler.i7.standard import ACTIVITIES, DIRECTIONS, INTERNAL_RULES, LIBRARY_RULES, \
-    STAGES, zil_name, zil_string
+    STAGES, TESTING_ACTIONS, zil_name, zil_string
 from zforge.compiler.i7.text import parse_text
 
 # ZIL names the library already uses: generated names must not clash
@@ -61,6 +61,10 @@ class Grammar:
     tokens: list[str]            # the ZIL words after the verb: OBJECT, prepositions
 
 
+# RULES, ACTIONS and TREE do not list themselves in ACTIONS
+TESTING_ACTION_NAMES = frozenset(a.name for a in TESTING_ACTIONS)
+
+
 class Lowerer:
     def __init__(self, model: WorldModel, problems: Problems, filename: str):
         self.m = model
@@ -75,6 +79,7 @@ class Lowerer:
         self.rulebooks: dict[str, dict[str, list[tuple[tuple, str, int]]]] = {}
         self.phrases = PhraseLowerer(self)
         self.extra_globals: list[str] = []                           # e.g. [one of] counters
+        self.traced: set[str] = set()                                # --testing wrappers
 
     # ------------------------------------------------------------ entry
     def lower(self) -> str:
@@ -88,6 +93,9 @@ class Lowerer:
         self.header()
         self.directions()
         self.objects()
+        if m.testing:                                # TREE walks every room and thing
+            self.emit("<GLOBAL ALL-OBJECTS <LTABLE "
+                      + " ".join("," + a for a in self.atom.values()) + ">>", "")
         self.variables()
         self.rules()
         self.actions()
@@ -113,7 +121,8 @@ class Lowerer:
                   ' Every routine names the sentence it came from."', "",
                   "<VERSION 5>",
                   "<DIRECTIONS " + " ".join(DIRECTION_PROPS.values()) + ">",
-                  '<INSERT-FILE "lib/i7/runtime">', "",
+                  '<INSERT-FILE "lib/i7/runtime">',
+                  *(['<INSERT-FILE "lib/i7/testing">'] if m.testing else []), "",
                   f"<CONSTANT STORY-TITLE {zil_string(m.title)}>",
                   f"<CONSTANT STORY-AUTHOR {zil_string(m.author)}>",
                   f"<CONSTANT STORY-HEADLINE {zil_string(m.headline)}>",
@@ -342,6 +351,9 @@ class Lowerer:
         lines = [f'<ROUTINE {name} ({locals_})   ;"{heading} (line {rule.where.line})"']
         if guard:
             lines.append(f"    <COND (<NOT {guard}> <RFALSE>)>")
+        if self.m.testing:                            # RULES: it applies
+            label = rule.named or rule.heading or heading
+            lines.append(f"    <RULE-APPLIES {zil_string(label)}>")
         lines.extend("    " + line for line in body)
         lines.append(f"    {default}>")
         self.routines.append("\n".join(lines))
@@ -367,8 +379,11 @@ class Lowerer:
             prelude = "<SETG OUT-OF-WORLD 1> " if action.out_of_world else ""
             if action.standard and action.standard.variables:    # going: room gone to, ...
                 prelude += f"<{action.standard.variables}> "
-            self.routines.append(f'<ROUTINE V-{atom} ()   ;"the {name} action"\n'
-                                 f"    {prelude}<RUN-ACTION ,{atom}-RULES>>")
+            if self.m.testing and name not in TESTING_ACTION_NAMES:
+                self.routines.append(self.listed_action(atom, name, action.applying, prelude))
+            else:
+                self.routines.append(f'<ROUTINE V-{atom} ()   ;"the {name} action"\n'
+                                     f"    {prelude}<RUN-ACTION ,{atom}-RULES>>")
             library = Location(0)                     # before every line of the source
             grammar = [(g, library) for g in (action.standard.grammar
                                               if action.standard else ())]
@@ -411,6 +426,19 @@ class Lowerer:
                 return True
         return False
 
+    @staticmethod
+    def listed_action(atom: str, name: str, applying: int, prelude: str) -> str:
+        """A --testing build: the action routine tells ACTIONS when it starts
+        and how it ends. 'putting it on' prints as 'putting' + the book +
+        'on' + the table."""
+        verb, _, rest = name.partition(" it ")
+        parts = f"{zil_string(verb)} {zil_string(rest) if rest else 0} {applying}"
+        return (f'<ROUTINE V-{atom} ("AUX" R)   ;"the {name} action"\n'
+                f"    {prelude}<ACTION-STARTS {parts}>\n"
+                f"    <SET R <RUN-ACTION ,{atom}-RULES>>\n"
+                f"    <ACTION-ENDS {parts} .R>\n"
+                f"    <RETURN .R>>")
+
     def rulebook_global(self, global_name: str, action: str) -> str:
         """Six LTABLEs, one per stage: the library's rules and the author's,
         most specific first (ties: library first, then source order).
@@ -428,8 +456,24 @@ class Lowerer:
             if action:
                 entries = self.apply_listings(entries, (stage, action))
             entries.sort(key=lambda e: (e[0], tuple(-x for x in e[1]), e[2]))
+            if self.m.testing and action not in TESTING_ACTION_NAMES:   # RULES: library rules too
+                for e in entries:
+                    if e[2] < 1000:
+                        e[3] = self.traced_library_rule(e[3], e[4])
             tables.append("<LTABLE " + " ".join("," + e[3] for e in entries) + ">")
         return f"<GLOBAL {global_name} <TABLE {' '.join(tables)}>>"
+
+    def traced_library_rule(self, routine: str, name: str) -> str:
+        """A --testing build: a wrapper that says the library rule applies,
+        then runs it. (A library rule's conditions are its action's, so it
+        applies whenever it is reached - Inform 7 traces it the same way.)"""
+        wrapper = f"TRACED-{routine}"
+        if wrapper not in self.traced:
+            self.traced.add(wrapper)
+            self.routines.append(f'<ROUTINE {wrapper} ()   ;"RULES: the {name}"\n'
+                                 f"    <RULE-APPLIES {zil_string(name)}>\n"
+                                 f"    <RETURN <{routine}>>>")
+        return wrapper
 
     def rule_name_of(self, routine: str) -> str | None:
         return next((n for n, r in self.named_rules.items() if r == routine), None)

@@ -208,3 +208,37 @@ def test_zil_sources_build_for_compatible_targets_only():
     # §1: 7 and 8 are "identical to 5"; v6 adds opcodes but removes none
     assert compatible_targets(5) == [5, 6, 7, 8]
     assert compatible_targets(6) == [6]               # a v6 source may use the v6-only opcodes
+
+
+# ------------------------------------------------ zforge info --versions (study aid)
+def test_the_version_table_fits_a_terminal_and_names_its_sources():
+    from zforge.common.versions import comparison_table
+    table = comparison_table()
+    assert max(len(line) for line in table.splitlines()) <= 80
+    for section in ("§1.2.3", "§1.1.4", "§11.1.6", "§14"):
+        assert section in table
+
+
+def test_the_version_table_follows_the_profiles(monkeypatch):
+    """Worked out from VersionProfile, not typed in: change a profile and
+    the table changes with it."""
+    import dataclasses
+
+    from zforge.common import versions
+    row = next(line for line in versions.comparison_table().splitlines()
+               if line.startswith("Largest story file"))
+    assert row.split()[3:] == ["256K", "512K", "512K", "512K"]
+    changed = dict(versions.PROFILES)
+    changed[5] = dataclasses.replace(changed[5], max_story_size=128 * 1024)
+    monkeypatch.setattr(versions, "PROFILES", changed)
+    row = next(line for line in versions.comparison_table().splitlines()
+               if line.startswith("Largest story file"))
+    assert row.split()[3] == "128K"
+
+
+def test_zforge_info_versions_needs_no_story():
+    import subprocess
+    import sys
+    out = subprocess.run([sys.executable, "-m", "zforge", "info", "--versions"],
+                         capture_output=True, text=True)
+    assert out.returncode == 0 and "call main" in out.stdout

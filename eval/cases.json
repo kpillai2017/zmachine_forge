@@ -1163,6 +1163,60 @@
       "type": "pytest",
       "tests": "tests/test_plain_v6.py",
       "expect": "`zforge run --ui plain` on z6, through the real CLI: a story prints byte-for-byte the same on z5, z6, z7 and z8; piped stdin works; the v6 demo's painted windows (status line, panel) are shown as '| ...' rows when they change, and every command is understood"
+    },
+    {
+      "id": "i7-coldiron-table",
+      "suite": "v2",
+      "type": "i7_differential",
+      "targets": [
+        5,
+        8
+      ],
+      "reference": "stories/coldiron.z8",
+      "source": "tests/samples/coldiron_house.ni",
+      "banner": [
+        "Adventure",
+        "Colossal Cave by .*",
+        "An Interactive Fiction by .*",
+        "Release \\d+ / Serial number .*"
+      ],
+      "replies_only": true,
+      "commands": [
+        "take table",
+        "take maplewood",
+        "take all",
+        "drop all",
+        "take all",
+        "drop book",
+        "take all",
+        "put book on table",
+        "take all",
+        "x all"
+      ],
+      "expect": "the same replies as the real Cold Iron (Inform 7 6G60)",
+      "why": "a second real Inform 7 game (ADR-037): a table that is only 'a supporter' is fixed in place; TAKE ALL reaches the book lying on it; the fixed table still counts as a thing ALL could have meant ('book: Taken.', not '(the book)')"
+    },
+    {
+      "id": "i7-testing-commands",
+      "suite": "v2",
+      "type": "pytest",
+      "tests": "tests/test_i7_testing_commands.py",
+      "expect": "a --testing build answers rules, actions and tree as Inform 7 does (rules named in the author's words or by their names; actions with how they ended; the object tree with off-stage things); an ordinary build does not know them, and a testing build plays the same until they are used"
+    },
+    {
+      "id": "info-versions",
+      "suite": "v2",
+      "type": "pytest",
+      "tests": "tests/test_versions.py",
+      "select": "version_table or info_versions",
+      "expect": "`zforge info --versions` needs no story, fits 80 columns, names the spec section of every row, and follows VersionProfile (change a profile and the table changes)"
+    },
+    {
+      "id": "tour-is-true",
+      "suite": "v2",
+      "type": "pytest",
+      "tests": "tests/test_tour.py",
+      "expect": "docs/TOUR.md's story is built from the tour's own text, and every transcript, tree and ZIL excerpt it shows is what zforge really prints or writes"
     }
   ]
 }

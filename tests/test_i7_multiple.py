@@ -218,3 +218,27 @@ Instead of waiting:
     t = run(["wait", "maybe", "yes"],
             WARDROBE + 'Instead of waiting: if the player consents, say "Wheee.".\n')
     assert "Please answer yes or no.> yes" in t
+
+
+# --- checked against a second real game, Cold Iron (Inform 7 6G60, ADR-037)
+
+TABLE_ROOM = """"Table" by Test
+
+The Hall is a room.
+The table is a supporter in the Hall. The book is on the table.
+The tray is a portable supporter in the Hall.
+"""
+
+
+def test_a_supporter_is_fixed_in_place_unless_said_otherwise():
+    t = run(["take table", "take tray"], TABLE_ROOM)
+    assert reply(t, "take table") == "That's fixed in place."
+    assert reply(t, "take tray") == "Taken."
+
+
+def test_take_all_reaches_what_lies_on_a_supporter():
+    room = TABLE_ROOM.replace("The tray is a portable supporter in the Hall.\n", "")
+    t = run(["take all", "drop all", "take all"], room)
+    first, second = t.split(">take all\n")[1:3]
+    assert first.startswith("book: Taken.")    # off the table; the fixed table
+    assert second.startswith("book: Taken.")   # still counts, so it is a list

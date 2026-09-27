@@ -1,38 +1,83 @@
-# Design
+# How the pieces fit
+
+A game travels from left to right. Inform 7 is first translated into ZIL,
+ZIL is compiled into assembly, and assembly becomes the bytes of a story
+file. The interpreter then runs those bytes, and the screen shows what the
+game prints.
 
 ```
-            ZIL source ──► compiler ──► .zas text ──► assembler ──► .z5 ──► interpreter ──► screen
-                           (5 stages)                 (+ linker)            (VM + ops)      (grid → curses / plain)
-                                                                 ▲
-                                               disassembler ◄────┘  (same decoder as the VM)
+ Inform 7 (.ni) ──► compiler/i7 ──┐
+                                  ▼
+               ZIL (.zil) ──► compiler ──► assembly (.zas) ──► asm ──► story file (.z5 - .z8)
+                                                                               │
+                              disassembler ◄──────────────────────────────────┤
+                                                                               ▼
+                                                  interpreter (vm) ──► screen (curses or plain)
 ```
 
-Everything shares **one opcode table** (`zforge/common/opcodes.py`,
-checked against the spec's §14 by a test) and **one text encoder**
-(`zforge/common/text.py`), so the compiler, assembler, disassembler and VM
-can never disagree about an opcode or a z-string.
+Two things are shared by everything, so no two parts can disagree: **one
+opcode table** (`zforge/common/opcodes.py`, checked against section 14 of
+the standard by a test) and **one text encoder** (`zforge/common/text.py`).
+Everything that differs between versions 5, 6, 7 and 8 lives in one place,
+`zforge/common/versions.py`; `python -m zforge info --versions` prints it
+as a table.
 
-## Suggested study order
+The game's own library is written in ZIL, not Python: the parser
+(`zforge/lib/parser.zil`) and Inform 7's standard rules
+(`zforge/lib/i7/`). So the interpreter knows nothing about rooms, lamps or
+parsing. It just runs instructions, the way a real Z-machine does.
 
-1. `common/numbers.py`, `common/memory.py`, `common/header.py` - §1, §2, §11;
-   `common/versions.py` - every rule that differs between versions (ADR-021)
-2. `common/text.py` - §3: z-characters, alphabets, ZSCII, Unicode
-3. `vm/decoder.py` - §4: the four instruction forms
-4. `vm/frames.py`, `vm/machine.py` - §5, §6: routines, the stack, the fetch-decode-execute loop
-5. `vm/ops/*.py` - §15, one family per file; `vm/ops/__init__.py` is the explicit dispatch table
-6. `vm/objects.py`, `vm/lexer.py` - §12, §13
-7. `vm/streams.py`, `vm/screen/base.py` - §7, §8.7 (one grid model; `curses_screen.py` just draws it)
-   `vm/screen/v6.py` - §8.8: version 6's eight windows, in front of that grid (ADR-030)
-   `vm/screen/curses_screen.py` - draws either model; resizing and signals (ADR-032)
-   `vm/ops/v6.py` - §15: the eighteen opcodes version 6 adds
-8. `vm/quetzal.py` - Appendix C save files and undo
-9. `asm/syntax.py` → `asm/assembler.py` → `asm/linker.py` - text to bytes
-10. `compiler/lexer.py` → `reader.py` → `forms.py` → `grammar.py` → `semantic.py` → `codegen.py`
-11. `zforge/lib/parser.zil` + `examples/cloak_syntax.zil` - the run-time half of SYNTAX;
-    `examples/parser_demo.zil` exercises pronouns and "which do you mean?"
+## Where to start
 
-Run anything with `--trace FILE` (interpreter) or `--emit-asm --emit-tokens
---emit-ast` (compiler) to watch each stage.
+If you read one thing, read [TOUR.md](TOUR.md). It follows the command
+"take lamp" through every stage below, with the real output of each.
+
+## A reading order
+
+The machine itself:
+
+1. `common/numbers.py`, `common/memory.py`, `common/header.py` - sections
+   1, 2 and 11 of the standard; then `common/versions.py`, every rule that
+   differs between versions (ADR-021)
+2. `common/text.py` - section 3: how text is packed into the story file
+3. `vm/decoder.py` - section 4: the four shapes an instruction can take
+4. `vm/frames.py`, `vm/machine.py` - sections 5 and 6: routines, the stack,
+   and the loop that fetches and carries out each instruction
+5. `vm/ops/*.py` - section 15, one family of instructions per file;
+   `vm/ops/__init__.py` lists them all
+6. `vm/objects.py`, `vm/lexer.py` - sections 12 and 13: the object tree,
+   and splitting what you type into dictionary words
+7. `vm/streams.py`, `vm/screen/base.py` - sections 7 and 8.7: output and
+   the two-window screen; `vm/screen/v6.py` and `vm/ops/v6.py` - section
+   8.8, version 6's eight windows (ADR-030); `vm/screen/curses_screen.py`
+   draws either kind (ADR-032)
+8. `vm/quetzal.py` - appendix C: saved games and undo
+
+Making story files:
+
+9. `asm/syntax.py`, `asm/assembler.py`, `asm/linker.py` - assembly text to
+   bytes
+10. `compiler/lexer.py`, `reader.py`, `forms.py`, `grammar.py`,
+    `semantic.py`, `codegen.py` - ZIL to assembly, one stage per file
+    ([ZIL_SUBSET.md](ZIL_SUBSET.md))
+11. `zforge/lib/parser.zil` - the parser, with `examples/cloak_syntax.zil`
+    and `examples/parser_demo.zil` to try it on
+
+Inform 7:
+
+12. `compiler/i7/source.py` - cutting the source into sentences;
+    `model.py` - building the world from them; `phrases.py` - rules and
+    conditions; `lower.py` - writing it all out as ZIL; `standard.py` -
+    Inform's actions and library rules by name
+    ([I7_TO_ZIL.md](I7_TO_ZIL.md))
+13. `zforge/lib/i7/*.zil` - the library those rules live in:
+    `actions.zil` runs an action's rulebooks, `standard.zil` holds the
+    rules themselves, `activities.zil` and `say.zil` do the printing,
+    `testing.zil` the `rules`, `actions` and `tree` commands (ADR-038)
+
+To watch a stage at work: `--trace FILE` when running a game,
+`--emit-zil`, `--emit-asm`, `--emit-tokens` or `--emit-ast` when
+compiling, and `--testing` for Inform's own commands while you play.
 
 ## The zbuilder workflow
 

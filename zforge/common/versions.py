@@ -143,3 +143,47 @@ def profile_for(version: int) -> VersionProfile:
     if 1 <= version <= 8:
         raise UnsupportedVersion(f"Unsupported story version {version}: {_supported_phrase()}")
     raise StoryFileError(f"Not a valid story file: version byte is {version}")
+
+
+# ---------------------------------------------------------------- for study
+def comparison_table() -> str:
+    """'zforge info --versions': how the four versions differ, side by side.
+    Every value is worked out from the profiles above, so the table cannot
+    drift away from what the code does; each row names the spec section it
+    comes from and the VersionProfile field that carries it."""
+    from zforge.common.opcodes import table_for       # (opcodes imports nothing of ours)
+
+    def packed(p: VersionProfile, offset: str) -> str:
+        return f"{p.packed_scale}P" + (f" + 8*{offset}" if p.uses_packing_offsets else "")
+
+    rows = [
+        ("A routine's packed address", lambda p: packed(p, "R_O"), "§1.2.3",
+         "packed_scale, uses_packing_offsets"),
+        ("A string's packed address", lambda p: packed(p, "S_O"), "§1.2.3",
+         "packed_scale, uses_packing_offsets"),
+        ("Largest story file", lambda p: f"{p.max_story_size // 1024}K", "§1.1.4",
+         "max_story_size"),
+        ("Header $1a: the length /", lambda p: str(p.file_length_divisor), "§11.1.6",
+         "file_length_divisor"),
+        ("The game starts", lambda p: "call main" if p.starts_with_main_routine
+         else "at PC", "§5.4, §5.5", "starts_with_main_routine"),
+        ("Opcodes", lambda p: f"{len(table_for(p.version))}" + (
+            "" if p.opcode_table == p.version else f" (v{p.opcode_table}'s)"),
+         "§14", "opcode_table"),
+        ("Windows on the screen", lambda p: str(p.windows), "§8.7, §8.8", "windows"),
+        ("Header $26 / $27 hold", lambda p: "height,width" if p.font_bytes_swapped
+         else "width,height", "§11.1", "font_bytes_swapped"),
+    ]
+    profiles = [PROFILES[v] for v in sorted(PROFILES)]
+    lines = ["How the four versions differ (Z-Machine Standard 1.1).",
+             "Every value comes from VersionProfile in zforge/common/versions.py;",
+             "under each row: the spec section, and the field that holds it.", "",
+             (f"{'':27}" + "".join(f"{'z' + str(p.version):<13}" for p in profiles)).rstrip()]
+    for label, value, section, fieldname in rows:
+        lines.append(f"{label:<27}" + "".join(f"{value(p):<13}" for p in profiles).rstrip())
+        lines.append(f"{'':4}{section}   {fieldname}")
+    lines += ["", "P is the packed address; R_O and S_O are the routine and string offsets",
+              "in the header ($28, $2a), in units of 8 bytes. 'at PC': the header word at",
+              "$06 is where the first instruction is; 'call main': it is the packed",
+              "address of a routine the interpreter calls."]
+    return "\n".join(lines)

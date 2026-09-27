@@ -16,7 +16,8 @@ from dataclasses import dataclass, field
 from zforge.compiler.i7.problems import Location, Problems
 from zforge.compiler.i7.source import BodyLine, Sentence
 from zforge.compiler.i7.standard import (
-    ACTIONS, ACTIVITIES, DIRECTIONS, OPPOSITE, UNSUPPORTED_ACTIVITIES, StandardAction)
+    ACTIONS, ACTIVITIES, DIRECTIONS, OPPOSITE, TESTING_ACTIONS, UNSUPPORTED_ACTIVITIES,
+    StandardAction)
 from zforge.compiler.i7.text import Text, TextError, parse_text
 
 ARTICLES = ("the ", "a ", "an ", "some ")
@@ -43,7 +44,7 @@ NAMING = ("privately-named", "publicly-named")          # compile-time only: no 
 BUILTIN_KINDS = {
     "object": (None, ()), "room": ("object", ("ROOMBIT", "LITBIT")),
     "thing": ("object", ()), "container": ("thing", ("CONTAINERBIT", "OPENBIT")),         # open
-    "supporter": ("thing", ("SUPPORTERBIT",)),
+    "supporter": ("thing", ("SUPPORTERBIT", "FIXEDBIT")),       # fixed in place (ADR-037)
     "door": ("thing", ("DOORBIT", "FIXEDBIT", "OPENABLEBIT")),      # closed, openable
     "device": ("thing", ("DEVICEBIT",)), "person": ("thing", ("PERSONBIT",)),
     "man": ("person", ()), "woman": ("person", ()), "animal": ("person", ()),
@@ -112,6 +113,8 @@ class Rule:
     number: int = 0
     named: str | None = None    # "(this is the Crowther's heading rule)" -> that name
     placement: str = ""         # "first" / "last": 'The first after printing ... rule:'
+    heading: str = ""           # the opening line as written, for RULES:
+                                # "Instead of taking the lamp"
 
 
 @dataclass
@@ -141,6 +144,7 @@ class WorldModel:
     release: int = 1
     scoring: bool = False
     max_score: int = 0
+    testing: bool = False          # a --testing build: RULES, ACTIONS, TREE
     kinds: dict[str, Kind] = field(default_factory=dict)
     objects: dict[str, Obj] = field(default_factory=dict)   # in source order
     map: dict[tuple[str, str], str] = field(default_factory=dict)  # (room, dir) -> room
@@ -224,12 +228,12 @@ def unquote(s: str) -> str:
 
 # ====================================================================== build
 class ModelBuilder:
-    def __init__(self, problems: Problems):
-        self.m = WorldModel()
+    def __init__(self, problems: Problems, testing: bool = False):
+        self.m = WorldModel(testing=testing)
         self.p = problems
         for name, (parent, flags) in BUILTIN_KINDS.items():
             self.m.kinds[name] = Kind(name, parent, set(flags))
-        for a in ACTIONS:
+        for a in ACTIONS + (TESTING_ACTIONS if testing else ()):
             self.m.actions[a.name] = Action(a.name, a.applying, a, a.out_of_world)
         self.m.objects["yourself"] = Obj("yourself", "person", Location(0), proper=True)
         self.last_object: Obj | None = None          # what 'It' means
@@ -851,6 +855,7 @@ class ModelBuilder:
 
     def rule(self, s: Sentence) -> None:
         preamble = " ".join(s.text.rstrip(":").split())
+        written = preamble                               # kept for RULES to show
         low = preamble.lower()
         if low.startswith("to "):
             self.m.phrases.append(PhraseDef(preamble, s.body, s.where))
@@ -883,7 +888,8 @@ class ModelBuilder:
             activity = self.activity_named(rest)
             if activity is not None:
                 self.m.rules.append(Rule("activity " + ("for" if stage == "rule for" else stage),
-                                         rest, s.body, s.where, number, named, placement))
+                                         rest, s.body, s.where, number, named, placement,
+                                         heading=written))
                 return
             if stage == "rule for":
                 known = [a for a in UNSUPPORTED_ACTIVITIES if rest.lower().startswith(a)]
@@ -902,7 +908,7 @@ class ModelBuilder:
             if low.startswith(words):
                 rest = preamble[len(words):].strip()
                 self.m.rules.append(Rule(stage, rest, s.body, s.where, number, named,
-                                         placement))
+                                         placement, heading=written))
                 return
         self.p.unsupported(s.where, s.text, "this kind of rule")
 
@@ -916,5 +922,6 @@ class ModelBuilder:
         return None
 
 
-def build_model(sentences: list[Sentence], problems: Problems) -> WorldModel:
-    return ModelBuilder(problems).build(sentences)
+def build_model(sentences: list[Sentence], problems: Problems,
+                testing: bool = False) -> WorldModel:
+    return ModelBuilder(problems, testing).build(sentences)
