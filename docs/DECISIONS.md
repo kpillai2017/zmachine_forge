@@ -618,3 +618,61 @@ commands on the real Inform 7 Advent (the i7-advent-differential case now has
 mean" inside a list (an ambiguous name takes its first match), several
 objects in the second slot, "(first taking off)" for worn things, and
 Inform 7's "deciding whether all includes" activity.
+
+## ADR-036: The second object, unclear names in a list, worn things
+
+**Context.** ADR-035 left three gaps: "Which do you mean" inside a list,
+several objects in the second slot, and "(first taking off)" for worn things.
+
+**Evidence.** From the real Advent (i7-advent-differential, now 82
+commands): every one-object slot refuses ALL, `and` and commas with the
+*can't use multiple objects* error - `unlock grate with all` is "You can
+only unlock the grate with one thing at a time." (Advent's edit prints
+`[parser command so far]`: the verb, then for a second-slot problem the
+first object with "the" and the preposition). From the real Advent's story
+file (Inform 7 6L38's compiled Standard Rules): the rules *can't drop /
+put / insert / give clothes being worn* exist, and the message is
+"(first taking [the noun] off)", compiled right after the dropping,
+putting on and inserting messages it belongs with. The rules for what ALL
+includes named there exclude people, scenery and fixed in place things -
+none excludes worn things; the parser leaves them out (as it leaves out
+held things for TAKE ALL, also with no named rule) - recalled from
+Inform 6's parser, not observed: Advent has nothing to wear. Neither
+pinned game has two things of one name in reach, so "Which do you mean"
+inside a list is not checked against a real game.
+
+**Decision.**
+1. The second object is always one thing: ALL / a list there is the
+   *can't use multiple objects* error.
+2. Errors are ranked as Inform 6's parser ranks them (can't see < can't use
+   multiple objects < not sure what "it" means < "it" gone < nothing to
+   do); only a strictly higher error replaces the one kept, so among equals
+   the first row's error is reported (the "unlock ... with" row before
+   "unlock", as in Inform 7's sorted grammar). Inform 7 games only: ZIL
+   games keep "the last row's error" (their bytes are unchanged).
+3. An unclear name in a list is kept as a placeholder while the command is
+   read; once the command fits, each placeholder gets the question a single
+   object gets (CHOOSE), in order. (Asking at once would overwrite the rest
+   of the command: the answer is read into the same buffer.) After
+   `except`, an unclear name takes out every thing it fits.
+4. The three clothes-being-worn rules (giving is not an I7-lite action):
+   "(first taking [the noun] off)", silently try taking off, stop if still
+   worn. Not editable, like the carrying requirements rule's "(first taking
+   the X)".
+5. An internal rule's response is printed with no automatic line break
+   (Inform 7 prints it from Inform 6 code, not with `say`): the real
+   Advent's edited "Please respond yes or no. " is followed by the prompt on
+   the same line. The yes or no question internal rule is new (Advent edits
+   it).
+
+**Found on the way** (bugs of ADR-035, each with a test now): the list code
+used object 2's candidate table as scratch and left it filled, so an
+ambiguous LAST item of a one-object command got a bogus extra question;
+`drop all and lamp` collapsed to one object when ALL had one candidate,
+dropping the lamp silently; a new command typed as the answer to a list's
+question kept the old list (the reset was in the turn loop, and the answer
+is parsed from inside the parser).
+
+**Consequences.** Several objects now work in every position I7-lite's
+grammar allows, as Inform 7 does it. Not done: Inform 7's "deciding whether
+all includes" activity; editing the "(first taking ... off)" message.

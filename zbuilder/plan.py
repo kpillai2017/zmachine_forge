@@ -180,6 +180,15 @@ DEFAULT_PLAN: list[Task] = [
           "zforge/compiler/i7/model.py", "examples/advent_opening.ni"],
          ["I7_LITE.md", "ADR-035"],
          ["i7-advent-differential", "golden"], ["tests/test_i7_multiple.py"]),
+    Task("v2-i7-multiple-2", 7, "I7-lite: the second object is always one thing, errors "
+         "ranked as Inform ranks them, 'Which do you mean' inside a list, '(first taking the "
+         "cloak off)' for worn things, internal rules' responses without a line break "
+         "(ADR-036)",
+         ["zforge/lib/parser.zil", "zforge/lib/i7/runtime.zil", "zforge/lib/i7/standard.zil",
+          "zforge/lib/i7/activities.zil", "zforge/compiler/i7/standard.py",
+          "zforge/compiler/i7/lower.py", "examples/advent_opening.ni"],
+         ["I7_LITE.md", "ADR-036"],
+         ["i7-advent-differential", "golden"], ["tests/test_i7_multiple.py"]),
 
     # ---- Tier 8: version 6, the eight-window screen model (§8.8, ADR-030)
     Task("v2-v6-file", 8, "a z6 story file: §5.4 starts by calling main, §11.1 swaps "

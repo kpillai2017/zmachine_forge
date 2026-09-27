@@ -25,9 +25,10 @@
   values are 1/0 (ADR-012); PROG/BIND cannot shadow a variable (ADR-017).
 - **Grammar / parser library** (ADR-016, 018-020): ALL / MANY (several
   objects) is Inform 7 only (ADR-035) - ZIL games still say 'I don't know
-  the word "all"'; in a list, an ambiguous name takes its first match
-  (no "Which do you mean"), only the first object slot can be several, and
-  no "(first taking off)" for worn things; no implicit TAKE; search options are preferences only (the
+  the word "all"'; "Which do you mean" inside a list (ADR-036) is not
+  checked against a real game; Inform 7's "deciding whether all includes"
+  activity is not supported; the "(first taking ... off)" message cannot be
+  edited; ZIL games: no implicit TAKE; search options are preferences only (the
   verb routine still has to check); one level of containment in scope; one
   IT for all pronouns; at most 8 candidates are offered; the parser only
   asks for a missing object at the END of a command ("put in box" is not

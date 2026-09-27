@@ -69,9 +69,10 @@ Rule for printing a parser error when the latest parser error is the nothing to 
 [Advent 261: there is nothing to examine closely.]
 Instead of examining something: try looking.
 
-[Advent 354, 363, 367.]
+[Advent 354, 363, 367, 397.]
 The standard report taking rule response (A) is "OK."
 The can't take what's already taken rule response (A) is "[We] [are] already carrying [regarding the noun][them]! ".
+The yes or no question internal rule response (A) is "Please respond yes or no. ".
 The standard report dropping rule response (A) is "OK."
 The can't go that way rule response (A) is "There is no way to go that direction."
 The list writer internal rule response (D) is "lit".

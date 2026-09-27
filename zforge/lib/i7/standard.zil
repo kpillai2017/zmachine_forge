@@ -168,6 +168,14 @@
     <TELL "(first taking "> <SAY-THE ,PRSO> <TELL ")" CR>
     <TRY ,V?TAKING ,V-TAKING ,PRSO 0 1>
     <NOT <IN? ,PRSO ,PLAYER>>>
+<ROUTINE TAKE-OFF-FIRST ()            ;"can't drop / put / insert clothes being worn"
+    ;"Inform 7 takes a worn thing off first: '(first taking the cloak off)' -
+      the words as the real Advent's story file has them - and stops the
+      action if it is still worn"
+    <COND (<NOT <AND <FSET? ,PRSO ,WORNBIT> <IN? ,PRSO ,PLAYER>>> <RFALSE>)>
+    <TELL "(first taking "> <SAY-THE ,PRSO> <TELL " off)" CR>
+    <TRY ,V?TAKING-OFF ,V-TAKING-OFF ,PRSO 0 1>
+    <FSET? ,PRSO ,WORNBIT>>
 <ROUTINE PUT-ON-ITSELF ()
     <COND (<EQUAL? ,PRSO ,PRSI> <PUT-ON-ITSELF-A> <RTRUE>)> <RFALSE>>
 <ROUTINE PUT-NOT-SUPPORTER ()
@@ -282,4 +290,4 @@
         <COND (<READ-COMMAND>
                <COND (<EQUAL? <WORD-AT 1> ,W?YES ,W?Y> <RTRUE>)
                      (<EQUAL? <WORD-AT 1> ,W?NO ,W?N> <RFALSE>)>)>
-        <TELL "Please answer yes or no.> ">>>
+        <YES-OR-NO-A> <TELL "> ">>>              ;"the yes or no question internal rule"

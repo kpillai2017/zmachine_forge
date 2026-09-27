@@ -120,7 +120,25 @@ is one object, with `(the keys)`, only when ONE thing could have been meant;
 otherwise even a single thing left over is `bottle of water: Taken.`
 (both checked against the real Advent). A verb whose line says
 `[something]` refuses several objects (the *can't use multiple objects*
-error); ALL with nothing to mean is the *nothing to do* error.
+error) - and so does every second object: `unlock grate with all` or
+`put lamp in box and table` (as in the real Advent, where
+`[parser command so far]` is then "unlock the grate with"); ALL with nothing
+to mean is the *nothing to do* error. When several rows of a verb fail,
+the most serious error is reported (as Inform ranks them: *can't see* is
+below *can't use multiple objects*, which is below *nothing to do*).
+
+An unclear name in a list (`take lamp and coin`, with two coins) is asked
+about once the whole command is read - "Which do you mean, the gold coin or
+the silver coin?" - one question per unclear name, as for a single object;
+an empty answer cancels the command, and an answer that is a new command
+is carried out instead. After `except` / `but`, an unclear name takes out
+every thing it fits (`take all but coin`). (Advent has no two things of one
+name: this is not checked against a real game.)
+
+A worn thing is taken off first when it is dropped, put on or put in
+something - "(first taking the cloak off)", the words of Inform 7's
+*can't drop / put / insert clothes being worn* rules - but ALL never means
+a worn thing.
 
 ## 5. Actions
 
@@ -316,6 +334,7 @@ the order they run. Response letters and default texts follow Inform 7.
 |---|---|---|
 | check | can't drop what's already dropped rule | (A) "[The noun] [are] already here." |
 | check | can't drop what's not held rule | (A) "You haven't got that." |
+| check | can't drop clothes being worn rule | - : "(first taking [the noun] off)", then silently tries taking it off (not editable in I7-lite) |
 | carry out | standard dropping rule | - |
 | report | standard report dropping rule | (A) "Dropped." |
 
@@ -342,6 +361,7 @@ the order they run. Response letters and default texts follow Inform 7.
 | check | can't put something on itself rule | (A) "You can't put something on top of itself." |
 | check | can't put onto what's not a supporter rule | (A) "Putting things on [the second noun] would achieve nothing." |
 | check | carrying requirements rule | - |
+| check | can't put clothes being worn rule | - : "(first taking [the noun] off)", then silently tries taking it off (not editable in I7-lite) |
 | carry out | standard putting rule | - |
 | report | standard report putting rule | (A) "You put [the noun] on [the second noun]." |
 
@@ -353,6 +373,7 @@ the order they run. Response letters and default texts follow Inform 7.
 | check | can't insert into what's not a container rule | (A) "[The second noun] can't contain things." |
 | check | can't insert into closed containers rule | (A) "[The second noun] [are] closed." |
 | check | carrying requirements rule | - |
+| check | can't insert clothes being worn rule | - : "(first taking [the noun] off)", then silently tries taking it off (not editable in I7-lite) |
 | carry out | standard inserting rule | - |
 | report | standard report inserting rule | (A) "You put [the noun] into [the second noun]." |
 
@@ -467,6 +488,7 @@ the order they run. Response letters and default texts follow Inform 7.
 | Stage | Rule | Responses |
 |---|---|---|
 | - | list writer internal rule | (D) "providing light", (K) "providing light and being worn", (L) "being worn": the inventory's notes in brackets |
+| - | yes or no question internal rule | (A) "Please answer yes or no." - printed before the prompt, with no line break of its own (as Inform 6 code prints it) |
 
 ## 10. Activities (ADR-031)
 

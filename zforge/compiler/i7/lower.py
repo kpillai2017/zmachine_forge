@@ -13,8 +13,8 @@ from dataclasses import dataclass
 from zforge.compiler.i7.model import Obj, Rule, WorldModel
 from zforge.compiler.i7.phrases import PhraseLowerer
 from zforge.compiler.i7.problems import Location, Problems
-from zforge.compiler.i7.standard import ACTIVITIES, DIRECTIONS, LIBRARY_RULES, STAGES, zil_name, \
-    zil_string
+from zforge.compiler.i7.standard import ACTIVITIES, DIRECTIONS, INTERNAL_RULES, LIBRARY_RULES, \
+    STAGES, zil_name, zil_string
 from zforge.compiler.i7.text import parse_text
 
 # ZIL names the library already uses: generated names must not clash
@@ -497,7 +497,12 @@ class Lowerer:
             for letter, default in rule.responses:
                 edit = self.m.response_edits.get((rule.name, letter))
                 text = edit[0] if edit else parse_text(default)
-                body = self.phrases.tell(text, sentence_break=True)
+                # An action's rule says its response - 'say "Dropped." (A)' -
+                # and a said text ending a sentence gets a line break. An
+                # internal rule is Inform 6 code that prints it: no line break
+                # (the real Advent: 'Please respond yes or no. > ').
+                internal = rule in INTERNAL_RULES
+                body = self.phrases.tell(text, sentence_break=not internal)
                 self.routines.append(f'<ROUTINE {rule.routine}-{letter} ()   '
                                      f';"the {rule.name} response ({letter})"\n    {body}>')
 

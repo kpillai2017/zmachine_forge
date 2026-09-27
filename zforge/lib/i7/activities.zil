@@ -142,11 +142,20 @@
            <TELL "There are none at all available!" CR>)      ;"internal rule, response (B)"
           (ELSE <TELL "I didn't understand that sentence." CR>)>>
 
-<ROUTINE SAY-COMMAND-SO-FAR ()
-    ;"[parser command so far]: the verb the player used, as Inform 7 prints it -
-      X is 'examine' (Advent: 'You can only examine one thing at a time.')"
+<ROUTINE SAY-COMMAND-SO-FAR ("AUX" ROW)
+    ;"[parser command so far]: the command as far as the parser got, as Inform 7
+      prints it - the verb (X is 'examine'), then, when the trouble was in the
+      second object, the first one and the prepositions: Advent's 'You can only
+      unlock the grate with one thing at a time.'"
     <COND (<EQUAL? <WORD-AT 1> ,W?X> <TELL "examine">)
           (<EQUAL? <WORD-AT 1> ,W?L> <TELL "look">)
           (<EQUAL? <WORD-AT 1> ,W?I> <TELL "inventory">)
           (<EQUAL? <WORD-AT 1> ,W?Z> <TELL "wait">)
-          (ELSE <PRINT-WORD 1>)>>
+          (ELSE <PRINT-WORD 1>)>
+    <SET ROW ,P-SOFAR-ROW>
+    <COND (<ZERO? .ROW> <RTRUE>)>
+    <COND (<GET .ROW ,S-PREP1> <TELL " "> <PRINTB <GET .ROW ,S-PREP1>>)>   ;"PICK UP"
+    <COND (<AND <EQUAL? ,P-SOFAR-SLOT 2> ,P-SOFAR-OBJ>
+           <COND (<EQUAL? ,P-SOFAR-OBJ -1> <TELL " those things">)
+                 (ELSE <TELL " "> <SAY-THE ,P-SOFAR-OBJ>)>
+           <COND (<GET .ROW ,S-PREP2> <TELL " "> <PRINTB <GET .ROW ,S-PREP2>>)>)>>

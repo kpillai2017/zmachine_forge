@@ -70,7 +70,8 @@ ACTIONS: tuple[StandardAction, ...] = (
         "check": (R("can't drop what's already dropped rule", "DROP-ALREADY",
                     (("A", "[The noun] [are] already here."),)),
                   R("can't drop what's not held rule", "DROP-NOT-HELD",
-                    (("A", "You haven't got that."),)),),
+                    (("A", "You haven't got that."),)),
+                  R("can't drop clothes being worn rule", "TAKE-OFF-FIRST")),
         "carry out": (R("standard dropping rule", "DROP-STANDARD"),),
         "report": (R("standard report dropping rule", "DROP-REPORT", (("A", "Dropped."),)),)}),
     StandardAction("going", 1, (), {           # grammar: one line per direction (lower.py)
@@ -92,7 +93,8 @@ ACTIONS: tuple[StandardAction, ...] = (
               (("A", "You can't put something on top of itself."),)),
             R("can't put onto what's not a supporter rule", "PUT-NOT-SUPPORTER",
               (("A", "Putting things on [the second noun] would achieve nothing."),)),
-            R("carrying requirements rule", "IMPLICITLY-TAKE")),
+            R("carrying requirements rule", "IMPLICITLY-TAKE"),
+            R("can't put clothes being worn rule", "TAKE-OFF-FIRST")),
         "carry out": (R("standard putting rule", "PUT-STANDARD"),),
         "report": (R("standard report putting rule", "PUT-REPORT",
                      (("A", "You put [the noun] on [the second noun]."),)),)}),
@@ -105,7 +107,8 @@ ACTIONS: tuple[StandardAction, ...] = (
               (("A", "[The second noun] can't contain things."),)),
             R("can't insert into closed containers rule", "INSERT-CLOSED",
               (("A", "[The second noun] [are] closed."),)),
-            R("carrying requirements rule", "IMPLICITLY-TAKE")),
+            R("carrying requirements rule", "IMPLICITLY-TAKE"),
+            R("can't insert clothes being worn rule", "TAKE-OFF-FIRST")),
         "carry out": (R("standard inserting rule", "INSERT-STANDARD"),),
         "report": (R("standard report inserting rule", "INSERT-REPORT",
                      (("A", "You put [the noun] into [the second noun]."),)),)}),
@@ -215,6 +218,9 @@ INTERNAL_RULES: tuple[LibraryRule, ...] = (
     LibraryRule("list writer internal rule", "LIST-WRITER",
                 (("D", "providing light"), ("K", "providing light and being worn"),
                  ("L", "being worn"))),
+    # 'if the player consents' asks again: Advent edits it (source line 397)
+    LibraryRule("yes or no question internal rule", "YES-OR-NO",
+                (("A", "Please answer yes or no."),)),
 )
 
 LIBRARY_RULES: dict[str, LibraryRule] = {

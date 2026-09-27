@@ -82,6 +82,11 @@
 <CONSTANT P-ERR-NOTHING 5>      ;"ALL, but there is nothing it could mean"
 <GLOBAL P-MULTIPLE 0>           ;"true: run the action for each object in P-MULTI"
 <GLOBAL P-MULTI <ITABLE 17 0>>  ;"the objects: word 0 = count (at most 16)"
+<GLOBAL P-AMBIG <ITABLE 48 0>>  ;"a list's unclear items: [n, o1..on] for each"
+<GLOBAL P-AMBIG-LEN 0>          ;"words of P-AMBIG in use"
+<GLOBAL P-SOFAR-ROW 0>          ;"[parser command so far]: the row, the slot and"
+<GLOBAL P-SOFAR-SLOT 0>         ;"object 1 when 'can't use multiple objects' was"
+<GLOBAL P-SOFAR-OBJ 0>          ;"raised"
 <GLOBAL P-USED-ALL 0>           ;"the phrase said ALL / EVERYTHING"
 <GLOBAL P-ALL-SEEN 0>           ;"how many things ALL could have meant, before any was left out"
 ) (ELSE)>
@@ -111,6 +116,9 @@
     <SETG PRSI 0>
     <SETG P-SYNTAX 0>
     <SETG P-ERROR 0>
+    ;"P-MULTIPLE here too: a reply to 'Which do you mean' can be a new
+      command, and it is parsed from FINISH-COMMAND"
+    <IFFLAG (I7 <SETG P-MULTIPLE 0> <SETG P-AMBIG-LEN 0> <SETG P-SOFAR-ROW 0>) (ELSE)>
     <DO (I 1 ,P-LEN)
         <COND (<IFFLAG (I7 <AND <ZERO? <WORD-AT .I>> <NOT <COMMA? .I>>>)  ;"',' is no error"
                        (ELSE <ZERO? <WORD-AT .I>>)>
@@ -195,7 +203,7 @@
     <COND (<NOT <MATCH-PREP <GET .ROW ,S-PREP1>>> <MISSING-IF-ENDED 1 .N> <RFALSE>)>
     <COND (<G? .N 0>
            <IFFLAG (I7 <SET O <OBJECTS-PHRASE <GET .ROW ,S-PREP2> <GET .ROW ,S-FIND1>
-                                               <GET .ROW ,S-OPTS1>>>)
+                                               <GET .ROW ,S-OPTS1> .ROW>>)
                    (ELSE
            <SET O <NOUN-PHRASE <GET .ROW ,S-PREP2> <GET .ROW ,S-FIND1> ,P-MATCHES1>>)>
            <COND (<ZERO? .O> <MISSING-IF-ENDED 1 .N> <RFALSE>)>
@@ -204,6 +212,9 @@
            <SETG P-NOUN1 <WORD-AT <- ,P-WORD 1>>>)>
     <COND (<NOT <MATCH-PREP <GET .ROW ,S-PREP2>>> <MISSING-IF-ENDED 2 .N> <RFALSE>)>
     <COND (<G? .N 1>
+           <IFFLAG (I7                  ;"as in Inform 7: object 2 is always one thing"
+                    <COND (<MULTI-WORDS? ,P-WORD ,P-LEN> <MULTI-REFUSED .ROW 2> <RFALSE>)>)
+                   (ELSE)>
            <SET O <NOUN-PHRASE 0 <GET .ROW ,S-FIND2> ,P-MATCHES2>>
            <COND (<ZERO? .O> <MISSING-IF-ENDED 2 .N> <RFALSE>)>
            <SETG PRSI .O>
@@ -240,7 +251,7 @@
 
 ;"--------------------------------------------- several objects (I7 only)"
 <IFFLAG (I7
-<ROUTINE OBJECTS-PHRASE (STOP FIND OPTS "AUX" FIRST LAST I W EXCEPT START O)
+<ROUTINE OBJECTS-PHRASE (STOP FIND OPTS ROW "AUX" FIRST LAST I W EXCEPT START O)
     ;"object 1: one object as NOUN-PHRASE finds it, or - if the words say
       ALL, AND or a comma - a list in P-MULTI (the first is returned)"
     <SETG P-MULTIPLE 0>
@@ -254,7 +265,7 @@
         <SET LAST <+ .LAST 1>>>
     <COND (<NOT <MULTI-WORDS? .FIRST .LAST>> <RETURN <NOUN-PHRASE .STOP .FIND ,P-MATCHES1>>)>
     <SETG P-WORD <+ .LAST 1>>
-    <COND (<NOT <BAND .OPTS ,SO-MANY>> <SETG P-ERROR ,P-ERR-MULTI> <RFALSE>)>
+    <COND (<NOT <BAND .OPTS ,SO-MANY>> <MULTI-REFUSED .ROW 1> <RFALSE>)>
     <PUT ,P-MULTI 0 0>
     <PUT ,P-MATCHES1 0 0>
     <SET START .FIRST>
@@ -268,13 +279,14 @@
                <SET START <+ .I 1>>)>
         <COND (<G? .I .LAST> <RETURN>)>
         <SET I <+ .I 1>>>
-    <COND (<ZERO? <GET ,P-MULTI 0>> <SETG P-ERROR ,P-ERR-NOTHING> <RFALSE>)>
+    <PUT ,P-MATCHES2 0 0>                       ;"the items' scratch: not object 2's"
+    <COND (<ZERO? <GET ,P-MULTI 0>> <RAISE-ERROR ,P-ERR-NOTHING 0> <RFALSE>)>
     <SET O <GET ,P-MULTI 1>>
     ;"As in Inform 7: ALL is one object - '(the keys)' - only when ONE thing
       could have been meant. Things it could mean but leaves out (held ones,
       for TAKE ALL) still count: one left over is then 'bottle: Taken.'"
-    <COND (<AND ,P-USED-ALL <EQUAL? ,P-ALL-SEEN 1>>
-           <SETG P-DEFAULTED T>)
+    <COND (<AND ,P-USED-ALL <EQUAL? ,P-ALL-SEEN 1> <EQUAL? <GET ,P-MULTI 0> 1>>
+           <SETG P-DEFAULTED T>)                    ;"(not TAKE ALL AND LAMP)"
           (ELSE <SETG P-MULTIPLE T> <SETG P-DEFAULTED 0>)>
     .O>
 
@@ -302,8 +314,71 @@
            <RTRUE>)>
     <SET O <RESOLVE .FIRST .LAST ,P-MATCHES2>>  ;"P-MATCHES2 as scratch: PRSI comes later"
     <COND (<ZERO? .O> <RFALSE>)
+          (<AND .EXCEPT <G? <GET ,P-MATCHES2 0> 1>>  ;"ALL BUT COIN: every coin"
+           <DO (I 1 <GET ,P-MATCHES2 0>) <MULTI-REMOVE <GET ,P-MATCHES2 .I>>>)
           (.EXCEPT <MULTI-REMOVE .O>)
+          (<G? <GET ,P-MATCHES2 0> 1> <MULTI-ADD <UNCLEAR-ITEM ,P-MATCHES2>>)
           (ELSE <MULTI-ADD .O>)>
+    <RTRUE>>
+
+<ROUTINE UNCLEAR-ITEM (TBL "AUX" N START)
+    ;"TAKE LAMP AND COIN with two coins: keep the candidates, and put a mark
+      (minus where they are kept) in the list; the question comes once the
+      whole command fits (FINISH-COMMAND): asking now would overwrite it"
+    <SET N <GET .TBL 0>>
+    <COND (<G? <+ ,P-AMBIG-LEN .N 1> 47> <RETURN <GET .TBL 1>>)>   ;"no room: the first"
+    <SET START <+ ,P-AMBIG-LEN 1>>
+    <PUT ,P-AMBIG .START .N>
+    <DO (I 1 .N) <PUT ,P-AMBIG <+ .START .I> <GET .TBL .I>>>
+    <SETG P-AMBIG-LEN <+ ,P-AMBIG-LEN .N 1>>
+    <- 0 .START>>
+
+<ROUTINE SETTLE-LIST ("AUX" X N O (RESULT 1))
+    ;"ask about each unclear item, as for one object: 1 done, 0 the reply was
+      a new command, -1 it was empty"
+    <DO (I 1 <GET ,P-MULTI 0>)
+        <SET X <GET ,P-MULTI .I>>
+        <COND (<L? .X 0>
+               <SET X <- 0 .X>>
+               <SET N <GET ,P-AMBIG .X>>
+               <PUT ,P-MATCHES1 0 .N>
+               <DO (J 1 .N) <PUT ,P-MATCHES1 .J <GET ,P-AMBIG <+ .X .J>>>>
+               <SET O <CHOOSE ,P-MATCHES1 <GET ,P-SYNTAX ,S-OPTS1>>>
+               <PUT ,P-MATCHES1 0 0>
+               <COND (<L? .O 1> <SET RESULT .O> <RETURN>)>
+               <PUT ,P-MULTI .I .O>)>>
+    <COND (<EQUAL? .RESULT 1> <SETG PRSO <GET ,P-MULTI 1>>)>
+    .RESULT>
+
+<ROUTINE MULTI-REFUSED (ROW SLOT)
+    ;"several objects where the row takes one: remember how far the command
+      got, for [parser command so far] - 'unlock the grate with'"
+    <COND (<RAISE-ERROR ,P-ERR-MULTI 0>
+           <SETG P-SOFAR-ROW .ROW>
+           <SETG P-SOFAR-SLOT .SLOT>
+           ;"-1: the first object was a list - Inform prints 'those things'
+             (the real Advent: 'drop those things in what?')"
+           <SETG P-SOFAR-OBJ <COND (<AND <EQUAL? .SLOT 2> ,P-MULTIPLE> -1)
+                                   (ELSE ,PRSO)>>)>>
+
+<ROUTINE ERROR-RANK (E)
+    ;"Inform's parser reports the highest-ranked error of all the grammar
+      lines it tried; these are in its order (CANTSEE < MULTI < VAGUE <
+      ITGONE < NOTHING)"
+    <COND (<EQUAL? .E ,P-ERR-NOT-FOUND> 1)
+          (<EQUAL? .E ,P-ERR-MULTI> 2)
+          (<EQUAL? .E ,P-ERR-NO-IT> 3)
+          (<EQUAL? .E ,P-ERR-IT-GONE> 4)
+          (<EQUAL? .E ,P-ERR-NOTHING> 5)
+          (ELSE 0)>>
+
+<ROUTINE RAISE-ERROR (E W)
+    ;"as Inform's parser does, only a higher-ranked error replaces the one set
+      by an earlier row: of equal ones the first stays - 'unlock the grate with'
+      (row UNLOCK OBJECT WITH OBJECT) and not 'unlock' (row UNLOCK OBJECT)"
+    <COND (<NOT <G? <ERROR-RANK .E> <ERROR-RANK ,P-ERROR>>> <RFALSE>)>
+    <SETG P-ERROR .E>
+    <SETG P-ERROR-WORD .W>
     <RTRUE>>
 
 <ROUTINE ADD-ALL (OPTS "AUX" O)
@@ -367,8 +442,8 @@
            <SEARCH-SCOPE .FIRST .LAST .TBL>
            <COND (<G? <GET .TBL 0> 0> <GET .TBL 1>)
                  (ELSE
-                  <SETG P-ERROR ,P-ERR-NOT-FOUND>
-                  <SETG P-ERROR-WORD .LAST>
+                  <IFFLAG (I7 <RAISE-ERROR ,P-ERR-NOT-FOUND .LAST>)
+                          (ELSE <SETG P-ERROR ,P-ERR-NOT-FOUND> <SETG P-ERROR-WORD .LAST>)>
                   <RFALSE>)>)>>
 
 <ROUTINE ARTICLE? (W) <EQUAL? .W ,W?THE ,W?A ,W?AN>>
@@ -377,12 +452,12 @@
 
 <ROUTINE PRONOUN-OBJECT (I)
     <COND (<ZERO? ,P-IT>
-           <SETG P-ERROR ,P-ERR-NO-IT>
-           <SETG P-ERROR-WORD .I>
+           <IFFLAG (I7 <RAISE-ERROR ,P-ERR-NO-IT .I>)
+                   (ELSE <SETG P-ERROR ,P-ERR-NO-IT> <SETG P-ERROR-WORD .I>)>
            <RFALSE>)
           (<NOT <IN-SCOPE? ,P-IT>>
-           <SETG P-ERROR ,P-ERR-IT-GONE>
-           <IFFLAG (I7 <SETG P-ERROR-WORD .I>) (ELSE)>    ;"Inform 7 names the word"
+           <IFFLAG (I7 <RAISE-ERROR ,P-ERR-IT-GONE .I>)     ;"Inform 7 names the word"
+                   (ELSE <SETG P-ERROR ,P-ERR-IT-GONE>)>
            <RFALSE>)
           (ELSE ,P-IT)>>
 
@@ -464,6 +539,11 @@
            <COND (<L? .O 0> <RFALSE>)
                  (<ZERO? .O> <RETURN <PARSE-COMMAND>>)>
            <SETG PRSO .O>)>
+    <IFFLAG (I7 <COND (,P-MULTIPLE
+                       <SET O <SETTLE-LIST>>
+                       <COND (<L? .O 0> <RFALSE>)
+                             (<ZERO? .O> <RETURN <PARSE-COMMAND>>)>)>)
+            (ELSE)>
     <COND (,P-DEFAULT1 <TELL "(the " D ,PRSO ")" CR>)>
     <COND (,P-DEFAULT2 <TELL "(the " D ,PRSI ")" CR>)>
     <COND (,PRSO <SETG P-IT ,PRSO>)>
