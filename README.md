@@ -37,8 +37,21 @@ the two extra tools in `requirements.txt` are only for running the tests.
 
 ```bash
 cd zmachine_forge
-direnv allow                        # or: export PYTHONPATH=$PWD
 pip install -r requirements.txt     # pytest and ruff, for the tests
+```
+
+Run the commands in this README from the `zmachine_forge` folder; that's
+all `python -m zforge` needs. To use it from another folder too, first run
+`export PYTHONPATH=/path/to/zmachine_forge`.
+
+If you use [direnv](https://direnv.net/), you can make your own `.envrc`
+in the folder (it isn't part of the project, so each person keeps their
+own). This one sets the path, and loads your `.env` settings for zbuilder
+if you have any:
+
+```bash
+export PYTHONPATH="$PWD${PYTHONPATH:+:$PYTHONPATH}"
+dotenv_if_exists .env
 ```
 
 ## Playing a game
