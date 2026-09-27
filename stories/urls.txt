@@ -25,3 +25,29 @@ https://ifarchive.org/if-archive/games/source/inform/Advent_Crowther_source.txt 
 https://ifarchive.org/if-archive/games/zcode/coldiron.z8 5811d4d2e31a782d2d2670dc13c3642eb688eee34651fbdfc6cc7523fde53d19
 #   ...and its source, to show what the author did and did not write
 https://ifarchive.org/if-archive/games/source/inform/coldiron.ni 1d5dbad86e55aa34981813f35f35f2cae54959bc14701d0b15371ac5d88d4c89
+# Examples from Inform 7's own manual ("Writing with Inform"), from the
+# open-source Inform 7 on GitHub (Artistic License 2.0), fixed at commit
+# 5c7ba42 so they can't change under us. Each X.txt holds one example: its
+# program is the tab-indented lines from the one starting {*} (later parts
+# start {**}); the prose between them is explanation. Each X--I.txt is the
+# official Inform 7 (build 6M22) transcript of the example playing its own
+# "Test me" commands.
+# Of the 455 examples for the Z-machine (September 2026), these three are
+# the ones I7-lite compiles and plays exactly as the official transcript
+# shows. The one change needed: delete the "Test me with ..." sentence,
+# which I7-lite doesn't know; its commands are the ones to play.
+# RECORD ONLY: `zbuilder stories` doesn't fetch these, because GitHub isn't
+# on zbuilder's list of approved sites (ALLOWED_HOSTS in zbuilder/paths.py).
+# To get one by hand, and check it is the file recorded here:
+#   curl -sSLo stories/When.txt <URL>
+#   shasum -a 256 stories/When.txt       # must match the checksum below
+#   Bad Hair Day: a player's appearance that changes (1 command checked)
+#     https://raw.githubusercontent.com/ganelson/inform/5c7ba42b74db69b93b1290453c65189fa60cfc67/resources/Documentation/Examples/BadHairDay.txt abeaf2eadad89784879f595e785c4aed19aa827d3d72533c321669a69317654d
+#     https://raw.githubusercontent.com/ganelson/inform/5c7ba42b74db69b93b1290453c65189fa60cfc67/resources/Documentation/Examples/BadHairDay--I.txt a723b2cc0d70ceee337984d65e418ae04ee8523b36cc61ef532581da117ed400
+#   Indirection: the compass renamed white, red, yellow, black (4 commands)
+#     https://raw.githubusercontent.com/ganelson/inform/5c7ba42b74db69b93b1290453c65189fa60cfc67/resources/Documentation/Examples/Indirection.txt 3fa8da3cd8e279b91a7267290399ae752eef4c34513f85cc530c967897890105
+#     https://raw.githubusercontent.com/ganelson/inform/5c7ba42b74db69b93b1290453c65189fa60cfc67/resources/Documentation/Examples/Indirection--I.txt 4d3d27d64648ae3f03bb539902e9bf5f29105d8490181f3f87349b9aa49a30d2
+#   When?: a door whose description depends on the side (no Test me, so
+#   no transcript commands; plays correctly by hand)
+#     https://raw.githubusercontent.com/ganelson/inform/5c7ba42b74db69b93b1290453c65189fa60cfc67/resources/Documentation/Examples/When.txt 69ce1c050eda988250e0bd1363ddbc6b7a6ac4d912a132eb0436b4a442965911
+#     https://raw.githubusercontent.com/ganelson/inform/5c7ba42b74db69b93b1290453c65189fa60cfc67/resources/Documentation/Examples/When--I.txt 154c5009ff706a8a08ed2f872c3014a6d1692f99a77be22fe134c60ba43bd3ad

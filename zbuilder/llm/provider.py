@@ -3,10 +3,10 @@
     provider = get_provider()             # ZB_PROVIDER or the fallback order
     text = provider.complete(system, user)
 
-Fallback order: rovodev -> anthropic -> openai(-compatible) -> gemini ->
-ollama -> brief. "brief" is the OFFLINE mode: it never calls a model;
-agents detect it and write task briefs for a human (or Rovo Dev in your
-editor) to implement instead.
+Fallback order: anthropic -> openai(-compatible) -> gemini -> ollama ->
+brief. "brief" is the OFFLINE mode: it never calls a model;
+agents detect it and write task briefs for a human (or an AI coding
+assistant in your editor) to implement instead.
 
 Standard library only (urllib), so zbuilder installs nothing extra.
 Keys come from the environment and are never logged.
@@ -15,7 +15,6 @@ from __future__ import annotations
 
 import json
 import os
-import time
 import urllib.error
 import urllib.request
 
@@ -45,62 +44,6 @@ class Provider:
 
     def complete(self, system: str, user: str) -> str:
         raise NotImplementedError
-
-
-class RovoDevProvider(Provider):
-    """`acli rovodev serve PORT --disable-session-token`: POST /v2/chat
-    streams Server-Sent Events. No system role, so the system prompt is
-    prepended. HTTP 409 = busy -> retry with backoff."""
-    name = "rovodev"
-
-    def __init__(self):
-        self.url = os.environ.get("ROVODEV_SERVE_URL", "").rstrip("/")
-
-    def available(self) -> bool:
-        if not self.url:
-            return False
-        try:
-            with urllib.request.urlopen(f"{self.url}/healthcheck", timeout=3) as r:
-                return json.loads(r.read().decode()).get("status") == "healthy"
-        except Exception:
-            return False
-
-    def complete(self, system: str, user: str) -> str:
-        message = f"{system}\n\n---\n\n{user}"
-        for attempt in range(1, 6):
-            try:
-                return self._once(message)
-            except urllib.error.HTTPError as exc:
-                if exc.code == 409 and attempt < 5:
-                    time.sleep(0.75 * attempt)
-                    continue
-                raise ProviderError(f"Rovo Dev serve returned HTTP {exc.code}") from exc
-        raise ProviderError("Rovo Dev serve stayed busy")
-
-    def _once(self, message: str) -> str:
-        req = urllib.request.Request(f"{self.url}/v2/chat",
-                                     data=json.dumps({"message": message}).encode(),
-                                     headers={"Content-Type": "application/json"})
-        parts: list[str] = []
-        with urllib.request.urlopen(req, timeout=600) as r:
-            event = None
-            for raw in r:
-                line = raw.decode("utf-8", "replace").rstrip("\n")
-                if not line:
-                    event = None
-                elif line.startswith("event:"):
-                    event = line[6:].strip()
-                elif line.startswith("data:"):
-                    try:
-                        data = json.loads(line[5:].strip())
-                    except json.JSONDecodeError:
-                        continue
-                    if event == "part_start" and data.get("part", {}).get("part_kind") == "text":
-                        parts.append(data["part"].get("content", "") or "")
-                    elif event == "part_delta" and \
-                            data.get("delta", {}).get("part_delta_kind") == "text":
-                        parts.append(data["delta"].get("content_delta", "") or "")
-        return "".join(parts)
 
 
 class AnthropicProvider(Provider):
@@ -186,10 +129,10 @@ class BriefProvider(Provider):
         raise ProviderError("brief mode has no model; the agent should write a brief")
 
 
-PROVIDERS = {"rovodev": RovoDevProvider, "anthropic": AnthropicProvider,
+PROVIDERS = {"anthropic": AnthropicProvider,
              "openai": OpenAICompatibleProvider, "gemini": GeminiProvider,
              "ollama": OllamaProvider, "brief": BriefProvider}
-FALLBACK_ORDER = ["rovodev", "anthropic", "openai", "gemini", "ollama", "brief"]
+FALLBACK_ORDER = ["anthropic", "openai", "gemini", "ollama", "brief"]
 
 
 def get_provider(name: str | None = None) -> Provider:

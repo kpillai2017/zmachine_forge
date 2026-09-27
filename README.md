@@ -27,6 +27,9 @@ Everything follows the official description of the machine, the
 [Z-Machine Standards Document 1.1](https://inform-fiction.org/zmachine/standards/z1point1/index.html).
 The code quotes it by section number, so you can read the two side by side.
 
+The compiler, the interpreter, and these documents were written with the
+help of an AI, a large language model: see [How it was built](#how-it-was-built).
+
 ## Getting set up
 
 You need Python 3.13. Nothing else is required to play or compile games;
@@ -167,12 +170,35 @@ The real-game comparisons are skipped if you haven't downloaded the games.
 
 ## How it was built
 
-zbuilder is the workflow that built this project, in tiers, each with its
-own acceptance tests. `python -m zbuilder status` shows the plan and where
-each task stands, and `python -m zbuilder review` checks the code for
-readability. It works offline: without an AI provider set up, it checks each
-task with real tools and writes a brief for anything that still fails
-(see `.env.example` to connect a provider).
+**With the help of an AI.** Most of the code in this project, and most of
+its documentation, was written by an AI coding assistant built on a large
+language model (LLM). A person directed the work throughout. They wrote
+the brief (what to build, and the order to build it in), chose between the
+options the assistant laid out, decided what to leave out, and approved
+each step before it was committed. The assistant read the Z-Machine
+Standard, designed and wrote the code, the tests and the documents, ran the
+checks, and fixed what they found.
+
+**Why that matters to you.** An LLM writes fluent, confident text whether
+or not it is right. During this project it misquoted section numbers of
+the Standard, misremembered how Inform 7 behaves, and once wrote a guide
+whose example could never work. So nothing here is taken on trust. Every
+feature has to pass the checks in [How we know it works](#how-we-know-it-works):
+tests written from the Standard, comparisons with real games and with the
+official Inform 7's own output, and builds that must come out byte for
+byte the same. Mistakes may still remain, so if something here disagrees
+with the Standard, the Standard is right.
+
+**zbuilder** is the workflow built for the job. It splits the work into
+tiers, each with its own acceptance tests, and has roles for AI agents: a
+spec analyst, an architect, an implementer, a verifier and a reviewer.
+`python -m zbuilder status` shows the plan and where each task stands, and
+`python -m zbuilder review` checks the code for readability. It works
+offline too: without an AI provider set up, it checks each task with real
+tools and writes a brief for anything that still fails (see `.env.example`
+to connect a provider). Much of this project was built that way, with the
+assistant doing the work and zbuilder's checks deciding when each tier was
+done.
 
 ## Further reading
 

@@ -25,7 +25,7 @@ from zbuilder.plan import DEFAULT_PLAN, find
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(prog="zbuilder", description=__doc__,
                                 formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument("--provider", help="rovodev | anthropic | openai | gemini | ollama | brief")
+    p.add_argument("--provider", help="anthropic | openai | gemini | ollama | brief")
     sub = p.add_subparsers(dest="command", required=True)
     s = sub.add_parser("spec")
     s.add_argument("--force", action="store_true")

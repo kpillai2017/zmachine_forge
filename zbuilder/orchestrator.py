@@ -11,7 +11,7 @@ For each tier, in order, for each task not yet DONE:
 STOP rule: a tier starts only when every task of the previous tier is DONE.
 Offline ("brief" provider): the Implementer writes build/tasks/<id>.md
 instead, and the Verifier then checks whether the work is already there -
-so the same loop verifies code written by a human or by Rovo Dev.
+so the same loop verifies code written by a human or by an AI assistant.
 """
 from __future__ import annotations
 

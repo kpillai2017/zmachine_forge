@@ -1,7 +1,7 @@
 """Implementer: the language/VM expert. With a model it returns whole files
 (```file:path blocks) that are written ONLY if they are inside the task's
 scope. Offline it writes a self-contained brief to build/tasks/<id>.md for
-a human - or Rovo Dev in the editor - to implement."""
+a human - or an AI coding assistant in the editor - to implement."""
 from __future__ import annotations
 
 from zbuilder.agents.base import Agent
@@ -43,7 +43,7 @@ class Implementer(Agent):
     def write_brief(self, task: Task, spec_brief: str, feedback: str = "") -> str:
         TASK_DIR.mkdir(parents=True, exist_ok=True)
         path = TASK_DIR / f"{task.id}.md"
-        path.write_text("<!-- paste into Rovo Dev, or implement by hand -->\n\n"
+        path.write_text("<!-- give this to an AI coding assistant, or implement by hand -->\n\n"
                         + system_prompt(self.role) + "\n\n"
                         + self._prompt(task, spec_brief, feedback))
         self.log.event(self.role, task.id, "brief_written", path=str(path))
