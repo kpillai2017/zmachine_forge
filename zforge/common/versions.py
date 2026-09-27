@@ -78,10 +78,13 @@ class VersionProfile:
         return 8 if self.uses_packing_offsets else self.code_alignment
 
     def _offset(self, header_offset: int) -> int:
+        """Calculate the byte offset for packed addresses: 8 * the offset if v6/v7, else 0."""
         return 8 * header_offset if self.uses_packing_offsets else 0
 
     def _pack(self, address: int, header_offset: int) -> int:
+        """Convert a byte address to a packed address; raise if alignment or range is violated."""
         relative = address - self._offset(header_offset)
+        # The address must be aligned to the packing scale and not negative.
         if relative < 0 or relative % self.packed_scale:
             raise LayoutError(f"address 0x{address:x} cannot be packed in version "
                               f"{self.version} (scale {self.packed_scale})")

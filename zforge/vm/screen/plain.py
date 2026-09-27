@@ -53,6 +53,7 @@ class PlainScreen(GridScreen):
         set_window)."""
 
     def show_upper_window(self) -> None:
+        """Show the upper window's contents if it has any non-blank lines."""
         if self.upper_height == 0:
             return
         self._show_rows(1, self.text_rows()[:self.upper_height])
@@ -61,6 +62,7 @@ class PlainScreen(GridScreen):
         """Print a painted window's rows as "| ..." - whenever they changed."""
         if not self.show_upper:
             return
+        # Only print if the rows are different from last time and not all blank.
         if upper != self._last_shown.get(window) and any(r.strip() for r in upper):
             if self.column:
                 self.out.write("\n")

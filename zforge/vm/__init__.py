@@ -9,4 +9,6 @@
     quetzal.py   save files + undo snapshots (Quetzal standard)
     ops/         one module per opcode family (§15)
     screen/      the screen model (§8): plain, virtual (tests), curses
+
+Reading order: start with TOUR.md and DESIGN.md in the docs/ folder.
 """

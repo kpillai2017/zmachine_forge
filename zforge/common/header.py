@@ -77,6 +77,7 @@ HX_FLAGS3 = 4
 
 
 def word(data: bytes | bytearray, offset: int) -> int:
+    """Extract a big-endian 16-bit word from a byte array at the given offset (§2.1)."""
     return (data[offset] << 8) | data[offset + 1]
 
 
@@ -103,8 +104,10 @@ class Header:
 
     @classmethod
     def parse(cls, data: bytes | bytearray) -> "Header":
+        """Read and validate the 64-byte header; raise if the story file is invalid."""
         if len(data) < HEADER_SIZE:
             raise StoryFileError("Not a valid story file: shorter than the 64-byte header")
+        # The version byte at offset 0x00 determines which profile rules apply (§11).
         version = data[H_VERSION]
         profile = profile_for(version)         # raises for unsupported versions
         h = cls(
@@ -123,6 +126,7 @@ class Header:
             alphabet_table=word(data, H_ALPHABET_TABLE),
             extension_table=word(data, H_EXTENSION_TABLE),
             terminating_chars=word(data, H_TERMINATING_CHARS),
+            # Packing offsets (R_O and S_O) are only used in v6/v7 (§1.2.3).
             routines_offset=word(data, H_ROUTINES_OFFSET) if profile.uses_packing_offsets else 0,
             strings_offset=word(data, H_STRINGS_OFFSET) if profile.uses_packing_offsets else 0,
         )
@@ -148,11 +152,15 @@ class Header:
         return H_FONT_WIDTH_UNITS, H_FONT_HEIGHT_UNITS
 
     def validate(self, actual_size: int) -> None:
+        """Check that critical header fields make sense for a file of the given byte size."""
+        # Static memory must start after the header and not beyond the file (§1.1).
         if self.static_memory < HEADER_SIZE or self.static_memory > actual_size:
             raise StoryFileError("Not a valid story file: bad static memory base")
+        # The entry point (PC or main routine) must be within the file.
         start = self.main_routine if self.profile.starts_with_main_routine else self.initial_pc
         if not HEADER_SIZE <= start < actual_size:
             raise StoryFileError("Not a valid story file: initial PC outside the file")
+        # The header's declared file length must not exceed the actual file size.
         if self.file_length and self.file_length > actual_size:
             raise StoryFileError(
                 f"Not a valid story file: header says {self.file_length} bytes, "

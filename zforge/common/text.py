@@ -102,7 +102,9 @@ def unpack_zchars(read_word, address: int) -> tuple[list[int], int]:
     while True:
         w = read_word(address)
         address += 2
+        # Each 16-bit word holds three 5-bit z-characters: extract them using bit shifts.
         zchars += [(w >> 10) & 0x1F, (w >> 5) & 0x1F, w & 0x1F]
+        # The top bit (0x8000) is set only on the last word (§3.2), marking end of string.
         if w & 0x8000:
             return zchars, address
 
@@ -120,6 +122,7 @@ def decode_zchars(zchars: list[int], alphabets: Alphabets, unicode: UnicodeTable
     i = 0
     while i < len(zchars):
         z = zchars[i]
+        # From alphabet A2, z-char 6 introduces a 10-bit ZSCII escape (§3.4).
         if alphabet == 2 and z == ZCHAR_ESCAPE:
             # §3.4 10-bit ZSCII: next two z-chars are the top and bottom 5 bits
             if i + 2 < len(zchars):
@@ -128,14 +131,17 @@ def decode_zchars(zchars: list[int], alphabets: Alphabets, unicode: UnicodeTable
             i += 3
             alphabet = 0
             continue
+        # Z-char 0 prints as a space (§3.5.1).
         if z == 0:
             out.append(" ")
+        # Z-chars 1, 2, 3 introduce abbreviations (§3.3): the next z-char indexes the table.
         elif z in (1, 2, 3):
             if i + 1 < len(zchars) and abbreviation is not None:
                 out.append(abbreviation(32 * (z - 1) + zchars[i + 1]))   # §3.3
             i += 2
             alphabet = 0
             continue
+        # Z-chars 4 and 5 shift the next character into A1 or A2 (§3.2.3).
         elif z == ZCHAR_SHIFT_A1:
             alphabet = 1
             i += 1
@@ -144,9 +150,11 @@ def decode_zchars(zchars: list[int], alphabets: Alphabets, unicode: UnicodeTable
             alphabet = 2
             i += 1
             continue
+        # Z-chars 6..31 index the current alphabet (§3.5).
         else:
             table = (alphabets.a0, alphabets.a1, alphabets.a2)[alphabet]
             out.append(unicode.zscii_to_str(table[z - 6]))
+        # After printing a character, always revert to alphabet A0.
         alphabet = 0
         i += 1
     return "".join(out)
@@ -157,14 +165,18 @@ def decode_zchars(zchars: list[int], alphabets: Alphabets, unicode: UnicodeTable
 # ---------------------------------------------------------------------------
 def zscii_to_zchars(code: int, alphabets: Alphabets) -> list[int]:
     """The z-chars that print ONE ZSCII character."""
+    # Space (ZSCII 32) encodes as z-char 0 (§3.5.1).
     if code == 32:
         return [0]
+    # If the character is in any alphabet, encode it directly or with a shift (§3.5).
     found = alphabets.find(code)
     if found is not None:
         number, zchar = found
         if number == 0:
             return [zchar]
+        # Characters in A1 or A2 need a shift z-char before them (§3.2.3).
         return [ZCHAR_SHIFT_A1 if number == 1 else ZCHAR_SHIFT_A2, zchar]
+    # Newline (ZSCII 13) is A2 z-char 7 (§3.5.3).
     if code == ZSCII_NEWLINE:
         return [ZCHAR_SHIFT_A2, 7]
     # §3.4 10-bit escape: shift to A2, z-char 6, then high 5 bits, low 5 bits
@@ -172,6 +184,7 @@ def zscii_to_zchars(code: int, alphabets: Alphabets) -> list[int]:
 
 
 def text_to_zscii(text: str, unicode: UnicodeTable) -> list[int]:
+    """Convert a Python string to ZSCII codes, replacing unmappable characters with '?'."""
     codes = []
     for ch in text:
         code = unicode.char_to_zscii(ch)
@@ -181,12 +194,16 @@ def text_to_zscii(text: str, unicode: UnicodeTable) -> list[int]:
 
 def pack_zchars(zchars: list[int]) -> bytes:
     """Pack z-chars three to a word, padding with 5s and setting the end bit."""
+    # Ensure there is at least one z-char; if empty, use a pad character.
     zchars = list(zchars) or [ZCHAR_PAD]
+    # Pad with z-char 5 to make the count a multiple of 3 (§3.7).
     while len(zchars) % 3:
         zchars.append(ZCHAR_PAD)
     out = bytearray()
+    # Group z-chars into triples and encode each as a 16-bit word (§3.2).
     for i in range(0, len(zchars), 3):
         w = (zchars[i] << 10) | (zchars[i + 1] << 5) | zchars[i + 2]
+        # Set the top bit only on the final word, marking the end of the string.
         if i + 3 == len(zchars):
             w |= 0x8000
         out += bytes([(w >> 8) & 0xFF, w & 0xFF])
@@ -198,6 +215,7 @@ def encode_string(text: str, alphabets: Alphabets | None = None,
     """Encode any text as a complete z-string (no abbreviations used)."""
     alphabets = alphabets or Alphabets.default()
     unicode = unicode or UnicodeTable()
+    # Convert the string to ZSCII, then each ZSCII code to the z-chars that print it.
     zchars: list[int] = []
     for code in text_to_zscii(text, unicode):
         zchars += zscii_to_zchars(code, alphabets)
@@ -210,8 +228,10 @@ def encode_dictionary_word(zscii_codes: list[int], alphabets: Alphabets | None =
     in v5), truncated or padded with 5s; the end bit is on the last word.
     Input is lower-cased ZSCII (the caller lower-cases)."""
     alphabets = alphabets or Alphabets.default()
+    # Convert ZSCII codes to z-chars; dictionary words have a fixed size.
     zchars: list[int] = []
     for code in zscii_codes:
         zchars += zscii_to_zchars(code, alphabets)
+    # Truncate or pad to exactly `nzchars` z-characters (always 6 in v4+).
     zchars = (zchars + [ZCHAR_PAD] * nzchars)[:nzchars]
     return pack_zchars(zchars)

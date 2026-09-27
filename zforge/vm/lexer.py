@@ -27,6 +27,11 @@ ENCODED_WORD_BYTES = 6     # v4+: 9 z-chars
 
 @dataclass
 class Dictionary:
+    """The Z-machine dictionary (§13): a packed list of words and separators.
+
+    Words are encoded z-strings (6 bytes / 9 z-chars). The dictionary can be
+    sorted (for binary search) or unsorted (for linear scan).
+    """
     address: int
     separators: list[int]
     entry_length: int
@@ -35,6 +40,8 @@ class Dictionary:
 
     @classmethod
     def load(cls, mem: Memory, address: int) -> "Dictionary":
+        """Load the dictionary from memory at address (§13.2)."""
+        # Read the dictionary header
         n = mem.read_byte(address)
         separators = [mem.read_byte(address + 1 + i) for i in range(n)]
         entry_length = mem.read_byte(address + 1 + n)
@@ -50,11 +57,13 @@ class Dictionary:
         def key(i: int) -> bytes:
             return mem.read_bytes(self.entries_start + i * self.entry_length, ENCODED_WORD_BYTES)
 
+        # Linear search for unsorted dictionaries
         if self.count < 0:
             for i in range(count):
                 if key(i) == encoded:
                     return self.entries_start + i * self.entry_length
             return 0
+        # Binary search for sorted dictionaries
         lo, hi = 0, count - 1
         while lo <= hi:
             mid = (lo + hi) // 2
@@ -73,14 +82,18 @@ def split_words(chars: list[int], separators: list[int]) -> list[tuple[int, int]
     words: list[tuple[int, int]] = []
     start = None
     for i, c in enumerate(chars):
+        # Space or separator: end the current word if any
         if c == 32 or c in separators:
             if start is not None:
                 words.append((start, i - start))
                 start = None
+            # Separators are also words by themselves
             if c in separators:
                 words.append((i, 1))
+        # Non-space, non-separator: start or continue a word
         elif start is None:
             start = i
+    # Don't forget the final word
     if start is not None:
         words.append((start, len(chars) - start))
     return words
@@ -92,18 +105,28 @@ def tokenise(mem: Memory, alphabets: Alphabets, text_buffer: int, parse_buffer: 
 
     v5 text buffer: byte 0 = max length, byte 1 = number of chars typed,
     chars from byte 2 (§15 read).
+
+    Parse buffer is filled with 4-byte blocks (one per word): dictionary address,
+    word length, word start position.
     """
+    # Read the text from the buffer (byte 1 = length, byte 2+ = chars)
     length = mem.read_byte(text_buffer + 1)
     chars = [mem.read_byte(text_buffer + 2 + i) for i in range(length)]
+    # Split into words at spaces and separators
     max_words = mem.read_byte(parse_buffer)
     words = split_words(chars, dictionary.separators)[:max_words]
+    # Store the actual word count in the parse buffer
     mem.write_byte(parse_buffer + 1, len(words))
+    # For each word, look it up in the dictionary and write a 4-byte block
     for n, (start, size) in enumerate(words):
+        # Encode the word as a 6-byte z-string for dictionary lookup
         encoded = encode_dictionary_word(chars[start:start + size], alphabets)
         entry = dictionary.lookup(mem, encoded)
         block = parse_buffer + 2 + 4 * n
+        # If the word is not found and skip_unknown, leave the slot untouched
         if entry == 0 and skip_unknown:
             continue                     # §15 tokenise: leave the slot untouched
+        # Write the 4-byte block: dictionary address, length, position
         mem.write_word(block, entry)
         mem.write_byte(block + 2, size)
         mem.write_byte(block + 3, start + 2)   # position counts from buffer start

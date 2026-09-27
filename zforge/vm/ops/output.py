@@ -83,10 +83,14 @@ def op_output_stream(vm, number, table=0, width=0):
     Stream 3 needs a table address. Stream 2 also mirrors Flags 2 bit 0."""
     from zforge.common import header as H
     n = to_signed(number)
+    # Stream 0 does nothing (no operation)
     if n == 0:
         return
+    # Flush any buffered output before switching streams
     vm.screen.flush()
+    # Select or deselect the stream
     vm.streams.select(n, table)
+    # Stream 2 (transcript) also sets/clears Flags 2 bit 0 in the header
     if abs(n) == 2:
         flags2 = vm.mem.read_word(H.H_FLAGS2)
         flags2 = flags2 | H.F2_TRANSCRIPT if n > 0 else flags2 & ~H.F2_TRANSCRIPT

@@ -35,7 +35,13 @@ CURSES_KEY_TO_ZSCII = {
 
 
 class CursesScreen(GridScreen):
+    """The v5/v7/v8 screen, drawn in a real terminal.
+
+    GridScreen (base.py) keeps a grid of character cells and does all the
+    Z-machine rules; this class copies that grid to the terminal and reads keys.
+    """
     def __init__(self, stdscr):
+        """Set up the terminal: keys arrive one at a time, unechoed; colours if any."""
         self.stdscr = stdscr
         height, width = stdscr.getmaxyx()
         super().__init__(width, height)
@@ -54,6 +60,7 @@ class CursesScreen(GridScreen):
 
     # ----------------------------------------------------------- drawing
     def _attribute(self, cell) -> int:
+        """The curses attribute (bold, reverse, colour ...) for one grid cell."""
         attr = 0
         if cell.style & STYLE_REVERSE:
             attr |= curses.A_REVERSE
@@ -66,6 +73,11 @@ class CursesScreen(GridScreen):
         return attr
 
     def _pair(self, fg: int, bg: int) -> int:
+        """The curses colour pair for a foreground and background colour.
+
+        curses needs each colour combination registered once, by number, before it
+        can be used, and a terminal has only so many; we register them as they turn
+        up, and fall back to the default colours (pair 0) if the terminal runs out."""
         key = (fg, bg)
         if key not in self._pairs:
             number = len(self._pairs) + 1
@@ -79,6 +91,7 @@ class CursesScreen(GridScreen):
     _typing = ""          # the line being typed, drawn over the grid (not into it)
 
     def render(self) -> None:
+        """Copy the whole grid to the terminal, then the line being typed."""
         for r, row in enumerate(self.rows):
             for c, cell in enumerate(row):
                 if r == self.height - 1 and c == self.width - 1:
@@ -108,6 +121,7 @@ class CursesScreen(GridScreen):
             pass                    # the terminal has gone (SIGHUP)
 
     def more_prompt(self) -> None:
+        """Show [MORE] on the bottom line and wait for any key (§8.4.1)."""
         self.render()
         try:
             self.stdscr.addstr(self.height - 1, 0, "[MORE]", curses.A_REVERSE)
@@ -139,6 +153,7 @@ class CursesScreen(GridScreen):
 
     # ------------------------------------------------------------- input
     def _raw_key(self) -> int:
+        """Wait for one key from the terminal (dealing with Ctrl-C and resizes)."""
         while True:
             try:
                 key = self.stdscr.get_wch()
@@ -160,6 +175,7 @@ class CursesScreen(GridScreen):
         self.render()
 
     def _to_zscii(self, key: int) -> int | None:
+        """A curses key as the ZSCII code the game expects, or None if it has none."""
         if key in CURSES_KEY_TO_ZSCII:
             return CURSES_KEY_TO_ZSCII[key]
         if 32 <= key <= 126:
@@ -167,6 +183,7 @@ class CursesScreen(GridScreen):
         return None
 
     def _input_key(self) -> int:
+        """Wait for a key the game can use (others are ignored)."""
         while True:
             code = self._to_zscii(self._raw_key())
             if code is not None:
@@ -200,6 +217,7 @@ class CursesV6Screen(V6Model, CursesScreen):
 
 
 def _quit_on_signal(signum, frame):
+    """On a hang-up or termination signal, end the game the normal way."""
     raise QuitGame("interrupted")
 
 

@@ -13,6 +13,9 @@ import re
 
 from dataclasses import dataclass, field
 
+# The six stages an action goes through, in order (Inform 7's rulebooks).
+# Before, Instead and Check can stop it; Carry out does it; After and
+# Report tell the player.
 STAGES = ("before", "instead", "check", "carry out", "after", "report")
 
 
@@ -28,6 +31,7 @@ class LibraryRule:
 
 @dataclass(frozen=True)
 class StandardAction:
+    """One of Inform 7's standard actions, such as taking or putting it on."""
     name: str                                   # Inform 7's name: "putting it on"
     applying: int                               # things it applies to: 0, 1 or 2
     grammar: tuple[str, ...]                    # Understand lines
@@ -36,6 +40,10 @@ class StandardAction:
     variables: str = ""                         # routine setting its action variables
 
 
+# How to read an entry below:
+#     StandardAction("taking", 1, ("take [things]", ...), {"check": (R(...), ...)})
+# is the action's name, how many things it applies to, its grammar, and the
+# library rules in each stage - each R(Inform 7 name, ZIL routine, responses).
 R = LibraryRule
 ACTIONS: tuple[StandardAction, ...] = (
     StandardAction("looking", 0, ("look", "l"), {"carry out": (
@@ -333,6 +341,7 @@ DIRECTIONS: tuple[tuple[str, str, str], ...] = (
     ("up", "u", "down"), ("down", "d", "up"),
     ("inside", "in", "outside"), ("outside", "out", "inside"),
 )
+# 'The Hall is north of the Kitchen' also makes the Kitchen south of the Hall.
 OPPOSITE = {name: opposite for name, _, opposite in DIRECTIONS}
 
 

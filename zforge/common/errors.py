@@ -30,6 +30,7 @@ class ZMachineError(ZForgeError):
     address, division by zero...). Spec Appendix A lists such errors."""
 
     def __init__(self, message: str, pc: int | None = None):
+        """Store the error message and optionally the program counter where it occurred."""
         where = f" at PC=0x{pc:05x}" if pc is not None else ""
         super().__init__(message + where)
         self.pc = pc

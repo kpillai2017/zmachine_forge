@@ -141,6 +141,8 @@
     <PARSE-ERROR .FOUND>
     <RFALSE>>
 
+;"Report why the command could not be understood. Inform 7 games pass the
+  error to the printing a parser error activity; ZIL games print it here."
 <ROUTINE PARSE-ERROR (VERB-KNOWN)
     <IFFLAG (I7
     <I7-PARSER-ERROR <COND (<NOT .VERB-KNOWN> ,PE-NOT-A-VERB)
@@ -226,6 +228,8 @@
     <COND (<AND <G? ,P-WORD ,P-LEN> <NOT <G? .SLOT .N>> <ZERO? ,P-ERROR>>
            <SETG P-MISSING .SLOT>)>>
 
+;"Does the next word match the preposition PREP (IN, ON ...)? If so, step
+  past it. No preposition wanted (0) always matches."
 <ROUTINE MATCH-PREP (PREP)
     <COND (<ZERO? .PREP> <RTRUE>)
           (<G? ,P-WORD ,P-LEN> <RFALSE>)
@@ -290,12 +294,14 @@
           (ELSE <SETG P-MULTIPLE T> <SETG P-DEFAULTED 0>)>
     .O>
 
+;"Do words FIRST..LAST name several things (ALL, EVERYTHING, AND, a comma)?"
 <ROUTINE MULTI-WORDS? (FIRST LAST)
     <DO (I .FIRST .LAST)
         <COND (<OR <EQUAL? <WORD-AT .I> ,W?ALL ,W?EVERYTHING ,W?AND> <COMMA? .I>>
                <RTRUE>)>>
     <RFALSE>>
 
+;"Does word I separate items in a list: AND, EXCEPT, BUT or a comma?"
 <ROUTINE LIST-BREAK? (I) <OR <EQUAL? <WORD-AT .I> ,W?AND ,W?EXCEPT ,W?BUT> <COMMA? .I>>>
 
 <ROUTINE COMMA? (I "AUX" E)
@@ -406,10 +412,12 @@
                           <ADD-IF-TAKEABLE .C>>)>
                <SET O <NEXT? .O>>>)>>
 
+;"For ALL: add O to the list unless it is scenery, fixed or a person."
 <ROUTINE ADD-IF-TAKEABLE (O)
     <COND (<NOT <OR <FSET? .O ,SCENERYBIT> <FSET? .O ,FIXEDBIT> <FSET? .O ,PERSONBIT>>>
            <MULTI-ADD .O>)>>
 
+;"How many things the player is carrying."
 <ROUTINE COUNT-HELD ("AUX" (N 0) O)
     <SET O <FIRST? ,PLAYER>>
     <REPEAT ()
@@ -418,11 +426,13 @@
         <SET O <NEXT? .O>>>
     .N>
 
+;"Add O to the list of objects in P-MULTI (once only; at most 16)."
 <ROUTINE MULTI-ADD (O "AUX" N)
     <SET N <GET ,P-MULTI 0>>
     <DO (I 1 .N) <COND (<EQUAL? <GET ,P-MULTI .I> .O> <RTRUE>)>>
     <COND (<L? .N 16> <PUT ,P-MULTI <+ .N 1> .O> <PUT ,P-MULTI 0 <+ .N 1>>)>>
 
+;"Take O out of the P-MULTI list (for ALL EXCEPT ...)."
 <ROUTINE MULTI-REMOVE (O "AUX" N KEPT)
     <SET N <GET ,P-MULTI 0>>
     <DO (I 1 .N)
@@ -432,6 +442,7 @@
     <PUT ,P-MULTI 0 .KEPT>>
 ) (ELSE)>
 
+;"Step past THE, A and AN at the start of words FIRST..LAST."
 <ROUTINE SKIP-ARTICLES (FIRST LAST)
     <REPEAT ()
         <COND (<G? .FIRST .LAST> <RETURN>)
@@ -452,10 +463,13 @@
                           (ELSE <SETG P-ERROR ,P-ERR-NOT-FOUND> <SETG P-ERROR-WORD .LAST>)>
                   <RFALSE>)>)>>
 
+;"Is dictionary word W an article?"
 <ROUTINE ARTICLE? (W) <EQUAL? .W ,W?THE ,W?A ,W?AN>>
 
+;"Is dictionary word W a pronoun the parser understands?"
 <ROUTINE PRONOUN? (W) <EQUAL? .W ,W?IT ,W?THEM ,W?HIM ,W?HER>>
 
+;"The thing IT (word I) stands for: the last thing the player named."
 <ROUTINE PRONOUN-OBJECT (I)
     <COND (<ZERO? ,P-IT>
            <IFFLAG (I7 <RAISE-ERROR ,P-ERR-NO-IT .I>)
@@ -473,6 +487,8 @@
     <SEARCH-IN ,PLAYER .FIRST .LAST .TBL>
     <COND (,LIT <SEARCH-IN ,HERE .FIRST .LAST .TBL>)>>
 
+;"Add to TBL each thing in CONTAINER - and one level inside those - that
+  words FIRST..LAST describe."
 <ROUTINE SEARCH-IN (CONTAINER FIRST LAST TBL)
     <MAP-CONTENTS (O .CONTAINER)
         <COND (<MATCHES? .O .FIRST .LAST> <ADD-MATCH .TBL .O>)>
@@ -509,6 +525,8 @@
         <COND (<NOT <DESCRIBES? .O <WORD-AT .I>>> <RFALSE>)>>
     <RTRUE>>
 
+;"Could word W be part of a name for O: one of its adjectives or
+  synonyms, or an article?"
 <ROUTINE DESCRIBES? (O W)
     <OR <IN-PROP? .O ,P?ADJECTIVE .W> <IN-PROP? .O ,P?SYNONYM .W> <ARTICLE? .W>>>
 
@@ -521,6 +539,8 @@
         <COND (<EQUAL? <GET .PT .I> .W> <RTRUE>)>>
     <RFALSE>>
 
+;"No noun was typed: find a default from the SYNTAX line's FIND flag -
+  something carried first, then (if there is light) something here."
 <ROUTINE FIND-FLAGGED (FLAG "AUX" FOUND)
     <MAP-CONTENTS (O ,PLAYER)
         <COND (<FSET? .O .FLAG> <SET FOUND .O> <RETURN>)>>
@@ -580,6 +600,8 @@
     <PUT .TBL 0 .KEPT>
     <RTRUE>>
 
+;"Does O pass one of the SYNTAX line's search options: HELD, IN-ROOM, or
+  (otherwise) being inside the second object?"
 <ROUTINE PASSES? (O TEST)
     <COND (<EQUAL? .TEST ,SO-HELD> <HELD? .O>)
           (<EQUAL? .TEST ,SO-ROOM> <NOT <HELD? .O>>)
@@ -614,6 +636,7 @@
     <COND (.KEPT <PUT .TBL 0 .KEPT>)>
     .KEPT>
 
+;"The answer to Which do you mean: does every word of it describe O?"
 <ROUTINE REPLY-DESCRIBES? (O)
     <DO (I 1 ,P-LEN)
         <COND (<NOT <DESCRIBES? .O <WORD-AT .I>>> <RFALSE>)>>

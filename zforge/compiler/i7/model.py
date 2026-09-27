@@ -56,6 +56,7 @@ DIRECTION_WORDS = ("north|northeast|east|southeast|south|southwest|west|northwes
 
 @dataclass
 class Kind:
+    """A category of objects (room, thing, container, ...) with inherited flags and texts."""
     name: str
     parent: str | None
     flags: set[str] = field(default_factory=set)            # set on every instance
@@ -67,6 +68,7 @@ class Kind:
 
 @dataclass
 class Obj:
+    """A concrete object: a room, a thing, or a door, with its placement and properties."""
     name: str                                               # "small brass hook"
     kind: str
     where: Location
@@ -88,6 +90,7 @@ class Obj:
 
 @dataclass
 class Variable:
+    """A global variable: an object, number, text or truth state that varies."""
     name: str
     kind: str                                               # number / truth state / text / object
     initial: str = "0"
@@ -96,6 +99,7 @@ class Variable:
 
 @dataclass
 class Action:
+    """An action the player can perform (take, look, examine, ...) with its grammar lines."""
     name: str
     applying: int
     standard: StandardAction | None = None
@@ -105,6 +109,7 @@ class Action:
 
 @dataclass
 class Rule:
+    """A rule: a condition preamble followed by phrases to execute (or an activity rule)."""
     stage: str                  # "when play begins", "every turn", a STAGES name, or ""
                                 # ("This is the X rule:" - in no rulebook until listed)
     preamble: str               # what follows the stage words, e.g. "going north in the Foyer"
@@ -131,6 +136,7 @@ class Listing:
 
 @dataclass
 class PhraseDef:
+    """A named phrase definition: a subroutine with parameters and a body."""
     preamble: str               # "To say foo", "To decide whether ..."
     body: list[BodyLine]
     where: Location
@@ -138,6 +144,7 @@ class PhraseDef:
 
 @dataclass
 class WorldModel:
+    """The game's complete model: objects, map, rules, variables, actions, and metadata."""
     title: str = "Untitled"
     author: str = "Anonymous"
     headline: str = "An Interactive Fiction"
@@ -168,6 +175,7 @@ class WorldModel:
 
     # ------------------------------------------------------------ queries
     def is_a(self, kind: str, ancestor: str) -> bool:
+        """Check if KIND is ANCESTOR or a descendant of it."""
         while kind is not None:
             if kind == ancestor:
                 return True
@@ -175,9 +183,11 @@ class WorldModel:
         return False
 
     def rooms(self) -> list[Obj]:
+        """All room objects in the model."""
         return [o for o in self.objects.values() if self.is_a(o.kind, "room")]
 
     def things(self) -> list[Obj]:
+        """All non-room objects in the model."""
         return [o for o in self.objects.values() if not self.is_a(o.kind, "room")]
 
     def find(self, phrase: str) -> Obj | None:
@@ -214,6 +224,7 @@ def third_person_singular(verb: str) -> str:
 
 
 def strip_article(phrase: str) -> str:
+    """Remove leading articles (the, a, an, some) from a phrase."""
     p = phrase.strip()
     for a in ARTICLES:
         if p.lower().startswith(a):
@@ -222,12 +233,14 @@ def strip_article(phrase: str) -> str:
 
 
 def unquote(s: str) -> str:
+    """Remove leading and trailing quotes if present."""
     s = s.strip()
     return s[1:-1] if len(s) >= 2 and s[0] == s[-1] == '"' else s
 
 
 # ====================================================================== build
 class ModelBuilder:
+    """Builds the world model from sentences, trying pattern patterns for each."""
     def __init__(self, problems: Problems, testing: bool = False):
         self.m = WorldModel(testing=testing)
         self.p = problems
@@ -240,6 +253,7 @@ class ModelBuilder:
         self.last_room: Obj | None = None            # whose paragraph we are in
 
     def build(self, sentences: list[Sentence]) -> WorldModel:
+        """Parse all sentences into the world model in two passes (forward references work)."""
         for s in sentences:                          # pass 1: names
             if not s.is_rule:
                 self.declare_names(s)
@@ -269,6 +283,7 @@ class ModelBuilder:
             self.m.value_properties[strip_article(m.group(2)).lower()] = m.group(1).lower()
 
     def new_object(self, phrase: str, kind: str, where: Location) -> Obj:
+        """Create or retrieve an object of the given kind."""
         name = strip_article(phrase)
         existing = self.m.find(name)
         if existing and existing.name.lower() == name.lower():
@@ -296,7 +311,9 @@ class ModelBuilder:
 
     # ------------------------------------------------------------ pass 2
     def assertion(self, s: Sentence, first: bool) -> None:
+        """Parse an assertion sentence, trying patterns until one matches."""
         t = " ".join(s.text.split())
+        # Titling sentence: "Title" or "Title" by Author (first sentence only).
         if first and re.match(r'^"[^"]+"( by .+)?$', t):
             m = re.match(r'^"([^"]+)"(?: by (.+))?$', t)
             self.m.title = m.group(1)
@@ -306,6 +323,7 @@ class ModelBuilder:
         if t.startswith('"'):                        # a bare quoted sentence
             self.bare_text(s, t)
             return
+        # Try patterns in order (comma_placement must come first; order matters).
         body = t[:-1].strip() if t.endswith(".") else t
         for pattern, handler in self.PATTERNS:
             m = re.match(pattern, body, re.I)
@@ -484,6 +502,7 @@ class ModelBuilder:
             self.m.command_synonyms.append((word, old))
 
     def link(self, frm: Obj, direction: str, to: Obj) -> None:
+        """Create a two-way map connection, unless the reverse is set explicitly."""
         self.m.map[(frm.name, direction)] = to.name
         back = (to.name, OPPOSITE[direction])
         if back not in self.m.nowhere:               # 'Outside is nowhere.' wins
@@ -643,18 +662,22 @@ class ModelBuilder:
         return False
 
     def understand(self, s, m):
+        """Add grammar lines to an action, direction synonyms, or object aliases."""
         words, target = m.group(1), m.group(2).strip()
         words = [unquote(w) for w in re.split(r'\s*(?:,|\band\b|\bor\b)\s*', words) if w.strip()]
+        # Understand "plugh" as north: a direction synonym (or forward slash alternatives).
         if strip_article(target).lower() in DIRECTION_NAMES:
             direction = strip_article(target).lower()
             for w in words:
                 self.m.direction_words.setdefault(direction, []).extend(w.lower().split("/"))
             return
+        # Understand "hang [something] on [something]" as putting it on.
         action = self.m.actions.get(strip_article(target).lower())
         if action:
             for w in words:
                 action.grammar.append((w, s.where))
             return
+        # Understand "peg" as the brass hook: object synonyms or extra names.
         obj = self.m.find(target)
         if obj:
             for w in words:
@@ -854,6 +877,7 @@ class ModelBuilder:
                    ("check", "check"), ("carry out", "carry out"), ("report", "report"))
 
     def rule(self, s: Sentence) -> None:
+        """Parse a rule preamble and body into the model."""
         preamble = " ".join(s.text.rstrip(":").split())
         written = preamble                               # kept for RULES to show
         low = preamble.lower()

@@ -1,12 +1,15 @@
 """The `zforge` command line.
 
-    zforge run STORY.z5 [--ui auto|curses|plain] [--script FILE] [--seed N]
-                        [--transcript FILE] [--trace FILE]
-    zforge compile GAME.zil [-o GAME.z5] [--emit-asm] [--emit-tokens] [--emit-ast]
-    zforge compile GAME.ni  [-o GAME.z8] [--emit-zil] [--emit-asm]      (Inform 7, I7-lite)
-    zforge asm GAME.zas [-o GAME.z5]
-    zforge disasm STORY.z5 [--routine 0xADDR]
-    zforge info STORY.z5 [--header] [--objects] [--dictionary]
+    zforge run STORY [--ui auto|curses|plain] [--script FILE] [--seed N]
+                     [--transcript FILE] [--trace FILE]        (STORY: .z5 .z6 .z7 .z8)
+    zforge compile GAME.zil [--target z5|z6|z7|z8] [-o OUT] [--emit-asm] [--emit-tokens]
+                            [--emit-ast]
+    zforge compile GAME.ni  [--target ...] [-o OUT] [--emit-zil] [--emit-asm] [--testing]
+                                                               (Inform 7, I7-lite)
+    zforge asm GAME.zas [--target ...] [-o OUT]
+    zforge disasm STORY [--routine 0xADDR]
+    zforge info STORY [--header] [--objects] [--dictionary]
+    zforge info --versions            (how z5, z6, z7 and z8 differ)
     zforge spec TERM                  (look up the cached Z-Machine Standard)
 
 Errors are printed as one clear message (no Python traceback) unless
@@ -26,6 +29,7 @@ from zforge.config import Target, resolve_target
 
 
 def _read_story(path: str) -> bytes:
+    """The bytes of a story file, or a clear error if it isn't there."""
     p = Path(path)
     if not p.exists():
         raise ZForgeError(f"{path}: no such file")
@@ -34,16 +38,21 @@ def _read_story(path: str) -> bytes:
 
 # ---------------------------------------------------------------- run
 def cmd_run(args) -> int:
+    """zforge run: play a story file on the chosen screen."""
     from zforge.vm.machine import ZMachine
 
     story = _read_story(args.story)
     script = Path(args.script).read_text().splitlines() if args.script else None
+    # Pick the screen: the full-screen curses one when we are talking to a real
+    # terminal, otherwise plain text (for pipes, scripts and tests).
     ui = args.ui
     if ui == "auto":
         ui = "curses" if sys.stdin.isatty() and sys.stdout.isatty() and script is None \
             and _curses_available() else "plain"
     trace_file = open(args.trace, "w") if args.trace else None
 
+    # Play the story on SCREEN until it ends. Returns why it ended, the last few
+    # instructions (only after an error, to help find the fault) and warnings.
     def play(screen) -> tuple[str, list[str], list[str]]:
         vm = ZMachine(story, screen, seed=args.seed, transcript_path=args.transcript,
                       trace_file=trace_file)
@@ -68,6 +77,7 @@ def cmd_run(args) -> int:
     finally:
         if trace_file:
             trace_file.close()
+    # Afterwards: warnings if asked for, and a clear message if the game crashed.
     if args.verbose:
         for w in warnings:
             print(f"warning: {w}", file=sys.stderr)
@@ -81,6 +91,7 @@ def cmd_run(args) -> int:
 
 
 def _curses_available() -> bool:
+    """Whether Python's curses module can be loaded here (not on plain Windows)."""
     try:
         import curses  # noqa: F401
         return True
@@ -99,18 +110,22 @@ I7_SUFFIXES = (".ni", ".i7")
 
 
 def cmd_compile(args) -> int:
+    """zforge compile: build a story from ZIL (.zil) or Inform 7 (.ni) source."""
     from zforge.compiler.driver import compile_zil
 
     src = Path(args.source)
     if not src.exists():
         raise ZForgeError(f"{args.source}: no such file")
     target = _explicit_target(args)
+    # Inform 7 sources take their own path; everything else is ZIL.
     if src.suffix.lower() in I7_SUFFIXES:
         return compile_inform7(args, src, target)
     if args.testing:
         raise ZForgeError("--testing adds Inform 7's testing commands (RULES, ACTIONS, "
                           "TREE), so it is for Inform 7 (.ni) sources only")
     result = compile_zil(src.read_text(), str(src), target.version if target else None)
+    # Write the story, then any of the in-between stages that were asked for, so
+    # each step of the compiler can be looked at.
     origin = target.origin if target else "the source"
     out = Path(args.output) if args.output else src.with_suffix(f".z{result.version}")
     out.write_bytes(result.story)
@@ -157,6 +172,7 @@ def compile_inform7(args, src: Path, target) -> int:
 
 
 def cmd_asm(args) -> int:
+    """zforge asm: assemble a .zas file into a story."""
     from zforge.asm.assembler import assemble
 
     src = Path(args.source)
@@ -171,6 +187,7 @@ def cmd_asm(args) -> int:
 
 
 def cmd_disasm(args) -> int:
+    """zforge disasm: list a story's instructions, one routine or all."""
     from zforge.asm.disasm import disassemble
 
     routine = int(args.routine, 0) if args.routine else None
@@ -179,6 +196,8 @@ def cmd_disasm(args) -> int:
 
 
 def cmd_info(args) -> int:
+    """zforge info: what is inside a story (header, objects, dictionary), or
+    the table of how the four versions differ."""
     from zforge.asm import info
     from zforge.common.header import Header
 
@@ -219,6 +238,7 @@ def cmd_spec(args) -> int:
 
 # --------------------------------------------------------------- main
 def build_parser() -> argparse.ArgumentParser:
+    """The command-line options for every zforge command (argparse)."""
     p = argparse.ArgumentParser(prog="zforge", description="A study-friendly Z-machine "
                                 "toolchain for versions 5-8: interpreter, Inform 7 (I7-lite) "
                                 "and ZIL-lite compilers, assembler.")
@@ -279,6 +299,10 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Run one zforge command and return its exit status.
+
+    0 = fine; 1 = an error (a bad file, a problem in the source ...); 2 = input
+    zforge does not handle, such as a version-3 story; 130 = interrupted."""
     args = build_parser().parse_args(argv)
     try:
         return args.func(args)

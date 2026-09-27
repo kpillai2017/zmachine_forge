@@ -68,6 +68,8 @@ class Encoded:
     offset: int = 0                              # from the routine's first instruction
 
     def form(self) -> str:
+        """Return this instruction's encoding form (§4.3): long, short, variable or
+        extended."""
         if self.op.kind == "EXT":
             return "extended"
         if self.op.kind == "2OP" and len(self.operands) == 2 and \
@@ -78,14 +80,20 @@ class Encoded:
         return "variable"
 
     def size(self) -> int:
+        """Return the byte length of this instruction when encoded."""
         form = self.form()
+        # Form determines the instruction's header bytes (§4).
         n = {"long": 1, "short": 1, "variable": 2, "extended": 3}[form]
         if self.op.name in DOUBLE_TYPE_BYTE:
             n += 1
+        # Add operands: LARGE (2 bytes each) or SMALL (1 byte each).
         n += sum(2 if t == OperandType.LARGE else 1 for t, _ in self.operands)
+        # Add store byte if result is stored.
         n += 1 if self.store is not None else 0
+        # Add branch offset: 2 bytes (long form) or 1 (short form).
         if self.branch is not None:
             n += 2 if self.long_branch else 1
+        # Add any embedded string (for print/print_ret).
         n += len(self.text) if self.text else 0
         return n
 
@@ -169,6 +177,7 @@ class Assembler:
             raise self.error(f"{name} is defined twice", line)
 
     def _directive(self, d: Directive) -> None:
+        """Process pass-1 directives: globals, constants, objects, strings, etc."""
         a = d.args
         need = {".global": 1, ".constant": 2, ".array": 2, ".buffer": 2, ".object": 2,
                 ".prop": 3, ".propb": 3, ".propdefault": 2, ".string": 2, ".main": 1}
@@ -241,6 +250,7 @@ class Assembler:
 
     # ================================================== operands & variables
     def variable_number(self, token: str, routine: RoutineDef | None) -> int | None:
+        """Map a variable name to its Z-machine variable number (§4.2.2)."""
         if token == "sp":
             return 0
         if routine and token in routine.locals:
@@ -288,6 +298,7 @@ class Assembler:
 
     # ============================================================== pass 2
     def encode_routine(self, routine: RoutineDef) -> tuple[list, dict[str, int]]:
+        """Encode a routine's instructions and relax branch offsets (pass 2)."""
         encoded: list = []
         for item in routine.body:
             if isinstance(item, Label):
@@ -297,23 +308,30 @@ class Assembler:
         return encoded, self.relax(encoded, routine)
 
     def encode_instruction(self, ins: AsmInstruction, routine: RoutineDef) -> Encoded:
+        """Turn one instruction into an Encoded record, choosing form and operand types.
+        This is independent of addresses: operand sizes never depend on them."""
         op = self.opcodes.get(ins.opcode)
         if op is None:
             raise self.error(f"unknown opcode '{ins.opcode}' (see §14)", ins.line)
         operands = []
         text = None
         tokens = list(ins.operands)
+        # Print/print_ret store the string inline, not as an address (§4.8).
         if op.text:
             if len(tokens) != 1 or not tokens[0].startswith('"'):
                 raise self.error(f"{op.name} needs exactly one \"string\"", ins.line)
             text = encode_string(unquote(tokens[0]))
             tokens = []
+        # Jump uses a label, not yet resolved to an offset.
         if op.name == "jump":
             if len(tokens) != 1:
                 raise self.error("jump needs a label", ins.line)
             return Encoded(op, [(OperandType.LARGE, ("jump", tokens[0]))], None, None, None,
                            line=ins.line)
+        # Classify each operand as a variable, small/large constant, or late resolver.
         for i, token in enumerate(tokens):
+            # §6.3.4: first operand of certain opcodes passes the variable NUMBER
+            # as a small constant, not its value.
             if i == 0 and op.name in INDIRECT_FIRST:
                 if token.startswith("[") and token.endswith("]"):
                     operands.append(self.operand(token[1:-1], routine, ins.line))
@@ -323,6 +341,7 @@ class Assembler:
                     operands.append((OperandType.SMALL, var))
                     continue
             operands.append(self.operand(token, routine, ins.line))
+        # Check store: if opcode stores a result, instruction must say '-> variable'.
         store = None
         if op.store:
             if ins.store is None:
@@ -332,6 +351,7 @@ class Assembler:
                 raise self.error(f"'{ins.store}' is not a variable", ins.line)
         elif ins.store is not None:
             raise self.error(f"{op.name} does not store a result", ins.line)
+        # Check branch: if opcode branches, instruction must say '?label' or '?~label'.
         branch = None
         if op.branch:
             if ins.branch is None:
@@ -351,9 +371,10 @@ class Assembler:
             raise self.error(f"{op.name} takes {lo}..{hi} operands, got {n}", line)
 
     def relax(self, encoded: list, routine: RoutineDef) -> dict[str, int]:
-        """Grow branches from 1 to 2 bytes until all offsets fit (§4.7.2).
+        """Grow branches from 1 to 2 bytes until all offsets fit (§4.7).
         Returns label -> offset from the routine's first instruction."""
         while True:
+            # First pass: measure instruction sizes and record label positions.
             labels, offset = {}, 0
             for item in encoded:
                 if isinstance(item, Label):
@@ -361,6 +382,7 @@ class Assembler:
                 else:
                     item.offset = offset
                     offset += item.size()
+            # Second pass: check if any branch needs widening.
             changed = False
             for item in encoded:
                 if isinstance(item, Label) or item.branch is None or item.long_branch:
@@ -370,10 +392,13 @@ class Assembler:
                     continue
                 if target not in labels:
                     raise self.error(f"unknown label '{target}' in {routine.name}", item.line)
+                # Calculate the offset relative to the instruction after this one.
                 jump = labels[target] - (item.offset + item.size()) + 2
+                # Short branch form (1 byte) holds offsets 2-63; 0 and 1 mean return values.
                 if not 2 <= jump <= 63:          # short form holds 0..63; 0/1 mean return
                     item.long_branch = True
                     changed = True
+            # Loop until no more changes (branch growth stops).
             if not changed:
                 for item in encoded:
                     if isinstance(item, Encoded) and item.op.name == "jump":
@@ -421,14 +446,18 @@ class Assembler:
         for i in range(linker.ABBREVIATION_COUNT):   # all point at "" (a WORD address)
             story[layout.abbreviations + 2 * i:layout.abbreviations + 2 * i + 2] = \
                 (empty_string // 2).to_bytes(2, "big")
+        # §12.2: object table starts with 63 property defaults (one word each).
         story += bytes(len(story) % 2)
         layout.object_table = len(story)
         story += bytes(2 * 63 + 14 * len(self.objects))   # defaults + 14-byte entries
+        # §12.4: each object's property table (short name + properties).
         for obj in self.objects:
             layout.prop_addresses.append(len(story))
             story += bytes(linker.property_table_size(obj))
+        # §6.2: 240 global variables in dynamic memory.
         layout.globals_table = len(story)
         story += bytes(2 * linker.GLOBAL_COUNT)
+        # Game data: arrays and buffers at their declared addresses.
         for name, (kind, tokens) in self.arrays.items():
             self.addresses["array:" + name] = len(story)
             story += bytes(len(tokens) * (2 if kind == "word" else 1))
@@ -437,6 +466,7 @@ class Assembler:
     def _layout_static(self, story: bytearray, layout: "Layout") -> None:
         """Static memory: the dictionary (read-only for the game, §1.1.2)."""
         layout.static_memory = len(story)
+        # Build the dictionary with separators, entry length, count, then sorted entries.
         dict_bytes, self.dict_addresses = linker.build_dictionary(
             self.words, self.separators, layout.static_memory)
         story += dict_bytes
@@ -448,6 +478,7 @@ class Assembler:
         story += bytes(align(len(story), boundary) - len(story))
         layout.high_memory = len(story)
         by_call = self.profile.starts_with_main_routine
+        # Lay out the start stub: either at the PC (§5.5, v5) or to be called (§5.4, v6).
         if not by_call:                        # §5.5: the PC starts here
             layout.stub = len(story)
             story += bytes(8)                  # call_vn main (4 bytes) + quit + padding
@@ -457,6 +488,7 @@ class Assembler:
             # means it must live inside the routine area, as its first routine.
             layout.stub = len(story)
             story += bytes(8)                  # 0 locals + call_vn main + quit + padding
+        # Lay out every routine aligned so its packed address §1.2.3 formula works.
         for routine, encoded, labels in routines:
             story += bytes(align(len(story), boundary) - len(story))
             address = len(story)
@@ -464,6 +496,7 @@ class Assembler:
             size = 1 + sum(e.size() for e in encoded if isinstance(e, Encoded))
             layout.routine_places.append((address, routine, encoded, labels))
             story += bytes(size)
+        # Lay out strings after routines, each aligned.
         self.strings_offset = self._start_area(story)
         for name, text in self.strings.items():  # interned while encoding: laid out last
             story += bytes(align(len(story), boundary) - len(story))
@@ -491,10 +524,14 @@ class Assembler:
             table = linker.encode_property_table(obj, lambda t: self.value_of(t, obj.line))
             a = layout.prop_addresses[i]
             story[a:a + len(table)] = table
+        # Fill in the object tree entries (attributes, parent, sibling, child, property
+        # table address).
         self._emit_object_entries(story, layout.object_table, layout.prop_addresses)
+        # Fill in global variables with their initial values.
         for number, init in self.globals.values():
             a = layout.globals_table + 2 * (number - 16)
             story[a:a + 2] = (self.value_of(init, 0) & 0xFFFF).to_bytes(2, "big")
+        # Fill in arrays and buffers element by element.
         for name, (kind, tokens) in self.arrays.items():
             a = self.addresses["array:" + name]
             for token in tokens:
@@ -513,9 +550,11 @@ class Assembler:
         if self.profile.starts_with_main_routine:
             stub = bytes([0]) + stub          # §5.2: a routine header of 0 locals
         story[layout.stub:layout.stub + len(stub)] = stub
+        # Emit each routine: its local variable count followed by its instructions.
         for address, routine, encoded, labels in layout.routine_places:
             story[address] = len(routine.locals)
             self._emit_routine(story, address + 1, encoded, labels)
+        # Emit all interned strings.
         for address, data in layout.string_places:
             story[address:address + len(data)] = data
 
@@ -557,12 +596,14 @@ class Assembler:
 
     # ================================================= symbol resolution
     def value_of(self, token: str, line: int) -> int:
+        """Resolve a token that is used as a data value (not an operand)."""
         kind, value = self.operand(token, None, line)
         if kind == OperandType.VARIABLE:
             raise self.error(f"'{token}' is a variable, not a value", line)
         return value() if callable(value) else value
 
     def resolve_symbol(self, token: str, line: int) -> int:
+        """Map a symbol name to its address (routine, string or array)."""
         if "routine:" + token in self.addresses:
             return self.pack_routine(token)                            # §1.2.3
         if "string:" + token in self.addresses:
@@ -572,19 +613,24 @@ class Assembler:
         raise self.error(f"unknown symbol '{token}'", line)
 
     def packed(self, string_name: str, line: int) -> int:
+        """Return a string's packed address (§1.2.3)."""
         return self.pack_string(string_name)
 
     def pack_routine(self, name: str) -> int:
+        """Return a routine's packed address using its stored byte address."""
         return self.profile.pack_routine(self.addresses["routine:" + name], self.routines_offset)
 
     def pack_string(self, name: str) -> int:
+        """Return a string's packed address using its stored byte address."""
         return self.profile.pack_string(self.addresses["string:" + name], self.strings_offset)
 
     def dict_address(self, word: str, line: int) -> int:
+        """Return a dictionary word's byte address in the dictionary table."""
         return self.dict_addresses[word]
 
     # ============================================================== emit
     def _emit_routine(self, story: bytearray, start: int, encoded: list, labels: dict) -> None:
+        """Emit one routine's encoded instructions to the story file."""
         for item in encoded:
             if isinstance(item, Label):
                 continue
@@ -594,6 +640,8 @@ class Assembler:
             story[address:address + len(data)] = data
 
     def _encode_bytes(self, e: Encoded, start: int, labels: dict) -> bytes:
+        """Emit one instruction's bytes, resolving labels and late-bound symbols."""
+        # Resolve operands: jump labels and late-bound symbols (strings, routines).
         values = []
         for t, v in e.operands:
             if isinstance(v, tuple) and v[0] == "jump":
@@ -605,6 +653,7 @@ class Assembler:
         out = bytearray()
         form = e.form()
         n = e.op.number
+        # Encode instruction header according to form (§4).
         if form == "long":
             out.append(n | (0x40 if values[0][0] == OperandType.VARIABLE else 0)
                        | (0x20 if values[1][0] == OperandType.VARIABLE else 0))
@@ -615,6 +664,7 @@ class Assembler:
             out += bytes([0xBE, n])
         else:
             out.append((0xE0 if e.op.kind == "VAR" else 0xC0) | n)
+        # Encode type bytes (§4.4): variable or extended form only.
         if form in ("variable", "extended"):
             types = [int(t) for t, _ in values]
             nbytes = 2 if e.op.name in DOUBLE_TYPE_BYTE else 1
@@ -622,10 +672,13 @@ class Assembler:
             for b in range(nbytes):
                 chunk = types[4 * b:4 * b + 4]
                 out.append((chunk[0] << 6) | (chunk[1] << 4) | (chunk[2] << 2) | chunk[3])
+        # Encode operand values.
         for t, v in values:
             out += (v & 0xFFFF).to_bytes(2, "big") if t == OperandType.LARGE else bytes([v & 0xFF])
+        # Encode store variable if present.
         if e.store is not None:
             out.append(e.store)
+        # Encode branch offset or return value (§4.7).
         if e.branch is not None:
             on_true, target = e.branch
             if target in ("rtrue", "rfalse"):
@@ -638,6 +691,7 @@ class Assembler:
                 out += bytes([flag | (offset >> 8), offset & 0xFF])
             else:
                 out.append(flag | 0x40 | offset)
+        # Embed any inline string (print/print_ret).
         if e.text:
             out += e.text
         return bytes(out)

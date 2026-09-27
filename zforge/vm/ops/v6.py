@@ -115,6 +115,7 @@ def op_push_stack(vm, value, stack):
     if free == 0:
         vm.branch(False)
         return
+    # Write the value at the end of used space; decrement the free count
     vm.mem.write_word(stack + 2 * free, value)
     vm.mem.write_word(stack, free - 1)
     vm.branch(True)
@@ -124,9 +125,11 @@ def op_pop_stack(vm, items, stack=0):
     """§15 pop_stack (EXT:21): throw away `items` values. With no stack
     given it is the game stack."""
     if stack == 0:
+        # Pop from the game stack
         for _ in range(items):
             vm.frame.pop()
         return
+    # Pop from a user stack: increment the free-slot counter
     vm.mem.write_word(stack, vm.mem.read_word(stack) + items)
 
 
@@ -134,8 +137,10 @@ def op_pull_v6(vm, stack=None):
     """§15 pull (VAR:233): in v6 it STORES the value it pulled, and may be
     given a user stack to pull from (§6.6)."""
     if stack is None:
+        # Pop from the game stack and store
         vm.store_result(vm.frame.pop())
         return
+    # Pop from a user stack: read from current top, increment free slots
     free = vm.mem.read_word(stack)
     value = vm.mem.read_word(stack + 2 * (free + 1))
     vm.mem.write_word(stack, free + 1)
@@ -149,10 +154,13 @@ def op_print_form(vm, formatted_table):
     ending with a zero word."""
     address = formatted_table
     while True:
+        # Read the length of the next formatted line
         length = vm.mem.read_word(address)
         if length == 0:
+            # Zero word ends the buffer
             return
         address += 2
+        # Read and output the characters
         text = "".join(vm.unicode.zscii_to_str(vm.mem.read_byte(address + i))
                        for i in range(length))
         vm.output(text + "\n")

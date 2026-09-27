@@ -32,6 +32,11 @@ parsing. It just runs instructions, the way a real Z-machine does.
 If you read one thing, read [TOUR.md](TOUR.md). It follows the command
 "take lamp" through every stage below, with the real output of each.
 
+If compilers and interpreters are new to you, start one step earlier, with
+[HOW_THE_COMPILER_WORKS.md](HOW_THE_COMPILER_WORKS.md) and
+[HOW_THE_INTERPRETER_WORKS.md](HOW_THE_INTERPRETER_WORKS.md). They explain
+the ideas behind each stage with a program small enough to follow by hand.
+
 ## A reading order
 
 The machine itself:

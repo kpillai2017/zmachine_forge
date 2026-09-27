@@ -25,6 +25,7 @@ SUPPORTED_VERSIONS = {"5": 5, "EZIP": 5, "XZIP": 5, "6": 6, "YZIP": 6, "7": 7, "
 
 
 class FormParser:
+    """Parse S-expressions into a typed AST (Program with Declarations and Routines)."""
     def __init__(self, diag: Diagnostics, base_dir: Path | None = None):
         self.diag = diag
         self.base_dir = base_dir or Path(".")
@@ -51,6 +52,7 @@ class FormParser:
     # forms of the first clause whose flag is true - as the source is read,
     # so the rest of the compiler never sees the clauses it did not choose.
     def resolve_flags(self, data: list) -> list:
+        """Process IFFLAG directives, replacing them with the appropriate branch."""
         out = []
         for d in data:
             if isinstance(d, r.Form) and d.items and isinstance(d.items[0], r.Atom) \
@@ -63,6 +65,7 @@ class FormParser:
         return out
 
     def _chosen_clause(self, form) -> list:
+        """Find the first IFFLAG clause whose flag is set, or the ELSE clause."""
         for clause in form.items[1:]:
             if not (isinstance(clause, r.List) and clause.items
                     and isinstance(clause.items[0], r.Atom)):
@@ -80,6 +83,7 @@ class FormParser:
         return []
 
     def compilation_flag(self, form, args, default_only: bool = False) -> None:
+        """Process <COMPILATION-FLAG NAME T/F> or <COMPILATION-FLAG-DEFAULT NAME T/F>."""
         if len(args) != 2 or not isinstance(args[0], r.Atom):
             self.error(form, "use <COMPILATION-FLAG NAME T> or <COMPILATION-FLAG NAME <>>")
             return
@@ -95,6 +99,7 @@ class FormParser:
             self.flags[args[0].name] = on
 
     def _top_level(self, datum) -> None:
+        """Dispatch a top-level form to its handler (VERSION, CONSTANT, GLOBAL, etc.)."""
         if not isinstance(datum, r.Form) or not datum.items:
             if isinstance(datum, r.String):
                 return                     # a bare string at top level is a comment
@@ -119,6 +124,7 @@ class FormParser:
         handler(datum, args)
 
     def version(self, form, args) -> None:
+        """Process <VERSION n>: set the target Z-machine version."""
         key = str(args[0].value) if args and isinstance(args[0], r.Number) else \
             (args[0].name if args and isinstance(args[0], r.Atom) else "")
         if key not in SUPPORTED_VERSIONS:
@@ -128,12 +134,14 @@ class FormParser:
         self.program.version = SUPPORTED_VERSIONS[key]
 
     def _name(self, form, args, what: str) -> str | None:
+        """Extract and validate a name from a form's first argument."""
         if not args or not isinstance(args[0], r.Atom):
             self.error(form, f"{what} needs a name")
             return None
         return args[0].name
 
     def constant(self, form, args) -> None:
+        """Process <CONSTANT NAME value>: add a compile-time constant."""
         name = self._name(form, args, "CONSTANT")
         if name and len(args) == 2:
             self.program.constants.append(ast.ConstantDecl(name, self.expr(args[1]), form.location))
@@ -141,18 +149,21 @@ class FormParser:
             self.error(form, "CONSTANT takes a name and one value")
 
     def global_(self, form, args) -> None:
+        """Process <GLOBAL NAME init>: add a global variable with initial value."""
         name = self._name(form, args, "GLOBAL")
         if name:
             init = self.expr(args[1]) if len(args) > 1 else ast.Num(0, form.location)
             self.program.globals.append(ast.GlobalDecl(name, init, form.location))
 
     def propdef(self, form, args) -> None:
+        """Process <PROPDEF NAME default>: set a property's default value (§12.2)."""
         name = self._name(form, args, "PROPDEF")
         if name:
             default = self.expr(args[1]) if len(args) > 1 else ast.Num(0, form.location)
             self.program.propdefs.append(ast.PropDefDecl(name, default, form.location))
 
     def directions(self, form, args) -> None:
+        """Process <DIRECTIONS NORTH ...>: declare direction property names first."""
         for a in args:
             if isinstance(a, r.Atom):
                 self.program.directions.append(a.name)
@@ -232,6 +243,7 @@ class FormParser:
     IGNORED_SEARCH_OPTIONS = {"TAKE", "MANY", "EVERYWHERE", "SEARCH", "ADJACENT"}
 
     def _syntax_options(self, lst, find, options: set):
+        """Extract (FIND flag) and search options from a SYNTAX clause."""
         items = lst.items
         if items and isinstance(items[0], r.Atom) and items[0].name == "FIND":
             if len(items) != 2 or not isinstance(items[1], r.Atom):
@@ -258,6 +270,7 @@ class FormParser:
 
     # ------------------------------------------------------------- objects
     def object(self, form, args) -> None:
+        """Process <OBJECT NAME ...> or <ROOM NAME ...> (§12: objects and rooms)."""
         name = self._name(form, args, "OBJECT")
         if not name:
             return
@@ -306,6 +319,7 @@ class FormParser:
 
     # ------------------------------------------------------------ routines
     def routine(self, form, args) -> None:
+        """Process <ROUTINE NAME (args "OPT" (...) "AUX" (...)) body...> (§5: routines)."""
         name = self._name(form, args, "ROUTINE")
         if not name:
             return
@@ -346,6 +360,7 @@ class FormParser:
 
     # ========================================================= expressions
     def expr(self, d):
+        """Recursively parse an expression into the typed AST."""
         if isinstance(d, r.Number):
             return ast.Num(d.value, d.location)
         if isinstance(d, r.String):
@@ -383,6 +398,7 @@ class FormParser:
         return ast.Call(head.name, [self.expr(a) for a in d.items[1:]], d.location)
 
     def cond(self, form, args):
+        """Parse <COND (test body) ... [(ELSE body)]>."""
         clauses = []
         for clause in args:
             if not isinstance(clause, r.List) or not clause.items:
@@ -397,6 +413,7 @@ class FormParser:
         return ast.Cond(clauses, form.location)
 
     def _bindings(self, lst) -> list:
+        """Parse binding clauses: (NAME [init]), (NAME), or NAME (default 0)."""
         out = []
         for item in lst.items:
             if isinstance(item, r.Atom):
@@ -412,6 +429,7 @@ class FormParser:
         return out
 
     def repeat(self, form, args):
+        """Parse <REPEAT (bindings) body...>."""
         if not args or not isinstance(args[0], r.List):
             self.error(form, "REPEAT needs a binding list first, e.g. <REPEAT () ...>")
             return ast.False_(form.location)
@@ -447,6 +465,7 @@ class FormParser:
         return ast.Call("EQUAL?", [ast.Global(var, form.location)] + objs, form.location)
 
     def do(self, form, args):
+        """Parse <DO (var start end [step]) body...>."""
         spec = args[0] if args else None
         if not isinstance(spec, r.List) or len(spec.items) not in (3, 4) or \
                 not isinstance(spec.items[0], r.Atom):
@@ -462,6 +481,7 @@ class FormParser:
                       step, [self.expr(e) for e in args[1:]], form.location)
 
     def map_contents(self, form, args):
+        """Parse <MAP-CONTENTS (var container) body...>."""
         spec = args[0] if args else None
         if not isinstance(spec, r.List) or len(spec.items) != 2 or \
                 not isinstance(spec.items[0], r.Atom):
@@ -493,6 +513,7 @@ class FormParser:
         return ast.Tell(items, form.location)
 
     def table(self, form, args):
+        """Parse <TABLE items...>, <LTABLE items...>, or <ITABLE [count [init]]>."""
         kind = form.items[0].name
         kind = "TABLE" if kind == "PTABLE" else kind
         byte = False
@@ -512,6 +533,7 @@ class FormParser:
         return ast.Table(kind, byte, items, form.location)
 
     def zop(self, form, args):
+        """Parse <ZOP opcode-name args...>: a raw §15 opcode."""
         if not args or not isinstance(args[0], r.Atom):
             self.error(form, "ZOP needs an opcode name, e.g. <ZOP PRINT_UNICODE 65>")
             return ast.False_(form.location)

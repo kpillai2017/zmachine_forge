@@ -31,13 +31,16 @@ def op_copy_table(vm, first, second, size):
       size > 0         -> copy so that overlapping regions are safe
       size < 0         -> copy |size| bytes FORWARDS even if that corrupts"""
     size = to_signed(size)
+    # Zeroing: if destination is 0, fill the source range with zeros
     if second == 0:
         for i in range(abs(size)):
             vm.mem.write_byte(first + i, 0)
+    # Safe copy: read all bytes first via a buffer, so overlaps do not corrupt
     elif size > 0:
         data = vm.mem.read_bytes(first, size)        # copy via a buffer: overlap-safe
         for i, b in enumerate(data):
             vm.mem.write_byte(second + i, b)
+    # Unsafe forward copy: overwrites may corrupt source before it is read
     else:
         for i in range(-size):
             vm.mem.write_byte(second + i, vm.mem.read_byte(first + i))
@@ -47,13 +50,17 @@ def op_scan_table(vm, x, table, length, form=0x82):
     """§15 scan_table (VAR:247): search `length` fields for x. `form` bit 7 set
     = compare words, else bytes; bits 0-6 = field length. Store the address
     of the match (or 0) and branch if found."""
+    # Extract the field size in bytes from bits 0-6
     field_length = form & 0x7F
+    # Search each field: bit 7 of form determines word vs byte comparison
     for i in range(length):
         address = table + i * field_length
         value = vm.mem.read_word(address) if form & 0x80 else vm.mem.read_byte(address)
+        # On match, store the address and branch
         if value == x:
             vm.store_result(address)
             vm.branch(True)
             return
+    # No match: store 0 and do not branch
     vm.store_result(0)
     vm.branch(False)

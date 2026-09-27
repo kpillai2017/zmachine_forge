@@ -108,6 +108,11 @@ version to the next.
 
 This is what the project is for. Some starting points:
 
+- **Start from the beginning.** If compilers and interpreters are new to
+  you, read [docs/HOW_THE_COMPILER_WORKS.md](docs/HOW_THE_COMPILER_WORKS.md)
+  and then [docs/HOW_THE_INTERPRETER_WORKS.md](docs/HOW_THE_INTERPRETER_WORKS.md).
+  They build a tiny program and look at what every stage makes of it, and
+  explain the ideas as they go.
 - **Follow one command through the whole system.**
   [docs/TOUR.md](docs/TOUR.md) takes "take lamp" from the line of English
   that creates the lamp to the Z-machine instruction that moves it into
@@ -171,6 +176,10 @@ task with real tools and writes a brief for anything that still fails
 
 ## Further reading
 
+- [docs/HOW_THE_COMPILER_WORKS.md](docs/HOW_THE_COMPILER_WORKS.md): the
+  compiler, stage by stage, for beginners.
+- [docs/HOW_THE_INTERPRETER_WORKS.md](docs/HOW_THE_INTERPRETER_WORKS.md):
+  the interpreter, part by part, for beginners.
 - [docs/TOUR.md](docs/TOUR.md): one command, all the way through.
 - [docs/DESIGN.md](docs/DESIGN.md): how the pieces fit, and a reading order.
 - [docs/I7_LITE.md](docs/I7_LITE.md): the Inform 7 you can write.

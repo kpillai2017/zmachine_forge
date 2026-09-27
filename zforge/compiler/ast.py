@@ -20,12 +20,14 @@ from zforge.compiler.diagnostics import Location
 # ------------------------------------------------------------ expressions
 @dataclass
 class Num:
+    r"""A numeric literal: <10>, <-5>, or <!\c>."""
     value: int
     loc: Location
 
 
 @dataclass
 class Str:
+    """A string literal: <"Hello">."""
     value: str
     loc: Location
 
@@ -61,6 +63,7 @@ class Atom:               # a bare atom: T, ELSE, CR, a variable name after SET.
 
 @dataclass
 class Call:
+    """A form with a name: <NAME arg1 arg2 ...>. Includes built-in operations."""
     name: str
     args: list
     loc: Location
@@ -68,12 +71,16 @@ class Call:
 
 @dataclass
 class Cond:
+    """<COND (test body) ... [(ELSE body)]>: the first clause whose test is
+    true runs; its body's last value is the result."""
     clauses: list         # [(test or None for ELSE/T, [body exprs])]
     loc: Location
 
 
 @dataclass
 class Repeat:
+    """<REPEAT (bindings) body>: loop forever, with local variables. RETURN
+    exits it; AGAIN restarts with fresh bindings."""
     bindings: list        # [(local name, init expr or None)]
     body: list
     loc: Location
@@ -107,6 +114,7 @@ class Prog:               # <PROG (bindings) body...>  or  <BIND (bindings) body
 
 @dataclass
 class Tell:
+    """<TELL items>: print strings and values to the output stream."""
     items: list           # [("str", text) | ("cr",) | ("num"|"obj"|"char"|"paddr", expr)]
     loc: Location
 
@@ -129,6 +137,7 @@ class Zop:                # <ZOP opcode-name args...> - raw §15 opcode
 # ------------------------------------------------------------ declarations
 @dataclass
 class ConstantDecl:
+    """<CONSTANT NAME value>: a compile-time constant."""
     name: str
     value: object
     loc: Location
@@ -136,6 +145,7 @@ class ConstantDecl:
 
 @dataclass
 class GlobalDecl:
+    """<GLOBAL NAME init>: a global variable with an initial value."""
     name: str
     init: object
     loc: Location
@@ -143,6 +153,7 @@ class GlobalDecl:
 
 @dataclass
 class PropValue:
+    """An object property value: either "to" (exit, 1 byte) or "words"."""
     kind: str             # "to" (exit to a room: 1 byte) | "words"
     values: list
     loc: Location
@@ -150,6 +161,7 @@ class PropValue:
 
 @dataclass
 class ObjectDecl:
+    """<OBJECT NAME ...> or <ROOM NAME ...>: an object or room (§12)."""
     name: str
     is_room: bool
     loc: Location
@@ -163,6 +175,7 @@ class ObjectDecl:
 
 @dataclass
 class PropDefDecl:
+    """<PROPDEF NAME default>: a property's default value (§12.2)."""
     name: str
     default: object
     loc: Location
@@ -170,6 +183,7 @@ class PropDefDecl:
 
 @dataclass
 class RoutineDecl:
+    """<ROUTINE NAME (args "OPT" (x d) "AUX" (y d) z) body>: a routine (§5)."""
     name: str
     params: list          # required argument names
     optionals: list       # [(name, default expr or None)]
@@ -178,6 +192,7 @@ class RoutineDecl:
     loc: Location
 
     def local_names(self) -> list[str]:
+        """Return all local variable names (parameters, optionals, and auxiliaries)."""
         return self.params + [n for n, _ in self.optionals] + [n for n, _ in self.auxes]
 
 
@@ -205,6 +220,7 @@ class SynonymDecl:        # <VERB-SYNONYM TAKE GET GRAB>  /  <PREP-SYNONYM IN IN
 
 @dataclass
 class Program:
+    """The complete typed AST: all declarations and routines in a ZIL program."""
     version: int = 5
     constants: list = field(default_factory=list)
     globals: list = field(default_factory=list)

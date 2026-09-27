@@ -17,6 +17,11 @@ STACK_LIMIT = 16384      # a generous guard against runaway recursion
 
 @dataclass
 class Frame:
+    """A call frame for one routine invocation (§5, §6.3-6.4).
+
+    Holds the routine's local variables, its own evaluation stack,
+    and information needed to return to the caller.
+    """
     return_pc: int                 # where execution resumes after return
     locals: list[int]              # locals[0] is local variable 1
     store_var: int | None          # variable to receive the result; None = discard
@@ -24,16 +29,19 @@ class Frame:
     stack: list[int] = field(default_factory=list)   # this frame's evaluation stack
 
     def push(self, value: int) -> None:
+        """Push a value onto this frame's evaluation stack (§6.3)."""
         if len(self.stack) >= STACK_LIMIT:
             raise ZMachineError("Stack overflow")
         self.stack.append(value & 0xFFFF)
 
     def pop(self) -> int:
+        """Pop and return the top value from this frame's evaluation stack (§6.3)."""
         if not self.stack:
             raise ZMachineError("Stack underflow (§6.3.2)")
         return self.stack.pop()
 
     def peek(self) -> int:
+        """Return the top value without removing it (used for tracing)."""
         if not self.stack:
             raise ZMachineError("Stack underflow (§6.3.2)")
         return self.stack[-1]
@@ -45,5 +53,6 @@ class Frame:
         self.stack[-1] = value & 0xFFFF
 
     def copy(self) -> "Frame":
+        """Create a deep copy of this frame (for Quetzal undo snapshots)."""
         return Frame(self.return_pc, list(self.locals), self.store_var,
                      self.arg_count, list(self.stack))

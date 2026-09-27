@@ -45,6 +45,7 @@ class Token:
 
 
 class Lexer:
+    """Scan ZIL source text and break it into tokens."""
     def __init__(self, source: str, diagnostics: Diagnostics):
         self.src = source
         self.diag = diagnostics
@@ -53,6 +54,7 @@ class Lexer:
         self.column = 1
 
     def _advance(self) -> str:
+        """Consume and return the next character, tracking line and column."""
         ch = self.src[self.pos]
         self.pos += 1
         if ch == "\n":
@@ -63,12 +65,15 @@ class Lexer:
         return ch
 
     def _peek(self, offset: int = 0) -> str:
+        """Look ahead at a character without consuming it."""
         i = self.pos + offset
         return self.src[i] if i < len(self.src) else ""
 
     def tokens(self) -> list[Token]:
+        """Scan the entire source and return a list of tokens (ending with EOF)."""
         out: list[Token] = []
         while True:
+            # Skip whitespace between tokens.
             while self._peek() and self._peek().isspace():
                 self._advance()
             loc = Location(self.line, self.column)
@@ -108,6 +113,7 @@ class Lexer:
                     out.append(Token(Kind.ATOM, text.upper(), loc))
 
     def _atom_text(self) -> str:
+        """Consume and return an atom: a sequence of non-break characters."""
         start = self.pos
         while self._peek() and self._peek() not in ATOM_BREAK:
             if self._peek() == "\\":
@@ -116,6 +122,7 @@ class Lexer:
         return self.src[start:self.pos]
 
     def _string(self, loc: Location) -> Token | None:
+        """Consume a string literal and return its token, or None if unterminated."""
         self._advance()                        # opening quote
         chars: list[str] = []
         while True:

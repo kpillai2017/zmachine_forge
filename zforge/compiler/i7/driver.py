@@ -25,6 +25,7 @@ DEFAULT_TARGET = 8          # I7-lite stories default to z8 (proforma; ADR-025)
 
 @dataclass
 class I7Result:
+    """Everything one compile produced: the model, the ZIL, the story, notes."""
     model: WorldModel
     zil: str                # the generated ZIL-lite source
     compiled: CompileResult
@@ -32,10 +33,12 @@ class I7Result:
 
     @property
     def story(self) -> bytes:
+        """The finished story file's bytes."""
         return self.compiled.story
 
     @property
     def version(self) -> int:
+        """The Z-machine version it was built for (5, 6, 7 or 8)."""
         return self.compiled.version
 
 
@@ -53,7 +56,12 @@ def generate_zil(source: str, filename: str = "story.ni",
 
 def compile_i7(source: str, filename: str = "story.ni", target: int | None = None,
                testing: bool = False) -> I7Result:
+    """Compile Inform 7 source all the way to a story file (the public entry point).
+
+    TARGET is the Z-machine version (default 8); TESTING adds RULES, ACTIONS and
+    TREE. Problems in the source raise with Inform-style messages."""
     model, zil, notes = generate_zil(source, filename, testing)
+    # The second half: hand the generated ZIL to the ordinary ZIL compiler.
     generated = str(Path(filename).with_suffix(".generated.zil"))
     try:
         compiled = compile_zil(zil, generated, target if target is not None else DEFAULT_TARGET)

@@ -100,23 +100,32 @@
 ;"-------------------------------------------------------------- taking"
 <ROUTINE TAKE-YOURSELF ()
     <COND (<EQUAL? ,PRSO ,PLAYER> <TAKE-YOURSELF-A> <RTRUE>)> <RFALSE>>
+;"Inform 7's can't take other people rule."
 <ROUTINE TAKE-PEOPLE ()
     <COND (<FSET? ,PRSO ,PERSONBIT> <TAKE-PEOPLE-A> <RTRUE>)> <RFALSE>>
+;"Inform 7's can't take what's already taken rule."
 <ROUTINE TAKE-ALREADY-TAKEN ()
     <COND (<IN? ,PRSO ,PLAYER> <TAKE-ALREADY-TAKEN-A> <RTRUE>)> <RFALSE>>
+;"Inform 7's can't take scenery rule."
 <ROUTINE TAKE-SCENERY ()
     <COND (<FSET? ,PRSO ,SCENERYBIT> <TAKE-SCENERY-A> <RTRUE>)> <RFALSE>>
+;"Inform 7's can't take what's fixed in place rule."
 <ROUTINE TAKE-FIXED ()
     <COND (<FSET? ,PRSO ,FIXEDBIT> <TAKE-FIXED-A> <RTRUE>)> <RFALSE>>
+;"Inform 7's standard taking rule."
 <ROUTINE TAKE-STANDARD () <MOVE ,PRSO ,PLAYER> <FSET ,PRSO ,HANDLEDBIT> <RFALSE>>
+;"Inform 7's standard report taking rule."
 <ROUTINE TAKE-REPORT () <TAKE-REPORT-A> <RFALSE>>
 
 ;"------------------------------------------------------------ dropping"
 <ROUTINE DROP-ALREADY ()                ;"in the holder of the actor: the room, or a seat"
     <COND (<IN? ,PRSO <LOC ,PLAYER>> <DROP-ALREADY-A> <RTRUE>)> <RFALSE>>
+;"Inform 7's can't drop what's not held rule."
 <ROUTINE DROP-NOT-HELD ()
     <COND (<NOT <IN? ,PRSO ,PLAYER>> <DROP-NOT-HELD-A> <RTRUE>)> <RFALSE>>
+;"Inform 7's standard dropping rule."
 <ROUTINE DROP-STANDARD () <FCLEAR ,PRSO ,WORNBIT> <MOVE ,PRSO ,HERE> <RFALSE>>
+;"Inform 7's standard report dropping rule."
 <ROUTINE DROP-REPORT () <DROP-REPORT-A> <RFALSE>>
 
 ;"--------------------------------------------------------------- going"
@@ -126,6 +135,8 @@
 <GLOBAL GOING-FROM 0>
 <GLOBAL GOING-TO 0>
 <GLOBAL GOING-DOOR 0>
+;"Work out where going the noun leads, before any rule runs: Inform 7's
+  action variables room gone from, room gone to and door gone through."
 <ROUTINE GOING-VARIABLES ("AUX" DIR PT)
     <SETG GOING-FROM ,HERE> <SETG GOING-TO 0> <SETG GOING-DOOR 0>
     <SET DIR <GETP ,PRSO ,P?DIR-PROP>>        ;"0 if the noun is not a direction"
@@ -135,18 +146,23 @@
     <COND (<AND ,GOING-TO <FSET? ,GOING-TO ,DOORBIT>>
            <SETG GOING-DOOR ,GOING-TO>
            <SETG GOING-TO <OTHER-SIDE ,GOING-DOOR>>)>>
+;"Inform 7's can't go through closed doors rule."
 <ROUTINE GO-CLOSED-DOOR ()
     <COND (<AND ,GOING-DOOR <NOT <FSET? ,GOING-DOOR ,OPENBIT>>> <GO-CLOSED-DOOR-A> <RTRUE>)>
     <RFALSE>>
+;"Inform 7's can't go that way rule."
 <ROUTINE GO-THAT-WAY ()
     <COND (<ZERO? ,GOING-TO> <GO-THAT-WAY-A> <RTRUE>)> <RFALSE>>
+;"Inform 7's move player and vehicle rule."
 <ROUTINE GO-MOVE () <MOVE-PLAYER-TO ,GOING-TO> <RFALSE>>
+;"Inform 7's describe room gone into rule."
 <ROUTINE GO-DESCRIBE () <DESCRIBE-ROOM> <RFALSE>>
 
 ;"---------------------------------------------------- taking inventory"
 <ROUTINE INVENTORY-EMPTY ()
     <COND (<ZERO? <COUNT-LISTED ,PLAYER ,ANY-THING?>> <INVENTORY-EMPTY-A> <RTRUE>)>
     <RFALSE>>
+;"Inform 7's print standard inventory rule."
 <ROUTINE INVENTORY-STANDARD ()
     <INVENTORY-STANDARD-A>
     <MAP-CONTENTS (O ,PLAYER)
@@ -159,6 +175,7 @@
            <TELL " ("> <LIST-WRITER-K> <TELL ")">)
           (<FSET? .O ,LITBIT> <TELL " ("> <LIST-WRITER-D> <TELL ")">)
           (<FSET? .O ,WORNBIT> <TELL " ("> <LIST-WRITER-L> <TELL ")">)>>
+;"A test every thing passes: the inventory counts everything carried."
 <ROUTINE ANY-THING? (O) <RTRUE>>
 
 ;"------------------------------------------ putting it on / inserting"
@@ -176,85 +193,125 @@
     <TELL "(first taking "> <SAY-THE ,PRSO> <TELL " off)" CR>
     <TRY ,V?TAKING-OFF ,V-TAKING-OFF ,PRSO 0 1>
     <FSET? ,PRSO ,WORNBIT>>
+;"Inform 7's can't put something on itself rule."
 <ROUTINE PUT-ON-ITSELF ()
     <COND (<EQUAL? ,PRSO ,PRSI> <PUT-ON-ITSELF-A> <RTRUE>)> <RFALSE>>
+;"Inform 7's can't put onto what's not a supporter rule."
 <ROUTINE PUT-NOT-SUPPORTER ()
     <COND (<NOT <FSET? ,PRSI ,SUPPORTERBIT>> <PUT-NOT-SUPPORTER-A> <RTRUE>)> <RFALSE>>
+;"Inform 7's standard putting rule."
 <ROUTINE PUT-STANDARD () <FCLEAR ,PRSO ,WORNBIT> <MOVE ,PRSO ,PRSI> <RFALSE>>
+;"Inform 7's standard report putting rule."
 <ROUTINE PUT-REPORT () <PUT-REPORT-A> <RFALSE>>
+;"Inform 7's can't insert something into itself rule."
 <ROUTINE INSERT-ITSELF ()
     <COND (<EQUAL? ,PRSO ,PRSI> <INSERT-ITSELF-A> <RTRUE>)> <RFALSE>>
+;"Inform 7's can't insert into what's not a container rule."
 <ROUTINE INSERT-NOT-CONTAINER ()
     <COND (<NOT <FSET? ,PRSI ,CONTAINERBIT>> <INSERT-NOT-CONTAINER-A> <RTRUE>)> <RFALSE>>
+;"Inform 7's can't insert into closed containers rule."
 <ROUTINE INSERT-CLOSED ()
     <COND (<AND <FSET? ,PRSI ,OPENABLEBIT> <NOT <FSET? ,PRSI ,OPENBIT>>>
            <INSERT-CLOSED-A> <RTRUE>)>
     <RFALSE>>
+;"Inform 7's standard inserting rule."
 <ROUTINE INSERT-STANDARD () <FCLEAR ,PRSO ,WORNBIT> <MOVE ,PRSO ,PRSI> <RFALSE>>
+;"Inform 7's standard report inserting rule."
 <ROUTINE INSERT-REPORT () <INSERT-REPORT-A> <RFALSE>>
 
 ;"------------------------------------------------- wearing / taking off"
 <ROUTINE WEAR-NOT-CLOTHING ()
     <COND (<NOT <FSET? ,PRSO ,WEARABLEBIT>> <WEAR-NOT-CLOTHING-A> <RTRUE>)> <RFALSE>>
+;"Inform 7's can't wear what's already worn rule."
 <ROUTINE WEAR-ALREADY ()
     <COND (<FSET? ,PRSO ,WORNBIT> <WEAR-ALREADY-A> <RTRUE>)> <RFALSE>>
+;"Inform 7's standard wearing rule."
 <ROUTINE WEAR-STANDARD () <FSET ,PRSO ,WORNBIT> <RFALSE>>
+;"Inform 7's standard report wearing rule."
 <ROUTINE WEAR-REPORT () <WEAR-REPORT-A> <RFALSE>>
+;"Inform 7's can't take off what's not worn rule."
 <ROUTINE TAKE-OFF-NOT-WORN ()
     <COND (<NOT <FSET? ,PRSO ,WORNBIT>> <TAKE-OFF-NOT-WORN-A> <RTRUE>)> <RFALSE>>
+;"Inform 7's standard taking off rule."
 <ROUTINE TAKE-OFF-STANDARD () <FCLEAR ,PRSO ,WORNBIT> <RFALSE>>
+;"Inform 7's standard report taking off rule."
 <ROUTINE TAKE-OFF-REPORT () <TAKE-OFF-REPORT-A> <RFALSE>>
 
 ;"--------------------------------------------------- opening / closing"
 <ROUTINE OPEN-UNOPENABLE ()
     <COND (<NOT <FSET? ,PRSO ,OPENABLEBIT>> <OPEN-UNOPENABLE-A> <RTRUE>)> <RFALSE>>
+;"Inform 7's can't open what's locked rule."
 <ROUTINE OPEN-LOCKED ()
     <COND (<FSET? ,PRSO ,LOCKEDBIT> <OPEN-LOCKED-A> <RTRUE>)> <RFALSE>>
+;"Inform 7's can't open what's already open rule."
 <ROUTINE OPEN-ALREADY ()
     <COND (<FSET? ,PRSO ,OPENBIT> <OPEN-ALREADY-A> <RTRUE>)> <RFALSE>>
+;"Inform 7's standard opening rule."
 <ROUTINE OPEN-STANDARD () <FSET ,PRSO ,OPENBIT> <RFALSE>>
+;"Inform 7's standard report opening rule."
 <ROUTINE OPEN-REPORT () <OPEN-REPORT-A> <RFALSE>>
+;"Inform 7's can't close unless openable rule."
 <ROUTINE CLOSE-UNOPENABLE ()
     <COND (<NOT <FSET? ,PRSO ,OPENABLEBIT>> <CLOSE-UNOPENABLE-A> <RTRUE>)> <RFALSE>>
+;"Inform 7's can't close what's already closed rule."
 <ROUTINE CLOSE-ALREADY ()
     <COND (<NOT <FSET? ,PRSO ,OPENBIT>> <CLOSE-ALREADY-A> <RTRUE>)> <RFALSE>>
+;"Inform 7's standard closing rule."
 <ROUTINE CLOSE-STANDARD () <FCLEAR ,PRSO ,OPENBIT> <RFALSE>>
+;"Inform 7's standard report closing rule."
 <ROUTINE CLOSE-REPORT () <CLOSE-REPORT-A> <RFALSE>>
 
 ;"------------------------------------------------- locking / unlocking"
 <ROUTINE LOCK-NO-LOCK ()
     <COND (<NOT <FSET? ,PRSO ,LOCKABLEBIT>> <LOCK-NO-LOCK-A> <RTRUE>)> <RFALSE>>
+;"Inform 7's can't lock what's already locked rule."
 <ROUTINE LOCK-ALREADY ()
     <COND (<FSET? ,PRSO ,LOCKEDBIT> <LOCK-ALREADY-A> <RTRUE>)> <RFALSE>>
+;"Inform 7's can't lock what's open rule."
 <ROUTINE LOCK-OPEN ()
     <COND (<FSET? ,PRSO ,OPENBIT> <LOCK-OPEN-A> <RTRUE>)> <RFALSE>>
+;"Inform 7's can't lock without the correct key rule."
 <ROUTINE LOCK-WRONG-KEY ()
     <COND (<NOT <EQUAL? <GETP ,PRSO ,P?WITH-KEY> ,PRSI>> <LOCK-WRONG-KEY-A> <RTRUE>)>
     <RFALSE>>
+;"Inform 7's standard locking rule."
 <ROUTINE LOCK-STANDARD () <FSET ,PRSO ,LOCKEDBIT> <RFALSE>>
+;"Inform 7's standard report locking rule."
 <ROUTINE LOCK-REPORT () <LOCK-REPORT-A> <RFALSE>>
+;"Inform 7's can't unlock without a lock rule."
 <ROUTINE UNLOCK-NO-LOCK ()
     <COND (<NOT <FSET? ,PRSO ,LOCKABLEBIT>> <UNLOCK-NO-LOCK-A> <RTRUE>)> <RFALSE>>
+;"Inform 7's can't unlock what's already unlocked rule."
 <ROUTINE UNLOCK-ALREADY ()
     <COND (<NOT <FSET? ,PRSO ,LOCKEDBIT>> <UNLOCK-ALREADY-A> <RTRUE>)> <RFALSE>>
+;"Inform 7's can't unlock without the correct key rule."
 <ROUTINE UNLOCK-WRONG-KEY ()
     <COND (<NOT <EQUAL? <GETP ,PRSO ,P?WITH-KEY> ,PRSI>> <UNLOCK-WRONG-KEY-A> <RTRUE>)>
     <RFALSE>>
+;"Inform 7's standard unlocking rule."
 <ROUTINE UNLOCK-STANDARD () <FCLEAR ,PRSO ,LOCKEDBIT> <RFALSE>>
+;"Inform 7's standard report unlocking rule."
 <ROUTINE UNLOCK-REPORT () <UNLOCK-REPORT-A> <RFALSE>>
 
 ;"------------------------------------------------------- switching"
 <ROUTINE SWITCH-ON-UNSWITCHABLE ()
     <COND (<NOT <FSET? ,PRSO ,DEVICEBIT>> <SWITCH-ON-UNSWITCHABLE-A> <RTRUE>)> <RFALSE>>
+;"Inform 7's can't switch on what's already on rule."
 <ROUTINE SWITCH-ON-ALREADY ()
     <COND (<FSET? ,PRSO ,ONBIT> <SWITCH-ON-ALREADY-A> <RTRUE>)> <RFALSE>>
+;"Inform 7's standard switching on rule."
 <ROUTINE SWITCH-ON-STANDARD () <FSET ,PRSO ,ONBIT> <RFALSE>>
+;"Inform 7's standard report switching on rule."
 <ROUTINE SWITCH-ON-REPORT () <SWITCH-ON-REPORT-A> <RFALSE>>
+;"Inform 7's can't switch off unless switchable rule."
 <ROUTINE SWITCH-OFF-UNSWITCHABLE ()
     <COND (<NOT <FSET? ,PRSO ,DEVICEBIT>> <SWITCH-OFF-UNSWITCHABLE-A> <RTRUE>)> <RFALSE>>
+;"Inform 7's can't switch off what's already off rule."
 <ROUTINE SWITCH-OFF-ALREADY ()
     <COND (<NOT <FSET? ,PRSO ,ONBIT>> <SWITCH-OFF-ALREADY-A> <RTRUE>)> <RFALSE>>
+;"Inform 7's standard switching off rule."
 <ROUTINE SWITCH-OFF-STANDARD () <FCLEAR ,PRSO ,ONBIT> <RFALSE>>
+;"Inform 7's standard report switching off rule."
 <ROUTINE SWITCH-OFF-REPORT () <SWITCH-OFF-REPORT-A> <RFALSE>>
 
 ;"--------------------------------------------------------------- misc"

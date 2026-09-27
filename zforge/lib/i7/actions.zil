@@ -37,6 +37,8 @@
     <COND (<NOT ,SILENTLY> <RUN-STAGE .RULES ,REPORT-STAGE>)>
     <RTRUE>>
 
+;"Run one stage: the action's own rules first, then the 'doing something'
+  rules (GENERAL-RULES). True if a rule decided."
 <ROUTINE RUN-STAGE (RULES STAGE)
     <COND (<FOLLOW-RULES <GET .RULES .STAGE>> <RTRUE>)
           (,OUT-OF-WORLD <RFALSE>)>        ;"no 'doing something' rules either"

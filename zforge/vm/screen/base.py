@@ -36,6 +36,7 @@ KEY_F1 = 133          # F1..F12 = 133..144
 
 @dataclass(frozen=True)
 class Cell:
+    """One character cell on the screen, with its text style and colours."""
     char: str = " "
     style: int = 0
     fg: int = COLOUR_DEFAULT
@@ -124,6 +125,8 @@ class GridScreen:
 
     # ---------------------------------------------------------------- output
     def print(self, text: str) -> None:
+        """Print text into the current window. The upper window never buffers;
+        the lower window word-wraps if buffering is on."""
         for ch in text:
             if self.window == 1:
                 self._put_upper(ch)
@@ -152,17 +155,23 @@ class GridScreen:
             self._put_lower(ch)
 
     def _put_lower(self, ch: str) -> None:
+        """Place one character in the lower window, handling newlines, wrapping,
+        and the transcripts needed for @read (§15) and output stream 2."""
         row, col = self.lower_cursor
         self.transcript.append(ch)
+        # Newlines end the line and advance to the next (scrolling if needed).
         if ch == "\n":
             self._lower_newline()
             return
+        # If the cursor is past the right edge, wrap to the next line.
         if col >= self.width:
             self._lower_newline(wrapped=True)
             row, col = self.lower_cursor
+        # Skip a space that starts a line after word-wrap.
         if ch == " " and col == 0 and self._just_wrapped:
             self._just_wrapped = False
             return                      # don't start a wrapped line with a space
+        # Record the character in its cell with the current style and colours.
         self.rows[row][col] = Cell(ch, self.style, self.fg, self.bg)
         self.lower_cursor = (row, col + 1)
         self._just_wrapped = False
@@ -175,10 +184,13 @@ class GridScreen:
     _just_wrapped = False
 
     def _lower_newline(self, wrapped: bool = False) -> None:
+        """End the current line and advance to the next. Pause with [MORE] when
+        the lower window has filled (§8.4.1 and §15 read)."""
         self._emit("\n")
         self._next_lower_row()
         self._just_wrapped = wrapped
         self.lines_since_input += 1
+        # After each screenful of the lower window, pause for [MORE].
         lower_lines = self.height - self.upper_height
         if self.lines_since_input >= lower_lines - 1:
             self.more_prompt()
@@ -197,15 +209,21 @@ class GridScreen:
         self.lower_cursor = (row, 0)
 
     def _scroll_lower(self) -> None:
+        """Scroll the lower window up one row: delete the top row, add a blank
+        row at the bottom (§8.7.2)."""
         top = self.upper_height
         del self.rows[top]
         self.rows.append([Cell(" ", 0, self.fg, self.bg)] * self.width)
 
     def _put_upper(self, ch: str) -> None:
+        """Place one character in the upper window. The upper window never
+        scrolls; text is clipped if it reaches the edge (§8.7.2)."""
         row, col = self.upper_cursor
+        # Newlines move the cursor to the start of the next line (without wrapping).
         if ch == "\n":
             self.upper_cursor = (row + 1, 0)
             return
+        # Write the character only if it is within the upper window's bounds.
         if row < self.upper_height and col < self.width:   # clip, never scroll
             self.rows[row][col] = Cell(ch, self.style, self.fg, self.bg)
         self.upper_cursor = (row, col + 1)
@@ -229,23 +247,28 @@ class GridScreen:
     def erase_window(self, window: int) -> None:
         """§15 erase_window: -1 unsplit+clear all, -2 clear all, 0/1 one window."""
         self.flush()
+        # Erase -1: reset to a single lower window and clear everything.
         if window == -1:
             self.upper_height = 0
             self._clear_rows(0, self.height)
             self.lower_cursor = (0, 0)
+        # Erase -2: clear all windows but keep the split.
         elif window == -2:
             self._clear_rows(0, self.height)
             self.lower_cursor = (self.upper_height, 0)
             self.upper_cursor = (0, 0)
+        # Erase 0: clear the lower window only.
         elif window == 0:
             self._clear_rows(self.upper_height, self.height)
             self.lower_cursor = (self.upper_height, 0)
+        # Erase 1: clear the upper window only.
         elif window == 1:
             self._clear_rows(0, self.upper_height)
             self.upper_cursor = (0, 0)
         self.lines_since_input = 0
 
     def _clear_rows(self, start: int, end: int) -> None:
+        """Fill a range of rows with blanks in the current foreground colour."""
         for r in range(start, end):
             self.rows[r] = [Cell(" ", 0, self.fg, self.bg)] * self.width
 
@@ -268,10 +291,12 @@ class GridScreen:
         return row + 1, col + 1
 
     def set_text_style(self, style: int) -> None:
+        """§15 set_text_style: set or reset text attributes (roman, bold, etc.)."""
         self.flush()
         self.style = STYLE_ROMAN if style == 0 else (self.style | style)
 
     def set_colour(self, fg: int, bg: int) -> None:
+        """§15 set_colour: set foreground and/or background colour."""
         self.flush()
         if fg != COLOUR_CURRENT:
             self.fg = fg
@@ -279,6 +304,7 @@ class GridScreen:
             self.bg = bg
 
     def set_buffer_mode(self, on: bool) -> None:
+        """§15 buffer_mode: turn word-wrapping on or off (lower window only)."""
         self.flush()
         self.buffering = on
 
@@ -293,6 +319,7 @@ class GridScreen:
         return 0
 
     def beep(self) -> None:
+        """§15 beep: signal a sound (or do nothing if unavailable)."""
         pass
 
     # ----------------------------------------------------------------- input
@@ -307,15 +334,18 @@ class GridScreen:
         return text
 
     def read_key(self) -> int:
+        """§15 read_char: read one key press and return its ZSCII code."""
         self.flush()
         self.render()
         self.lines_since_input = 0
         return self._input_key()
 
     def _input_line(self, max_length: int) -> str:
+        """Read a line from the user or a script (subclass hook)."""
         raise NotImplementedError
 
     def _input_key(self) -> int:
+        """Read one key from the user or a script (subclass hook)."""
         raise NotImplementedError
 
     # -------------------------------------------------------------- display
@@ -331,6 +361,7 @@ class GridScreen:
 
     # -------------------------------------------------------------- testing
     def text_rows(self) -> list[str]:
+        """Return the visible text of each row (for tests and --ui plain)."""
         return ["".join(cell.char for cell in row).rstrip() for row in self.rows]
 
     def transcript_text(self) -> str:

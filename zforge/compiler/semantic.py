@@ -69,6 +69,8 @@ NAMES_A_VARIABLE = {"SET", "SETG", "INC", "DEC"}
 
 @dataclass
 class Symbols:
+    """Symbol table: names and what they refer to (routines, globals, constants,
+    objects, flags, properties) and dictionary words used in the program."""
     routines: dict = field(default_factory=dict)      # name -> RoutineDecl
     globals: dict = field(default_factory=dict)       # name -> GlobalDecl
     constants: dict = field(default_factory=dict)     # name -> ConstantDecl
@@ -89,17 +91,20 @@ class Symbols:
         return None
 
     def add_word(self, word: str) -> None:
+        """Record a dictionary word W?word used in the program."""
         if word not in self.words:
             self.words.append(word)
 
 
 class Analyser:
+    """Build the symbol table and check that all names are defined and used correctly."""
     def __init__(self, program: ast.Program, diag: Diagnostics):
         self.p = program
         self.diag = diag
         self.s = Symbols()
 
     def error(self, node, message: str) -> None:
+        """Report an error at a node's location."""
         self.diag.error(node.loc, message)
 
     # ---------------------------------------------------------- declarations
@@ -164,16 +169,25 @@ class Analyser:
 
     # ------------------------------------------------------------- routines
     def check_routine(self, r: ast.RoutineDecl) -> None:
+        """Check one routine: validate all expressions use defined names and that
+        argument counts to built-ins and routines are correct. Track loop depth
+        (for AGAIN) and local variable scope (for shadowing detection, ADR-017)."""
         self.routine = r
         self.locals = set(r.local_names())
         self.declared = set(r.local_names())   # written in the ROUTINE's argument list
         self.bound: list[str] = []             # names bound by enclosing PROG/BIND/DO/...
         self.loop_depth = 0
+
+        # Check default values for optional and auxiliary arguments.
         for _name, default in r.optionals + r.auxes:
             if default is not None:
                 self.expr(default)
+
+        # Check every expression in the routine's body.
         for e in r.body:
             self.expr(e)
+
+        # The Z-machine (§5.2) allows at most 15 local variables per routine.
         if len(r.local_names()) > MAX_LOCALS:
             self.error(r, f"{r.name} has {len(r.local_names())} locals; the Z-machine allows 15")
 
@@ -184,6 +198,8 @@ class Analyser:
             self.locals.add(name)
 
     def expr(self, e) -> None:
+        """Recursively check an expression: verify all names are defined and validate
+        argument counts to built-ins and user routines."""
         if isinstance(e, ast.Local):
             if e.name not in self.locals:
                 hint = f"; {e.name} is a global, use ,{e.name}" if self.s.kind_of(e.name) else ""
@@ -254,11 +270,13 @@ class Analyser:
             self._scoped(names, lambda: [self.expr(b) for b in e.body])
 
     def _scoped(self, names: list, walk) -> None:
+        """Temporarily add names to self.bound (active scope) while walking the body."""
         self.bound += names
         walk()
         del self.bound[len(self.bound) - len(names):]
 
     def _hint(self, name: str) -> str:
+        """Suggest how to fix an unknown identifier error."""
         if name in self.locals:
             return f"; {name} is a local, use .{name}"
         if name in ("PRSA", "PRSO", "PRSI"):
@@ -268,12 +286,14 @@ class Analyser:
         return ""
 
     def _loop(self, body: list) -> None:
+        """Check a loop body (REPEAT, DO, MAP-CONTENTS, or PROG): AGAIN is only valid here."""
         self.loop_depth += 1
         for b in body:
             self.expr(b)
         self.loop_depth -= 1
 
     def _bare_atom(self, e: ast.Atom) -> None:
+        """Bare atoms (T is allowed). Anything else should use . or , prefix."""
         if e.name == "T":
             return
         if e.name in self.locals:
@@ -284,6 +304,8 @@ class Analyser:
             self.error(e, f"unknown identifier {e.name}")
 
     def call(self, e: ast.Call) -> None:
+        """Check a function call or built-in: validate argument count, check for
+        AGAIN outside loops, and validate SET/INC/DEC variable names."""
         args = e.args
         if e.name in BUILTINS:
             lo, hi = BUILTINS[e.name]
@@ -324,13 +346,22 @@ class Analyser:
         self.error(target, f"<{e.name}>: {name} is not a local or global variable")
 
     def run(self) -> Symbols:
+        """Build the symbol table: declare all names, check routines, then check
+        global initializers and object properties for valid references."""
+        # Declare all top-level names.
         self.declare()
+
+        # Check each routine's body for valid names and argument counts.
         for r in self.p.routines:
             self.check_routine(r)
+
+        # Check global initializers (outside any routine scope).
         for g in self.p.globals:
             self.routine, self.locals, self.loop_depth = None, set(), 0
             self.declared, self.bound = set(), []
             self.expr(g.init)
+
+        # Check object properties: exits must point to defined rooms/objects.
         for o in self.p.objects:
             self.locals, self.loop_depth = set(), 0
             for _name, value in o.properties:
@@ -344,4 +375,5 @@ class Analyser:
 
 
 def analyse(program: ast.Program, diag: Diagnostics) -> Symbols:
+    """Run semantic analysis: build the symbol table and check all names."""
     return Analyser(program, diag).run()

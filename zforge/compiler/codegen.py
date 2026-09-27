@@ -33,6 +33,7 @@ def asm_string(text: str) -> str:
 
 
 def asm_word(word: str) -> str:
+    """Format a dictionary word as an assembly word literal."""
     return "'" + word.replace("\\", "\\\\").replace("'", "\\'") + "'"
 
 
@@ -77,6 +78,7 @@ class CodeGenerator:
         return "\n".join(o) + "\n"
 
     def objects(self) -> None:
+        """Emit the object table: one .object directive per object/room (§12)."""
         for name, (_number, obj) in self.s.objects.items():
             desc = obj.desc if obj.desc is not None else name.lower().replace("-", " ")
             opts = []
@@ -132,6 +134,7 @@ class CodeGenerator:
         return "0"
 
     def table(self, e: ast.Table) -> str:
+        """Emit assembly for a TABLE, LTABLE, or ITABLE."""
         kind = "byte" if e.byte else "word"
         if e.kind == "ITABLE":
             count = self.constant_number(e.items[0]) if e.items else 0
@@ -149,6 +152,7 @@ class CodeGenerator:
 
     # ============================================================== routines
     def routine(self, r: ast.RoutineDecl) -> None:
+        """Emit a routine: locals, initialise optional/AUX arguments, then body (§5)."""
         self.r = r
         self.lines: list[str] = []
         self.labels = 0
@@ -202,6 +206,7 @@ class CodeGenerator:
 
     @staticmethod
     def branch(label: str, on_true: bool) -> str:
+        """Format a branch: ?label if on_true, ?~label if not (§4.7)."""
         return f"?{label}" if on_true else f"?~{label}"
 
     def is_simple(self, e) -> bool:
@@ -211,6 +216,7 @@ class CodeGenerator:
             (isinstance(e, ast.Atom) and e.name == "T")
 
     def value_token(self, e) -> str:
+        """Convert an expression to an assembly operand token."""
         if isinstance(e, ast.Num):
             return str(e.value)
         if isinstance(e, ast.Str):
@@ -286,6 +292,7 @@ class CodeGenerator:
 
     # ============================================================ expressions
     def compile(self, e, target) -> None:
+        """Recursively compile an expression to its target (a variable, register, or RETURN)."""
         if self.is_simple(e):
             self.deliver(self.value_token(e), target)
         elif isinstance(e, ast.Call):
@@ -360,6 +367,7 @@ class CodeGenerator:
             self.deliver(var, target)
 
     def form_inc_dec(self, e: ast.Call, target) -> None:
+        """<INC var> or <DEC var>: increment or decrement (§15 inc, dec)."""
         var = self.variable(e.args[0])
         self.emit(f"{e.name.lower()} {var}")        # §15 inc/dec take a variable NUMBER
         if target is not None:
@@ -385,22 +393,28 @@ class CodeGenerator:
         self.finish(target)
 
     def form_return_now(self, e: ast.Call, target) -> None:
+        """<RETURN val>: exit the current routine."""
         self.emit({"RTRUE": "rtrue", "RFALSE": "rfalse", "RFATAL": "ret 2"}[e.name])
 
     def form_again(self, e: ast.Call, target) -> None:
+        """<AGAIN>: jump to the start of the innermost loop (ADR-011)."""
         self.emit(f"jump {self.loops[-1][0]}")
 
     def form_quit_restart(self, e: ast.Call, target) -> None:
+        """<QUIT> or <RESTART>: exit or restart the game (§15)."""
         self.emit(e.name.lower())
 
     def form_save_restore(self, e: ast.Call, target) -> None:
+        """<SAVE> or <RESTORE>: save or restore a game (§15, Quetzal)."""
         self.emit(f"{e.name.lower()} -> {self.dest(target)}")
         self.finish(target)
 
     def form_apply(self, e: ast.Call, target) -> None:
+        """<APPLY routine args...>: call a routine by packed address."""
         self.routine_call(e.args[0], e.args[1:], target)
 
     def form_printi(self, e: ast.Call, target) -> None:
+        """<PRINTI packed-string>: print a string from the string table (§15)."""
         if isinstance(e.args[0], ast.Str):
             self.emit(f"print {asm_string(e.args[0].value)}")
         else:
@@ -413,6 +427,7 @@ class CodeGenerator:
         return "." + name if self.r and name in self.r.local_names() else name
 
     def arithmetic(self, e: ast.Call, target) -> None:
+        """<+, -, *, /, MOD, BAND, BOR, BCOM>: arithmetic and bitwise ops (§15)."""
         opcode = ARITHMETIC[e.name]
         args = e.args
         if e.name == "-" and len(args) == 1:     # <- x> is negation: 0 - x
@@ -454,6 +469,7 @@ class CodeGenerator:
             self.compile(value, RETURN)
 
     def zop(self, e: ast.Zop, target) -> None:
+        """Compile <ZOP opcode args>: a raw §15 opcode for escaping the language."""
         op = BY_NAME[e.opcode]
         tokens, temps = self.operands(e.args)
         text = f"{op.name} {' '.join(tokens)}".rstrip()
@@ -497,6 +513,8 @@ class CodeGenerator:
 
     # ========================================================= control flow
     def cond(self, e: ast.Cond, target) -> None:
+        """Compile <COND (test body) ... [(ELSE body)]>: each clause tests, then
+        jumps past the rest if true (§4.7: branches)."""
         end = self.new_label()
         for test, body in e.clauses:
             nxt = self.new_label()
@@ -522,6 +540,7 @@ class CodeGenerator:
         self.place(end)
 
     def body(self, exprs: list, target) -> None:
+        """Compile a sequence of expressions; return the last one's value (target)."""
         for x in exprs[:-1]:
             self.compile(x, None)
         if exprs:
@@ -530,6 +549,7 @@ class CodeGenerator:
             self.statement_done(target)
 
     def _loop(self, target, emit_body) -> None:
+        """Helper for loops: define start, call emit_body(start, end), then place end."""
         start, end = self.new_label(), self.new_label()
         self.loops.append((start, end, target))
         self.place(start)
@@ -538,6 +558,8 @@ class CodeGenerator:
         self.place(end)
 
     def repeat(self, e: ast.Repeat, target) -> None:
+        """Compile <REPEAT (bindings) body>: infinite loop with local variables
+        and AGAIN support (ADR-011)."""
         for name, init in e.bindings:
             if init is not None:
                 self.compile(init, "." + name)
@@ -632,6 +654,7 @@ class CodeGenerator:
         self.free(temps)
 
     def simple_branch(self, opcode: str, e, label: str, jump_if: bool) -> None:
+        """Emit a simple branch instruction (one or two operands, one branch)."""
         tokens, temps = self.operands(e.args)
         self.emit(f"{opcode} {' '.join(tokens)} {self.branch(label, jump_if)}")
         self.free(temps)
@@ -659,6 +682,8 @@ class CodeGenerator:
         self.free(temps)
 
     def and_(self, e, label: str, jump_if: bool) -> None:
+        """Compile AND: each clause is tested; if any fails, jump; if all pass,
+        evaluate the last (ADR-012: short-circuit)."""
         if not jump_if:
             for a in e.args:
                 self.compile_cond(a, label, False)
@@ -670,6 +695,8 @@ class CodeGenerator:
         self.place(skip)
 
     def or_(self, e, label: str, jump_if: bool) -> None:
+        """Compile OR: each clause is tested; if any succeeds, jump; if all fail,
+        jump (ADR-012: short-circuit)."""
         if jump_if:
             for a in e.args:
                 self.compile_cond(a, label, True)
@@ -681,6 +708,7 @@ class CodeGenerator:
         self.place(skip)
 
     def child_test(self, e, label: str, jump_if: bool) -> None:
+        """Compile FIRST?/NEXT? as a test (stores and branches at once, §15)."""
         tokens, temps = self.operands(e.args)
         opcode = "get_child" if e.name == "FIRST?" else "get_sibling"
         self.emit(f"{opcode} {tokens[0]} -> {SCRATCH} {self.branch(label, jump_if)}")

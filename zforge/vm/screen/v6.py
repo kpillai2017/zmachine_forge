@@ -74,15 +74,18 @@ class Window:
     lines_since_input: int = 0
 
     def has(self, attribute: int) -> bool:
+        """Check if an attribute (wrapping, scrolling, transcript, buffering) is set."""
         return bool(self.attributes & attribute)
 
     # -- the window's rectangle on the screen, as 0-based grid coordinates
     @property
     def top(self) -> int:
+        """The window's top-left row on the screen (0-based)."""
         return self.y - 1
 
     @property
     def left(self) -> int:
+        """The window's top-left column on the screen (0-based)."""
         return self.x - 1
 
     @property
@@ -169,7 +172,9 @@ class V6Model:
             self._put_v6(ch)
 
     def _put_v6(self, ch: str) -> None:
+        """Collect a character for the current window, buffering if needed."""
         w = self.current
+        # With buffering on, hold back all characters except spaces and newlines.
         if w.has(ATTR_BUFFERING) and ch not in (" ", "\n"):
             w.word_buffer.append(ch)          # §8.8.3.1.2: hold the word back
             return
@@ -183,6 +188,7 @@ class V6Model:
         if not w.word_buffer:
             return
         word, w.word_buffer = "".join(w.word_buffer), []
+        # Check if the buffered word would overfill the current line.
         if (w.has(ATTR_WRAPPING) and w.x_cursor > w.left_margin + 1
                 and w.x_cursor - 1 - w.left_margin + len(word) > w.text_width):
             self._write_char(w, "\n")   # the word moves down whole (§8.8.3.1.2.2)
@@ -190,24 +196,31 @@ class V6Model:
             self._write_char(w, ch)
 
     def _write_char(self, w: Window, ch: str) -> None:
+        """Write one character to a window, handling newlines, wrapping and
+        clipping. Every character is recorded in the transcript (if that
+        attribute is set) so z5 and z6 stories read identically."""
         # The transcript (attribute 2, output stream 2) sees each character
         # as the game printed it, exactly as the v5 model records it in
         # base.py - so the same story reads the same on z5 and z6.
         if w.has(ATTR_TRANSCRIPT):
             self.transcript.append(ch)
+        # A newline ends the line and moves to the next (scrolling if needed).
         if ch == "\n":
             self._newline(w, wrapped=False)
             return
+        # If the cursor is at the right margin, check the wrapping attribute.
         if w.x_cursor - 1 >= w.left_margin + w.text_width:
             # §8.8.3.1.1: with wrapping, carry on below; without it, the
             # cursor sits at the right margin and further text is ignored.
             if not w.has(ATTR_WRAPPING):
                 return
             self._newline(w)
+        # Skip a space that starts a line after a word wrap (not after explicit newline).
         if ch == " " and w.x_cursor == w.left_margin + 1 and self._wrapped:
             self._wrapped = False
             return                    # a wrapped line does not start with a space
         self._wrapped = False
+        # Write the character to the grid if it is within the window's bounds.
         row, col = w.top + w.y_cursor - 1, w.left + w.x_cursor - 1
         if 0 <= row < self.height and 0 <= col < self.width and w.y_cursor <= w.y_size:
             self.rows[row][col] = Cell(ch, w.style, w.fg, w.bg)
@@ -221,11 +234,15 @@ class V6Model:
         has already recorded the character, if there was one."""
         self._wrapped = wrapped
         self._emit("\n")
+        # Move the cursor to the start of the next line (at the left margin).
         w.x_cursor = w.left_margin + 1
+        # If the cursor is not yet at the bottom, advance it; otherwise scroll if needed.
         if w.y_cursor < w.y_size:
             w.y_cursor += 1
         elif w.has(ATTR_SCROLLING):
+            # A scrolling window shifts its text up to make room (§8.8.3.6).
             self._scroll(w, 1)
+        # Track lines for the [MORE] prompt and the newline interrupt (§8.8.3.2.6).
         self._count_line(w)
 
     def _count_line(self, w: Window) -> None:
@@ -234,8 +251,10 @@ class V6Model:
             w.line_count = max(NEVER_MORE, w.line_count - 1)
             if w.line_count == 0 and w.interrupt_routine:
                 self.pending_interrupt = w.interrupt_routine   # the VM runs it
+        # Never pause if the line count is NEVER_MORE (-999).
         if w.line_count == NEVER_MORE:
             return
+        # Track lines printed and pause when the window fills.
         w.lines_since_input += 1
         if w.y_size > 1 and w.lines_since_input >= w.y_size - 1:
             self.more_prompt()
@@ -248,12 +267,16 @@ class V6Model:
         negative value scrolls backwards), filling with background colour."""
         blank = Cell(" ", 0, w.fg, w.bg)
         for _ in range(abs(lines)):
+            # Collect the window's rows and columns on the grid.
             rows = [self.rows[r] for r in range(w.top, min(w.top + w.y_size, self.height))]
             if not rows:
                 return
             columns = range(w.left, min(w.left + w.x_size, self.width))
+            # Decide the order to avoid overwriting before copying: scroll down
+            # copies from bottom to top, scroll up copies from top to bottom.
             order = range(len(rows) - 1) if lines > 0 else range(len(rows) - 1, 0, -1)
             step = 1 if lines > 0 else -1
+            # Shift each row and fill the edge with blanks.
             for i in order:
                 for c in columns:
                     rows[i][c] = rows[i + step][c]
@@ -273,10 +296,12 @@ class V6Model:
         self.flush()
         lines = max(0, min(lines, self.height))
         w0, w1 = self.windows[0], self.windows[1]
+        # Window 1 (status line) is at (1,1) with the given height; window 0 below it.
         w1.y, w1.x, w1.y_size, w1.x_size = 1, 1, lines, self.width
         w0.y, w0.x = lines + 1, 1
         w0.y_size, w0.x_size = self.height - lines, self.width
         self.split_height = lines
+        # If a window's cursor is now outside its bounds, reset it.
         for w in (w0, w1):
             if w.y_cursor > w.y_size:
                 w.y_cursor, w.x_cursor = 1, w.left_margin + 1
@@ -285,6 +310,7 @@ class V6Model:
         """§15 window_size: resize, and (§8.8.3.4) rescue a stranded cursor."""
         w = self._window(window)
         w.y_size, w.x_size = max(0, y), max(0, x)
+        # If the cursor is now outside the window, move it inside (top-left).
         if w.y_cursor > w.y_size or w.x_cursor > w.x_size:
             w.y_cursor, w.x_cursor = 1, w.left_margin + 1
 
@@ -305,6 +331,7 @@ class V6Model:
         margins it moves back to the left margin of the current line."""
         w = self._window(window)
         w.left_margin, w.right_margin = max(0, left), max(0, right)
+        # If the cursor is now outside the margins, reset it to the left margin.
         if w.x_cursor <= w.left_margin or w.x_cursor - 1 > w.left_margin + w.text_width:
             w.x_cursor = w.left_margin + 1
 
@@ -316,15 +343,18 @@ class V6Model:
         """§15 erase_window. §8.8.4.2: erasing the whole screen also unsplits
         windows 0 and 1, if they were split."""
         self.flush()
+        # Erase -1 or -2: clear all windows and reset all cursors.
         if window in (-1, -2):
             for w in self.windows:
                 w.lines_since_input = 0
             self._clear_rows(0, self.height)
+            # Erase -1 also unsplits: return window 0 and 1 to their defaults.
             if window == -1 and self.split_height:
                 self.split_window(0)
             for w in self.windows:
                 w.y_cursor, w.x_cursor = 1, w.left_margin + 1
             return
+        # Erase one window: clear its rectangle on the grid and reset its cursor.
         w = self._window(window)
         blank = Cell(" ", 0, w.fg, w.bg)
         for r in range(w.top, min(w.top + w.y_size, self.height)):
@@ -342,6 +372,7 @@ class V6Model:
         row = w.top + w.y_cursor - 1
         if not 0 <= row < self.height:
             return
+        # Erase from the cursor to the right margin (value 1) or for value units.
         first = w.left + w.x_cursor - 1
         last = (w.left + w.x_size - w.right_margin) if value == 1 else (first + value)
         for c in range(first, min(last, self.width)):
@@ -367,6 +398,7 @@ class V6Model:
 
     # ------------------------------------------------------ style and colour
     def set_text_style(self, style: int) -> None:
+        """§15 set_text_style: set or reset text attributes (roman, bold, etc.)."""
         self.flush()
         w = self.current
         w.style = STYLE_ROMAN if style == 0 else (w.style | style)
@@ -403,6 +435,7 @@ class V6Model:
     def get_window_property(self, window: int, number: int) -> int:
         """§8.8.3.2 get_wind_prop: the eighteen properties, in order."""
         w = self._window(window)
+        # Return the property value: position, size, cursor, margins, style, colours, etc.
         values = {
             P_Y: w.y, P_X: w.x, P_Y_SIZE: w.y_size, P_X_SIZE: w.x_size,
             P_Y_CURSOR: w.y_cursor, P_X_CURSOR: w.x_cursor,
@@ -429,6 +462,7 @@ class V6Model:
         writeable ones (0-15) and ignores the rest, as §8.8.3.2 requires for
         the two true-colour properties."""
         w = self._window(window)
+        # Map property numbers to window attributes that the game may write.
         writeable = {
             P_Y: "y", P_X: "x", P_Y_SIZE: "y_size", P_X_SIZE: "x_size",
             P_Y_CURSOR: "y_cursor", P_X_CURSOR: "x_cursor",
@@ -438,6 +472,7 @@ class V6Model:
             P_TEXT_STYLE: "style", P_FONT_NUMBER: "font",
             P_ATTRIBUTES: "attributes", P_LINE_COUNT: "line_count",
         }
+        # Colour data is packed: foreground in the lower byte, background in the upper.
         if number == P_COLOUR_DATA:
             w.fg, w.bg = value & 0xFF, (value >> 8) & 0xFF
         elif number in writeable:
@@ -457,6 +492,7 @@ class V6Model:
         return text
 
     def read_key(self) -> int:
+        """§15 read_char: read one key press and return its ZSCII code."""
         self.flush()
         self.render()
         self.current.lines_since_input = 0
@@ -464,6 +500,7 @@ class V6Model:
 
     # ------------------------------------------------------------- rendering
     def text_rows(self) -> list[str]:
+        """Return the visible text of each row (for tests and --ui plain)."""
         return ["".join(cell.char for cell in row).rstrip() for row in self.rows]
 
 

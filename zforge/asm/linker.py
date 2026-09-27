@@ -51,6 +51,7 @@ class ObjectDef:
 
 # --------------------------------------------------------------------- objects
 def property_table_size(obj: ObjectDef) -> int:
+    """Calculate the byte size of an object's property table."""
     size = 1 + len(encode_string(obj.short_name))
     for kind, values in obj.properties.values():
         length = len(values) * (2 if kind == "word" else 1)
@@ -134,8 +135,10 @@ class HeaderFields:
 
 
 def write_header(story: bytearray, f: HeaderFields, profile: VersionProfile) -> None:
+    """Write the story file header (§11) with the given field values."""
     def w(offset, value):
         story[offset:offset + 2] = (value & 0xFFFF).to_bytes(2, "big")
+    # Version-specific header fields (§11.1).
     story[H.H_VERSION] = profile.version
     w(H.H_RELEASE, f.release)
     w(H.H_HIGH_MEMORY, f.high_memory)
@@ -146,6 +149,7 @@ def write_header(story: bytearray, f: HeaderFields, profile: VersionProfile) -> 
     w(H.H_STATIC_MEMORY, f.static_memory)
     w(H.H_FLAGS2, f.flags2)
     story[H.H_SERIAL:H.H_SERIAL + 6] = f.serial.encode("ascii")[:6].ljust(6, b"0")
+    # Packing offsets for v6/v7 only (§1.2.3).
     if profile.uses_packing_offsets:
         w(H.H_ROUTINES_OFFSET, f.routines_offset)
         w(H.H_STRINGS_OFFSET, f.strings_offset)
@@ -170,8 +174,10 @@ def finalise(story: bytearray, profile: VersionProfile) -> bytes:
     while len(story) % divisor:
         story.append(0)
     check_size(len(story), profile)
+    # Write the file length as a multiple of the divisor (§11.1.6).
     length = len(story)
     story[H.H_FILE_LENGTH:H.H_FILE_LENGTH + 2] = (length // divisor).to_bytes(2, "big")
+    # Compute and write the checksum (§11).
     checksum = H.compute_checksum(story, length)
     story[H.H_CHECKSUM:H.H_CHECKSUM + 2] = checksum.to_bytes(2, "big")
     return bytes(story)

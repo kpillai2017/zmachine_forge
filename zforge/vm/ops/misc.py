@@ -63,8 +63,10 @@ def op_save(vm, table=0, nbytes=0, name=0):
     game state is written as a Quetzal file."""
     filename = _ask_filename(vm, "Save")
     try:
+        # Auxiliary file: save only the specified memory range
         if table:
             Path(filename).write_bytes(vm.mem.read_bytes(table, nbytes))
+        # Full game state: encode as Quetzal (including stack, frames, all memory)
         else:
             Path(filename).write_bytes(quetzal.encode_save(vm, _store_pc(vm)))
         vm.store_result(1)
@@ -79,17 +81,20 @@ def op_restore(vm, table=0, nbytes=0, name=0):
     filename = _ask_filename(vm, "Restore")
     try:
         data = Path(filename).read_bytes()
+        # Auxiliary file: restore to the specified range
         if table:
             data = data[:nbytes]
             for i, b in enumerate(data):
                 vm.mem.write_byte(table + i, b)
             vm.store_result(len(data))
             return
+        # Full game state: decode Quetzal, get the resume point
         store_pc = quetzal.decode_save(vm, data)
     except (OSError, ZMachineError) as exc:
         vm.output(f"[restore failed: {exc}]\n")
         vm.store_result(0)
         return
+    # Resume: write 2 to the store location of the original save, then jump there
     vm.write_variable(vm.mem.read_byte(store_pc), 2)
     vm.pc = store_pc + 1
 
@@ -107,7 +112,9 @@ def op_restore_undo(vm):
     if not vm.undo_states:
         vm.store_result(0)
         return
+    # Pop the most recent snapshot and restore it
     state = vm.undo_states.pop()
     quetzal.restore_snapshot(vm, state)
+    # Resume: write 2 to the store location of the save_undo, then jump there
     vm.write_variable(vm.mem.read_byte(state.store_pc), 2)
     vm.pc = state.store_pc + 1

@@ -17,15 +17,18 @@ def op_aread(vm, text_buffer, parse_buffer=0, time=0, routine=0):
 
     Timed input (time/routine) is not advertised in Flags 1, so we ignore it.
     """
+    # Read the buffer format: max chars and chars already present
     max_chars = vm.mem.read_byte(text_buffer)
     already = vm.mem.read_byte(text_buffer + 1)      # v5: chars left from before
     text = vm.screen.read_line(max_chars - already)
     vm.streams.echo_input(text)
     codes = [c for c in vm.to_zscii(text.lower()) if c != ord("?") or "?" in text]
     codes = codes[:max_chars - already]
+    # Store the characters in the buffer after the existing text
     for i, code in enumerate(codes):
         vm.mem.write_byte(text_buffer + 2 + already + i, code)
     vm.mem.write_byte(text_buffer + 1, already + len(codes))
+    # If a parse buffer was given, tokenise the text into it
     if parse_buffer:
         tokenise(vm.mem, vm.alphabets, text_buffer, parse_buffer, vm.dictionary)
     vm.store_result(KEY_NEWLINE)

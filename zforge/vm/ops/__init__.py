@@ -4,6 +4,15 @@ HANDLERS maps each opcode NAME (as in zforge.common.opcodes) to a plain
 function handler(vm, *operand_values). It is written out explicitly - no
 reflection - so you can read exactly which function runs for each opcode.
 tests/test_opcodes.py checks every v5 opcode has a handler.
+
+When the decoder (vm/decoder.py, §4) decodes an instruction, it extracts:
+  - the opcode name (e.g. "add", "jz", "insert_obj")
+  - the operand values (as unsigned 16-bit integers)
+This module's handlers_for() returns the right table (HANDLERS or HANDLERS_V6
+depending on the story version), and vm.machine looks up the opcode name and
+calls the handler with the operand values. Each handler then interprets them
+according to the Z-machine standard (many are signed, some are addresses, some
+are indices into arrays or properties).
 """
 from zforge.vm.ops import (arith, branch, calls, input, misc, objects, output, screen, tables,
                            v6, variables)

@@ -53,6 +53,7 @@ class Block:
 
 
 def split_outside_quotes(text: str, sep: str) -> list[str]:
+    """Split text on separator, but not inside quoted strings."""
     parts, buf, in_quote = [], "", False
     i = 0
     while i < len(text):
@@ -101,10 +102,12 @@ class PhraseLowerer:
 
     @staticmethod
     def locals_list(params: list[str], aux: list[str]) -> str:
+        """Build ZIL locals list: parameter names, then AUX keyword, then aux local names."""
         return " ".join(params + (['"AUX"'] + aux if aux else []))
 
     # ------------------------------------------------------------ helpers
     def problem(self, where: Location, wrote: str, why: str) -> str:
+        """Record an error message and return a safe fallback value (0)."""
         self.L.p.problem(where, wrote, why)
         return "0"
 
@@ -199,21 +202,28 @@ class PhraseLowerer:
         return None
 
     def condition(self, text: str, where: Location) -> str:
+        """Translate one Inform 7 condition into a ZIL test that returns true or false."""
         t = " ".join(text.strip().rstrip(",").split())
+        # Handle 'or': split and combine with <OR ...>
         if len(ors := split_outside_quotes(t, " or ")) > 1:
             return "<OR " + " ".join(self.condition(x, where) for x in ors) + ">"
+        # Handle 'and': split and combine with <AND ...>
         if len(ands := split_outside_quotes(t, " and ")) > 1:
             return "<AND " + " ".join(self.condition(x, where) for x in ands) + ">"
         low = t.lower()
+        # 'the locked grate is in the location' expands to two tests on 'the grate'
         described = self.described_subject(t)
         if described:                      # 'the locked grate is in the location'
             return self.condition(described, where)
+        # A 'To decide whether' phrase that was defined
         for phrase, routine in self.decide_phrases.items():
             if low == phrase:
                 return f"<{routine}>"
+        # A 'To decide whether' phrase with parameters
         call = self.use_of("decide", t, where)
         if call:
             return call
+        # Try special cases, then whereabouts, then general structure
         return (self.special_condition(t, low, where)
                 or self.whereabouts_condition(t, where)
                 or self.general_condition(t, where)
@@ -225,6 +235,7 @@ class PhraseLowerer:
         None: not one of these (the next group is tried)."""
         if low in ("in darkness", "in the dark"):
             return "<NOT ,LIT>"
+        # 'handling the X activity': test if activity is happening
         m = re.match(r"^handling (the .+ activity)$", t, re.I)
         if m:                                         # true if no for rule decided
             atom = self.activity_atom(m.group(1))
@@ -237,10 +248,12 @@ class PhraseLowerer:
         if m:
             test = f"<ZERO? {self.value(m.group(1), where)}>"
             return test if m.group(2).lower() == "is" else f"<NOT {test}>"
+        # 'X encloses Y' or 'X does not enclose Y'
         m = re.match(r"^(.+?) (does not enclose|encloses) (.+)$", t, re.I)
         if m:
             test = f"<ENCLOSES? {self.value(m.group(1), where)} {self.value(m.group(3), where)}>"
             return test if m.group(2).lower() == "encloses" else f"<NOT {test}>"
+        # 'a random chance of N in M succeeds': succeed if random(M) <= N
         m = re.match(r"^a random chance of (\d+) in (\d+) succeeds$", low)
         if m:
             return f"<NOT <G? <RANDOM {m.group(2)}> {m.group(1)}>>"
@@ -641,6 +654,7 @@ class PhraseLowerer:
         return out
 
     def phrase(self, text: str, where: Location) -> list[str]:
+        """Translate one Inform 7 phrase into zero or more ZIL-lite statements."""
         t = text.strip()
         low = t.lower()
         # 'say "..." instead' / 'try looking instead': do it, then stop the action

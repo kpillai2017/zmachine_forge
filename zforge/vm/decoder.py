@@ -42,18 +42,21 @@ class OperandType(IntEnum):
 
 @dataclass
 class Operand:
+    """One operand in an instruction (§4.2)."""
     type: OperandType
     value: int        # the constant, or the variable number
 
 
 @dataclass
 class Branch:
-    on_true: bool     # branch when the condition is true (bit 7, §4.7.1)
-    offset: int       # 0 = rfalse, 1 = rtrue, else a signed jump offset (§4.7.2)
+    """Branch information from an instruction (§4.7)."""
+    on_true: bool     # branch when the condition is true (bit 7, §4.7)
+    offset: int       # 0 = rfalse, 1 = rtrue, else a signed jump offset (§4.7.1, §4.7.2)
 
 
 @dataclass
 class Instruction:
+    """One complete decoded instruction (§4)."""
     address: int
     op: Op
     form: str                       # "long" | "short" | "variable" | "extended"
@@ -74,6 +77,7 @@ def _types_from_byte(byte: int) -> list[OperandType]:
     """A type byte holds four 2-bit types, first operand in the top bits.
     The first 'omitted' ends the list (§4.4.3)."""
     types = []
+    # Extract types from most significant to least significant 2-bit pair
     for shift in (6, 4, 2, 0):
         t = OperandType((byte >> shift) & 0b11)
         if t == OperandType.OMITTED:
@@ -94,7 +98,9 @@ def decode(read_byte, address: int, skip_text=None, table: OpcodeTable | None = 
     it defaults to version 5's.
     """
     table = table if table is not None else BY_KIND_NUMBER
+    # Decode the opcode form and number; extract types from the encoded bytes
     form, kind, number, types, pc = _decode_opcode(read_byte, address, table)
+    # Look up the opcode name and properties in the table
     op = table.get((kind, number))
     if op is None:
         if kind == "EXT" and number >= 29:
@@ -103,6 +109,7 @@ def decode(read_byte, address: int, skip_text=None, table: OpcodeTable | None = 
         else:
             raise ZMachineError(f"Illegal opcode {kind}:{number} for version {version} "
                                 f"(byte 0x{read_byte(address):02x}) (§14)", address)
+    # Read the operand values (§4.2: large = 2 bytes, small/variable = 1 byte)
     operands, pc = _read_operands(read_byte, pc, types)
     ins = Instruction(address, op, form, operands)
     if op.store:                                       # §4.6
@@ -131,6 +138,7 @@ def _decode_opcode(read_byte, pc: int, table: OpcodeTable):
         number = first & 0x1F
         types = _types_from_byte(read_byte(pc))
         pc += 1
+        # Some opcodes (call_vs, call_vn, call_vn2, etc.) take TWO type bytes
         op = table.get((kind, number))
         if op is not None and op.name in DOUBLE_TYPE_BYTE:
             types += _types_from_byte(read_byte(pc))    # §4.4.3.1
@@ -151,10 +159,12 @@ def _read_operands(read_byte, pc: int, types: list[OperandType]):
     """§4.2: large constants are 2 bytes, small constants and variables 1."""
     operands = []
     for t in types:
+        # Large constants (0b00) are 2-byte big-endian words
         if t == OperandType.LARGE:
             value = (read_byte(pc) << 8) | read_byte(pc + 1)
             pc += 2
         else:
+            # Small constants and variable numbers are 1 byte each
             value = read_byte(pc)
             pc += 1
         operands.append(Operand(t, value))
@@ -167,11 +177,14 @@ def _read_branch(read_byte, pc: int):
     b = read_byte(pc)
     pc += 1
     on_true = bool(b & 0x80)
+    # Short branch: bit 6 set means offset fits in 6 bits (bits 5-0)
     if b & 0x40:
         offset = b & 0x3F
     else:
+        # Long branch: offset spans two bytes; bit 13 is the sign bit
         offset = ((b & 0x3F) << 8) | read_byte(pc)
         pc += 1
+        # Sign-extend from 14 bits
         if offset & 0x2000:
             offset -= 0x4000
     return Branch(on_true, offset), pc

@@ -38,6 +38,9 @@
 <GLOBAL END-SAYING 0>          ;"end the story saying \"...\": the text, or 0"
 <GLOBAL OUT-OF-WORLD 0>        ;"set by out-of-world actions: no time passes"
 
+;"The game starts here (every ZIL game starts in GO): put the player in the
+  first room, run the When play begins rules, print the banner, look
+  around, then play turns until the story ends."
 <ROUTINE GO ()
     <MOVE-PLAYER-TO ,FIRST-ROOM>
     <FSET ,PLAYER ,PROPERBIT>
@@ -54,6 +57,12 @@
 <ROUTINE BANNER ()      ;"the printing the banner text activity (activities.zil)"
     <CARRY-OUT ,PRINTING-BANNER-ACTIVITY 0 ,BANNER-STANDARD>>
 
+;"One turn after another, until the story ends. Each turn: work out the
+  light, draw the status line, print the prompt, read and understand a
+  command (PARSER), then do it - once, or once per object for TAKE ALL.
+  UNDO is dealt with first, because it must not count as a turn itself.
+  Actions in the world are followed by the Every turn rules and the turn
+  count; out-of-world ones (SAVE, SCORE ...) take no time."
 <ROUTINE TURN-LOOP ()
     <REPEAT ()
         <SETG LIT <LIGHT-HERE?>>
@@ -88,12 +97,18 @@
         ;"(not AGAIN to skip one: in a DO it re-runs the test without stepping)"
         <COND (,STORY-ENDED <RETURN>)>>>
 
+;"UNDO: go back to the snapshot taken at the start of the last turn. When
+  that works the game carries on from the snapshot, where SAVE_UNDO now
+  gives 2 (see TURN-LOOP), so nothing after RESTORE_UNDO here runs."
 <ROUTINE UNDO-TURN ()
     <COND (<EQUAL? <ZOP RESTORE_UNDO> 0>
            <TELL "You can't \"undo\" what hasn't been done!" CR>)>>
 
 <ROUTINE SAY-DARKNESS () <TELL "Darkness">>
 
+;"Draw the status line in the upper window (window 1), in reverse video:
+  where the player is on the left; the score and turns (or just the turns)
+  on the right."
 <ROUTINE STATUS-LINE ("AUX" WIDTH OWED SAID)
     <SET WIDTH <GETB 0 33>>                   ;"§11: header byte $21 = screen width"
     <SCREEN 1>
@@ -113,6 +128,8 @@
     <HLIGHT 0>
     <SCREEN 0>>
 
+;"The story has ended: *** The End *** (or the author's own words), the
+  score if the game keeps one, then the final question."
 <ROUTINE END-OF-STORY ()
     <PARA-ABSORB>
     <CRLF> <CRLF>
@@ -128,6 +145,8 @@
            <TELL "." CR>)>
     <FINAL-QUESTION>>
 
+;"Inform 7's final question - RESTART, RESTORE, QUIT or UNDO - asked until
+  the player gives one of those answers."
 <ROUTINE FINAL-QUESTION ()
     <REPEAT ()
         <TELL CR "Would you like to RESTART, RESTORE a saved game, QUIT or UNDO the last command?" CR "> ">

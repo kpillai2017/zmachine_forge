@@ -17,21 +17,25 @@ from dataclasses import dataclass, field
 
 @dataclass
 class Literal:
+    """A piece of literal text in a quoted string (not a substitution)."""
     text: str
 
 
 @dataclass
 class Substitution:
+    """A [substitution] such as [the noun] or [score]: printed when said."""
     words: str                                  # what was inside [ ]
 
 
 @dataclass
 class IfText:
+    """[if ...] ... [otherwise] ... [end if]: one branch per condition."""
     branches: list[tuple[str, list]]            # (condition, parts); "" = otherwise
 
 
 @dataclass
 class OneOf:
+    """[one of] ... [or] ... [at random]: prints one option each time it is said."""
     options: list[list]
     mode: str                                   # "at random", "cycling", "stopping", ...
 
@@ -42,6 +46,7 @@ ONE_OF_MODES = ("purely at random", "at random", "cycling", "stopping",
 
 @dataclass
 class Text:
+    """A whole quoted text: its parts in order, and the text as written."""
     parts: list = field(default_factory=list)
     raw: str = ""
 
@@ -65,6 +70,7 @@ def fix_quotes(s: str) -> str:
 
 def tokenize(body: str) -> list[tuple[str, str]]:
     """('lit', text) and ('sub', words) pieces."""
+    # Scan for [ ... ]: the text between brackets is a substitution, the rest literal.
     pieces, i = [], 0
     while i < len(body):
         j = body.find("[", i)
@@ -92,10 +98,18 @@ def parse_text(quoted: str) -> Text:
 
 
 def _parse_parts(pieces, pos, stop):
+    """Read parts from PIECES[POS] until a [substitution] in STOP (or the end).
+
+    This is a small recursive-descent parser: [if ...] and [one of] call it again
+    to read what is inside them, stopping at their own closing words ([end if],
+    [or] ...). Returns the parts read and the position of the stopping piece.
+    """
     parts = []
     while pos < len(pieces):
         kind, t = pieces[pos]
         low = t.lower()
+        # One of the words our caller is waiting for ([end if], [or] ...): stop here
+        # and leave it for the caller.
         if kind == "sub" and (low in stop or any(low.startswith(s + " ") for s in stop
                                                  if s == "otherwise if")
                               or (low in ONE_OF_MODES and "or" in stop)):
@@ -104,6 +118,8 @@ def _parse_parts(pieces, pos, stop):
         if kind == "lit":
             parts.append(Literal(t))
         elif low.startswith("if "):
+            # Read each branch in turn until [end if]; an [otherwise if ...] starts a new
+            # branch with its own condition, a plain [otherwise] one with none.
             branches, cond = [], t[3:]
             while True:
                 body, pos = _parse_parts(pieces, pos, ("otherwise", "else", "otherwise if",
@@ -121,6 +137,8 @@ def _parse_parts(pieces, pos, stop):
                     cond = ""
             parts.append(IfText(branches))
         elif low == "one of":
+            # Read options up to each [or]; the word after the last option (e.g.
+            # [at random]) says how to choose between them.
             options = []
             while True:
                 body, pos = _parse_parts(pieces, pos, ("or",))
@@ -141,6 +159,8 @@ def ends_sentence(text: Text) -> bool:
     """Inform 7: a said text ending in . ! or ? is followed by a line break -
     also when a closing bracket or quote follows the mark: Advent's
     '(Type ABOUT for details ...)' ends a sentence in the real game."""
+    # Look at the last piece of literal text; a text ending in a substitution
+    # never ends a sentence.
     for part in reversed(text.parts):
         if isinstance(part, Literal):
             s = part.text.rstrip()

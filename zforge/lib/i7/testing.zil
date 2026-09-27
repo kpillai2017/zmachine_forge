@@ -56,6 +56,7 @@
            <TELL "["> <SAY-ACTION .VERB .REST .N>
            <COND (.DONE <TELL " - succeeded]" CR>) (ELSE <TELL " - failed]" CR>)>)>>
 
+;"Print an action the way Inform 7 names it: 'putting the book on the table'."
 <ROUTINE SAY-ACTION (VERB REST N)
     <PRINT .VERB>
     <COND (<AND <G? .N 0> ,PRSO> <TELL " "> <TRACE-NAME ,PRSO>)>
@@ -72,6 +73,7 @@
   place of their own, so they are the roots; anything else with no place
   is off-stage (not yet in play, or taken out of it)."
 
+;"TREE: each room with everything in it, then anything off-stage."
 <ROUTINE SHOW-TREE ("AUX" N O HEADED)
     <SET N <GET ,ALL-OBJECTS 0>>
     <DO (I 1 .N)
@@ -84,6 +86,7 @@
                <TREE-BRANCH .O 1>)>>
     <RTRUE>>
 
+;"Print O indented by DEPTH, then everything inside it, one level deeper."
 <ROUTINE TREE-BRANCH (O DEPTH "AUX" C)
     <DO (I 1 .DEPTH) <TELL "  ">>
     <PRINT-NAME .O>

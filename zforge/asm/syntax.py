@@ -88,11 +88,13 @@ def unquote(token: str) -> str:
 
 
 def tokenize_line(text: str) -> list[str]:
+    """Split a line into tokens, respecting strings, dictionary words and comments."""
     tokens, pos = [], 0
     while pos < len(text):
         if text[pos].isspace():
             pos += 1
             continue
+        # Semicolon starts a comment; ignore to end of line.
         if text[pos] == ";":
             break                                # comment to end of line
         m = TOKEN_RE.match(text, pos)
@@ -102,11 +104,13 @@ def tokenize_line(text: str) -> list[str]:
 
 
 def parse(text: str, source: str = "<zas>") -> Program:
+    """Parse .zas assembly text into a program: directives, labels and instructions."""
     program = Program()
     for number, raw in enumerate(text.splitlines(), start=1):
         tokens = tokenize_line(raw)
         if not tokens:
             continue
+        # Classify the line: directive, label or instruction.
         head = tokens[0]
         if head.startswith("."):
             if head not in DIRECTIVES:
@@ -120,10 +124,12 @@ def parse(text: str, source: str = "<zas>") -> Program:
 
 
 def _parse_instruction(tokens: list[str], line: int, source: str) -> AsmInstruction:
+    """Parse one instruction line into an AsmInstruction record."""
     opcode, rest = tokens[0], tokens[1:]
     store = branch = None
     operands: list[str] = []
     i = 0
+    # Extract operands, store and branch from the token stream.
     while i < len(rest):
         t = rest[i]
         if t == "->":
@@ -132,6 +138,7 @@ def _parse_instruction(tokens: list[str], line: int, source: str) -> AsmInstruct
             store = rest[i + 1]
             i += 2
             continue
+        # Branch target: ?label or ?~label.
         if t.startswith("?") and not t.startswith(('"', "'")):
             branch = t
         else:

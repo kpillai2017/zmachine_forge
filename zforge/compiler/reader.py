@@ -68,21 +68,25 @@ def read(tokens: list[Token], diag: Diagnostics) -> list:
 
 
 class _Reader:
+    """Parse a stream of tokens into nested S-expressions."""
     def __init__(self, tokens: list[Token], diag: Diagnostics):
         self.tokens = tokens
         self.i = 0
         self.diag = diag
 
     def peek(self) -> Token:
+        """Return the current token without consuming it."""
         return self.tokens[self.i]
 
     def next(self) -> Token:
+        """Consume and return the current token."""
         token = self.tokens[self.i]
         if token.kind != Kind.EOF:
             self.i += 1
         return token
 
     def datum(self):
+        """Parse one top-level S-expression: atom, number, string, form, or list."""
         t = self.next()
         if t.kind == Kind.COMMENT:            # ; skips the next datum entirely
             if self.peek().kind != Kind.EOF:
@@ -106,6 +110,7 @@ class _Reader:
         return Atom(t.text, t.location)
 
     def _items(self, closer: Kind, opener: Token) -> list:
+        """Parse items until the closing bracket is found."""
         items = []
         while True:
             t = self.peek()

@@ -9,11 +9,13 @@ from zforge.common.memory import Memory
 
 
 def _mem(story: bytes) -> tuple[H.Header, Memory]:
+    """Parse header and return the header and memory object for a story file."""
     h = H.Header.parse(story)
     return h, Memory(story, h.static_memory, h.high_memory)
 
 
 def header_report(story: bytes) -> str:
+    """Return a formatted report of the story file header fields (§11)."""
     h, _ = _mem(story)
     ok = H.compute_checksum(story, h.file_length or len(story)) == h.checksum
     rows = [("Version", h.version), ("Release", h.release), ("Serial", h.serial),
@@ -47,17 +49,21 @@ def count_objects(mem: Memory, h: H.Header) -> int:
 
 
 def object_report(story: bytes) -> str:
+    """Return a formatted report of the object tree (§12.3), with attributes
+    and properties for each object."""
     h, mem = _mem(story)
     table = ObjectTable(mem, h.objects)
     a, u = Alphabets.default(), UnicodeTable()
 
     def name(o: int) -> str:
+        """Decode an object's short name."""
         zchars, _ = unpack_zchars(mem.read_word, table.short_name_address(o))
         return decode_zchars(zchars, a, u, None)
 
     lines, n = [], count_objects(mem, h)
 
     def describe(o: int, depth: int) -> None:
+        """Recursively describe an object and its children."""
         attrs = [i for i in range(48) if table.test_attr(o, i)]
         props = [p for p, _length, _data in table.properties(o)]
         lines.append(f"{'  ' * depth}[{o}] \"{name(o)}\"  attrs={attrs}  props={props}")
@@ -73,9 +79,12 @@ def object_report(story: bytes) -> str:
 
 
 def dictionary_report(story: bytes) -> str:
+    """Return a formatted report of the dictionary (§13): separators and all
+    words in the story file."""
     h, mem = _mem(story)
     d = Dictionary.load(mem, h.dictionary)
     a, u = Alphabets.default(), UnicodeTable()
+    # Decode each dictionary entry (§13.4: 6-byte encoded form = 9 Z-characters).
     words = []
     for i in range(abs(d.count)):
         address = d.entries_start + i * d.entry_length

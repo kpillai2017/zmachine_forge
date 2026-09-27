@@ -18,11 +18,13 @@ from zforge.common.versions import supported_versions
 
 
 def read_source(source: str, diag: Diagnostics) -> list:
+    """Run the lexer and reader on source text; return S-expressions."""
     return read(Lexer(source, diag).tokens(), diag)
 
 
 @dataclass
 class CompileResult:
+    """The output of compiling ZIL: tokens, parsed forms, AST, assembly, and story file."""
     tokens: list
     data: list
     program: object

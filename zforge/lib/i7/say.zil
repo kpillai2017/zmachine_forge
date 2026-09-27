@@ -65,10 +65,12 @@
           (<PRIOR-PLURAL?> <PRINT .THEY>)
           (ELSE <PRINT .IT>)>>
 
+;"[noun]: the name alone."
 <ROUTINE SAY-NAME (O)
     <SETG PRIOR-NAMED .O>
     <PRINT-NAME .O>>
 
+;"[a noun]: the name with its indefinite article."
 <ROUTINE SAY-A (O "AUX" A)
     <SETG PRIOR-NAMED .O>
     ;"[a noun]: 'a brass hook', 'an apple', 'some water', 'Roger'"
@@ -80,6 +82,7 @@
           (<EQUAL? .A 1> <TELL "a ">)>
     <PRINT-NAME .O>>
 
+;"[A noun]: the same, with a capital letter."
 <ROUTINE SAY-CAP-A (O "AUX" A)
     <SETG PRIOR-NAMED .O>
     ;"[A noun]"
@@ -105,12 +108,14 @@
         <COND (<AND <ZERO? .I> <G? .C 96> <L? .C 123>> <SET C <- .C 32>>)>
         <PRINTC .C>>>
 
+;"[the noun]: the name with the definite article."
 <ROUTINE SAY-THE (O)
     <SETG PRIOR-NAMED .O>
     ;"[the noun]"
     <COND (<NOT <FSET? .O ,PROPERBIT>> <TELL "the ">)>
     <PRINT-NAME .O>>
 
+;"[The noun]: the same, with a capital letter."
 <ROUTINE SAY-CAP-THE (O)
     <SETG PRIOR-NAMED .O>
     ;"[The noun]"
@@ -123,6 +128,7 @@
     <COND (<SET R <GETP .O .PROP>> <APPLY .R> <RTRUE>)>
     <RFALSE>>
 
+;"[is-are]: is or are, to agree with O."
 <ROUTINE SAY-IS-ARE (O)
     <COND (<FSET? .O ,PLURALBIT> <TELL " are">) (ELSE <TELL " is">)>>
 
@@ -169,4 +175,5 @@
     "eight" "nine" "ten" "eleven" "twelve" "thirteen" "fourteen" "fifteen"
     "sixteen" "seventeen" "eighteen" "nineteen">>
 
+;"A number in words: one, two, three ... (from the UNIT-WORDS table)."
 <ROUTINE SAY-UNITS (N) <PRINT <GET ,UNIT-WORDS .N>>>

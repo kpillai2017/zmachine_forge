@@ -66,17 +66,26 @@ def desugar(program: ast.Program, diag: Diagnostics) -> None:
         for s in program.synonyms:
             diag.error(s.loc, f"{s.kind}-SYNONYM {s.word.upper()} without any SYNTAX")
         return
+
+    # Collect verb and preposition synonyms, and assign action numbers.
     verb_syns, prep_syns = _synonyms(program, diag)
     actions = _action_numbers(program, diag)
     loc = program.syntaxes[0].loc
+
+    # Define field offset constants: S-VERB, S-NOBJ, S-PREP1, etc.
     for i, name in enumerate(FIELDS):
         program.constants.append(ast.ConstantDecl(name, ast.Num(i, loc), loc))
     program.constants.append(ast.ConstantDecl("S-SIZE", ast.Num(len(FIELDS), loc), loc))
+
+    # Define search-option bits: SO-HELD, SO-ROOM, SO-INSIDE, SO-MANY.
     for name, bit in BITS.items():
         program.constants.append(ast.ConstantDecl(name, ast.Num(bit, loc), loc))
+
+    # Define action constants: V?TAKE, V?DROP, etc., one per unique action.
     for name, (number, where) in actions.items():
         program.constants.append(ast.ConstantDecl(name, ast.Num(number, where), where))
 
+    # Validate that each SYNTAX's action and preaction routines exist.
     routines = {r.name for r in program.routines}
     rows: list[list] = []
     for s in program.syntaxes:
@@ -85,26 +94,37 @@ def desugar(program: ast.Program, diag: Diagnostics) -> None:
             diag.error(s.loc, f"SYNTAX {s.verb.upper()}: routine {name} is not defined")
         if missing:
             continue
+
+        # For each preposition variant, emit a row per verb x preposition combination.
         preps = [[p] + prep_syns.get(p, []) if p else [None] for p in s.preps]
         for verb, p1, p2 in product([s.verb] + verb_syns.get(s.verb, []), *preps):
             rows.append(_row(s, verb, p1, p2))
+
+    # Build the SYNTAX-TABLE: a word table with row count followed by S-SIZE-word rows.
     items = [ast.Num(len(rows), loc)] + [item for row in rows for item in row]
     program.globals.append(ast.GlobalDecl(TABLE_NAME, ast.Table("TABLE", False, items, loc),
                                           loc))
 
 
 def _row(s: ast.SyntaxDecl, verb: str, p1: str | None, p2: str | None) -> list:
+    """Build one row of the SYNTAX-TABLE (S-SIZE words): verb, nobj, preps, finds,
+    search options, action number, action routine, and preaction routine."""
     loc = s.loc
 
+    # Helper to convert a word name to W?name, or 0 if no word.
     def word(w):
         return ast.Word(w, loc) if w else ast.Num(0, loc)
 
+    # Helper to convert a FIND flag name to a global reference, or -1 if none.
     def find(flag):
         return ast.Global(flag, loc) if flag else ast.Num(NO_FIND, loc)
 
+    # Helper to OR together the search-option bits.
     def bits(options):
         return ast.Num(sum({BITS[OPTION_BITS[o]] for o in options}), loc)
 
+    # Return the row: [verb, nobj, prep1, prep2, find1, find2, opts1, opts2,
+    # action_num, action_routine, preaction].
     return [word(verb), ast.Num(s.objects, loc), word(p1), word(p2),
             find(s.finds[0]), find(s.finds[1]), bits(s.options[0]), bits(s.options[1]),
             ast.Global(action_constant(s.action), loc), ast.Global(s.action, loc),
@@ -117,9 +137,11 @@ def _action_numbers(program: ast.Program, diag: Diagnostics) -> dict:
     owner: dict[str, str] = {}
     for s in program.syntaxes:
         name = action_constant(s.action)
+        # Check: does this V? constant already belong to a different routine?
         if name in owner and owner[name] != s.action:
             diag.error(s.loc, f"actions {owner[name]} and {s.action} would both be {name}")
             continue
+        # First seen: assign the next action number.
         if name not in actions:
             actions[name] = (len(actions) + 1, s.loc)
             owner[name] = s.action
@@ -127,10 +149,18 @@ def _action_numbers(program: ast.Program, diag: Diagnostics) -> dict:
 
 
 def _synonyms(program: ast.Program, diag: Diagnostics) -> tuple[dict, dict]:
+    """Collect verb and preposition synonyms, validating they match existing verbs/preps.
+
+    Returns ({verb: [syn1, syn2, ...]}, {prep: [syn1, ...]}). Errors if a synonym
+    refers to a word not used in any SYNTAX line.
+    """
+    # Find all verbs and prepositions used in SYNTAX lines.
     verbs = {s.verb for s in program.syntaxes}
     preps = {p for s in program.syntaxes for p in s.preps if p}
     verb_syns: dict[str, list] = {}
     prep_syns: dict[str, list] = {}
+
+    # For each synonym, ensure the primary word is known, then add its synonyms.
     for syn in program.synonyms:
         known, table = (verbs, verb_syns) if syn.kind == "VERB" else (preps, prep_syns)
         if syn.word not in known:

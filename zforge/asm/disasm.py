@@ -26,6 +26,7 @@ CALLS = {"call_1s", "call_1n", "call_2s", "call_2n", "call_vs", "call_vn",
 
 
 class Disassembler:
+    """Disassemble a story file to readable Z-code instructions."""
     def __init__(self, story: bytes):
         self.header = Header.parse(story)
         self.profile = self.header.profile      # packed addresses (§1.2.3)
@@ -35,6 +36,7 @@ class Disassembler:
         self.unicode = UnicodeTable()
 
     def text_at(self, address: int) -> tuple[str, int]:
+        """Decode a packed string at this address; return the text and next address."""
         zchars, end = unpack_zchars(self.mem.read_word, address)
         return decode_zchars(zchars, self.alphabets, self.unicode, self._abbreviation), end
 
@@ -44,6 +46,7 @@ class Disassembler:
         return decode_zchars(zchars, self.alphabets, self.unicode, None)
 
     def skip_text(self, address: int) -> int:
+        """Return the address after a packed string at this address."""
         return self.text_at(address)[1]
 
     # ------------------------------------------------------------- routines
@@ -70,6 +73,7 @@ class Disassembler:
                 return lines
 
     def format(self, ins) -> str:
+        """Format one instruction as a readable line."""
         raw = self.mem.read_bytes(ins.address, min(ins.next_address - ins.address, 8)).hex(" ")
         parts = []
         for i, o in enumerate(ins.operands):
@@ -110,6 +114,7 @@ class Disassembler:
                 out.append(f"{address:05x}: <cannot decode: {exc}>")
                 continue
             out += lines + [""]
+            # Queue any constant call targets found in this routine.
             for line in lines:
                 if "routine@0x" in line:
                     target = int(line.split("routine@0x")[1].split()[0], 16)
@@ -119,6 +124,8 @@ class Disassembler:
 
 
 def disassemble(story: bytes, routine: int | None = None) -> str:
+    """Disassemble a story file to a readable string. If routine is given,
+    disassemble that routine only; otherwise disassemble all reachable code."""
     d = Disassembler(story)
     lines = d.routine(routine) if routine is not None else d.all_code()
     return "\n".join(lines)
