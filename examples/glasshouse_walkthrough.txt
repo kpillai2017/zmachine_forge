@@ -1,0 +1,57 @@
+look under pot
+unlock door with rusty key
+w
+x duchess
+take brass key
+e
+e
+take cane
+n
+x flowerbeds
+s
+w
+w
+put cane in pitcher
+e
+unlock door with brass key
+open door
+n
+x clock
+e
+open sideboard
+take matches
+x decanter
+n
+take lamp
+light lamp
+s
+w
+w
+read treasure island
+read flora
+take winding key
+e
+u
+w
+move portrait
+x hearth
+e
+e
+x necklace
+w
+u
+look through telescope
+d
+d
+wind clock
+turn clock
+turn clock
+turn clock
+turn clock
+turn clock
+take silver key
+u
+w
+unlock iron door with silver key
+open iron door
+take sapphire

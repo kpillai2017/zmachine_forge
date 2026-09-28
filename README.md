@@ -63,6 +63,20 @@ game people traditionally write to try out a new adventure system:
 ./start.sh
 ```
 
+For something longer, try *The Glasshouse Bequest*: a treasure hunt in a
+locked house and its overgrown garden, with puzzles, traps and a few red
+herrings. It was written for this project in the part of Inform 7 that
+zforge understands, so its source, `examples/glasshouse.ni`, is also a
+good example to learn from:
+
+```bash
+python -m zforge compile examples/glasshouse.ni -o glasshouse.z8
+python -m zforge run glasshouse.z8
+```
+
+If you get stuck, `examples/glasshouse_walkthrough.txt` has the full
+solution. It gives everything away, so only look if you mean to.
+
 To play any other Z-machine game, point zforge at its file:
 
 ```bash

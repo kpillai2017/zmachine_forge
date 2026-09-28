@@ -24,6 +24,9 @@ stories/*
 
 # Build outputs of the examples
 *.z5
+*.z6
+*.z7
+*.z8
 *.zas
 *.tokens
 *.ast
