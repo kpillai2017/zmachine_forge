@@ -672,8 +672,30 @@
               (<DESCRIBES? .O <WORD-AT .I>>
                <SET NOUN <IN-PROP? .O ,P?SYNONYM <WORD-AT .I>>>
                <SET I <+ .I 1>>)
+              (<COND-WORD? .O <WORD-AT .I>>
+               <SET NOUN T>
+               <SET I <+ .I 1>>)
               (ELSE <RFALSE>)>>
     <COND (.NOUN <RTRUE>) (ELSE <RFALSE>)>>
+
+;"Does word W name O just now? Inform's Understand \"wreath\" as the
+  branches when the branches are woven. CONDWORDS holds, for each such line,
+  the routine that tests its condition, its words, and then 0."
+<ROUTINE COND-WORD? (O W "AUX" PT N (K 0) R FOUND)
+    <SET PT <GETPT .O ,P?CONDWORDS>>
+    <COND (<ZERO? .PT> <RFALSE>)>
+    <SET N </ <PTSIZE .PT> 2>>
+    <REPEAT ()
+        <COND (<NOT <L? .K .N>> <RFALSE>)>
+        <SET R <GET .PT .K>>
+        <SET K <+ .K 1>>
+        <SET FOUND <>>
+        <REPEAT ()                              ;"its words, up to the 0"
+            <COND (<ZERO? <GET .PT .K>> <RETURN>)>
+            <COND (<EQUAL? <GET .PT .K> .W> <SET FOUND T>)>
+            <SET K <+ .K 1>>>
+        <SET K <+ .K 1>>
+        <COND (<AND .FOUND <APPLY .R>> <RTRUE>)>>>
 
 ;"How many words, from word I (not past LAST), make one of O's phrases? The
   longest wins; 0 if none. PHRASES holds each phrase's words and then 0."

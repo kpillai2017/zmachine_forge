@@ -86,6 +86,9 @@ class Obj:
     values: dict[str, str] = field(default_factory=dict)    # value properties
     words: list[str] = field(default_factory=list)          # extra Understand words
     phrases: list[list[str]] = field(default_factory=list)  # whole Understand phrases
+    cond_words: list = field(default_factory=list)   # 'Understand ... when' lines:
+                                                     # (words, condition, where)
+
     proper: bool = False
     private: bool = False                                   # privately-named: no name words
     printed: str | None = None                              # printed name, if not its name
@@ -849,6 +852,19 @@ class ModelBuilder:
         if action:
             for w in words:
                 action.grammar.append((w + (REVERSED if reversed_ else ""), s.where))
+            return
+        # Understand "wreath" as the branches when the branches are woven: words
+        # that name the thing only while the condition holds.
+        cond = re.match(r"^(.+?) when (.+)$", target, re.I | re.S)
+        if cond and self.m.find(cond.group(1)):
+            obj, condition, usable = self.m.find(cond.group(1)), cond.group(2), []
+            for w in words:
+                if " " in w.strip() or not DICT_WORD.match(w.strip().lower()):
+                    self.p.unsupported(s.where, s.text, "a phrase (or a word with other "
+                                       "than letters) in an Understand ... when line")
+                    return
+                usable.append(w.strip().lower())
+            obj.cond_words.append((usable, condition, s.where))
             return
         # Understand "peg" as the brass hook: object synonyms or extra names.
         obj = self.m.find(target)

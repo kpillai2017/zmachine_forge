@@ -1060,3 +1060,25 @@ from 77 problems to 59, the original Bronze from 657 to 495. The player is
 an object of the library, so it does not get a kind's `usually` values:
 "a thing is scented" is true of the player when the scent is only given
 as a default (see KNOWN_GAPS).
+
+## ADR-051: Understand ... when; a paragraph ending in a semicolon
+
+**Context.** Cold Iron names things by words that only apply some of the
+time (`Understand "wreath" as the branches when the branches are woven.`,
+nine lines), and ends two long descriptions with a semicolon at the end of
+a paragraph (`...[end if]";`), which Inform accepts and I7-lite read as a
+list of properties (seventeen problems).
+
+**Decision.**
+- The words of an Understand ... when line go in the thing's CONDWORDS
+  property: for each line, the routine that tests its condition, the
+  words, and a 0. In Inform 7 games, MATCHES? takes such a word as naming
+  the thing if its routine says yes just then (COND-WORD?, lib/parser.zil).
+  Only single words: a phrase with "when" is refused with a problem.
+- A paragraph of assertions ending in a semicolon ends its last sentence
+  there, as if with a full stop. (Rules are read separately: their
+  semicolons still separate phrases.)
+
+**Consequences.** Cold Iron went from 59 problems to 33. Glasshouse and
+Bronze play their walkthroughs with the same transcripts; the ZIL golden
+builds are unchanged.

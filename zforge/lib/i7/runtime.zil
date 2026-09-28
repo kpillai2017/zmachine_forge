@@ -16,6 +16,7 @@
 
 <COMPILATION-FLAG I7 T>             ;"the parser's errors go to Inform 7's activity"
 <PROPDEF PHRASES 0>     ;"Understand phrases: see MATCHES? in lib/parser.zil"
+<PROPDEF CONDWORDS 0>   ;"Understand ... when: see COND-WORD? in lib/parser.zil"
 <INSERT-FILE "lib/parser">
 <INSERT-FILE "lib/i7/say">
 <INSERT-FILE "lib/i7/world">

@@ -71,3 +71,31 @@ Asking is an action applying to nothing. Understand "ask" as asking.
 Carry out asking: say "[reply]"; now the reply is "No."; if the reply is "No.", say " (no)".
 '''
     assert replies(story, ["ask", "ask"]) == ["Yes. (no)", "No. (no)"]
+
+
+# ------------------------------------------------ reading: a paragraph ending in ';'
+def test_a_paragraph_ending_in_a_semicolon():
+    story = STORY + '\nThe description of the rose is "Red, and thorny, and sweet";\n'
+    assert replies(story, ["x rose"]) == ["Red, and thorny, and sweet"]
+
+
+# ------------------------------------------------ Understand ... when (ADR-051)
+WHEN = '''Some holly branches are in the Hall. The branches can be woven.
+Understand "wreath", "circlet" as the branches when the branches are woven.
+Weaving is an action applying to one thing. Understand "weave [something]" as weaving.
+Carry out weaving: now the noun is woven; say "Woven."
+'''
+
+
+def test_words_name_a_thing_only_while_the_condition_holds():
+    r = replies(STORY + WHEN, ["x wreath", "weave branches", "x wreath", "take circlet"])
+    assert r[0] == "You can't see any such thing."
+    assert r[2] == "You see nothing special about the holly branches."
+    assert r[3] == "Taken."
+
+
+def test_a_phrase_in_understand_when_is_refused():
+    import pytest
+    from zforge.compiler.i7.problems import I7Problem
+    with pytest.raises(I7Problem, match="phrase"):
+        compile_i7(STORY + WHEN.replace('"circlet"', '"holly wreath"'), "t.ni", 8)

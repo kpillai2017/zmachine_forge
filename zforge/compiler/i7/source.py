@@ -285,7 +285,12 @@ def read_sentences(source: str) -> list[Sentence]:
                and not DEFINITION_BLOCK.match(lines[i].strip())):
             chunk.append(lines[i])
             i += 1
-        for s in split_sentences("\n".join(chunk), Location(line_no(first), 1), first):
+        paragraph = "\n".join(chunk).rstrip()
+        if paragraph.endswith(";"):
+            # Inform takes a semicolon ending a paragraph as the end of its last
+            # sentence: 'The description is "...[end if]";' (Cold Iron does this)
+            paragraph = paragraph[:-1] + "."
+        for s in split_sentences(paragraph, Location(line_no(first), 1), first):
             # A one-line rule can follow another sentence on the same line, as
             # in Inform: 'The count is a number that varies. Every turn:
             # increase the count by 1.' It is read as a rule on a line of its own.

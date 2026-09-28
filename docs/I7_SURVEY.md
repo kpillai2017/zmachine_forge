@@ -181,14 +181,22 @@ kinds of action and its own rulebooks.
 
 ## Cold Iron's remaining problems (after ADR-050)
 
-Cold Iron now gives 59 problems (79 before "with nouns reversed" and
-Definitions). Grouped by what is missing - a problem can hide others
-behind it, so fixing a group may show new ones:
+Cold Iron gave 59 problems after Definitions (79 before "with nouns
+reversed" and Definitions); after ADR-051 it gives 33. Grouped by what is missing - a problem can hide others
+behind it, so fixing a group may show new ones.
+
+**These counts are of the first stage only.** The compiler reads the
+sentences into a world model first, and only when that gives no problems
+does it build the code - where conditions, phrases and texts are checked.
+So a line can leave this list and come back as a problem of the second
+stage: `Understand "story" as the book when no tale is part of the book.`
+is read now, but its condition ("no tale is part of") is not yet
+understood, and will be reported once the first stage is clean.
 
 | What is missing | Problems | Size |
 |---|---|---|
-| A sentence ending in a semicolon at the end of a paragraph (`...[end if]";`), read as a list of properties | 17 (2 sentences) | tiny |
-| Understand ... when a condition holds (`Understand "wreath" as the branches when the branches are woven.`) | 9 | medium |
+| ~~A sentence ending in a semicolon at the end of a paragraph (`...[end if]";`), read as a list of properties~~ done (ADR-051) | 17 (2 sentences) | tiny |
+| ~~Understand ... when a condition holds (`Understand "wreath" as the branches when the branches are woven.`)~~ done (ADR-051) | 9 | medium |
 | A property for one object (`Forest1 has a number called the counter.`), and its value | 5 | small |
 | Activities the author makes (`Forest-running is an activity.`, `For forest-running: ...`) | 4 | medium |
 | Standard actions missing: entering, attacking | 3 | small |

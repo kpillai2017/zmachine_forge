@@ -201,6 +201,21 @@ class Lowerer:
                                "words (a word for each word of each phrase, and one to end each), "
                                "but the Z-machine lets a thing have at most 32.")
             lines.append("    (PHRASES " + " ".join(phrase_words) + ")")
+        # Its words that name it only while a condition holds: for each line,
+        # the routine testing the condition, the words, and a 0 (COND-WORD?).
+        if o.cond_words:
+            entries = []
+            for words, condition, where in o.cond_words:
+                test = self.phrases.condition(condition, where)
+                name = self.names.new(f"{atom}-WHEN")
+                self.routines.append(f'<ROUTINE {name} ()   ;"may the words name {o.name}? '
+                                     f'(line {where.line})"\n    <COND ({test} <RTRUE>)>\n'
+                                     "    <RFALSE>>")
+                entries += [f",{name}"] + [f"W?{w.upper()}" for w in words] + ["0"]
+            if len(entries) > 32:
+                self.p.problem(o.where, o.name, f"its Understand ... when lines need "
+                               f"{len(entries)} words, but a thing can have at most 32.")
+            lines.append("    (CONDWORDS " + " ".join(entries) + ")")
         # Attributes (ZIL calls them flags): from its kinds and its either/or properties.
         flags = self.flags_of(o)
         if flags:

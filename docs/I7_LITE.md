@@ -147,6 +147,7 @@ compared with `""` (no text).
 | `Understand "give [someone] [something]" as giving it to (with nouns reversed).` | the first thing typed is the second noun (ADR-049); on a topic action it changes nothing, as the thing is the noun anyway | 7c |
 | `Understand "xyzzy" as casting xyzzy.` | grammar for a new action | 7a |
 | `Understand "plugh" as north.` | a word for a direction | 7b |
+| `Understand "wreath", "circlet" as the branches when the branches are woven.` | words that name the thing only while the condition holds (single words, not phrases; ADR-051) | Cold Iron |
 | `Understand the command "grab" as "take".` | verb synonym | 7b |
 | `Understand the commands "open", "close" as something new.` | forget their earlier grammar | Advent |
 | `Understand nothing as dropping.` | forget an action's earlier grammar | Advent |
