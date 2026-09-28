@@ -312,8 +312,9 @@ class FormParser:
         self.program.objects.append(obj)
 
     def _prop_value(self, v):
-        """Inside property lists a bare atom names an object or routine."""
-        if isinstance(v, r.Atom):
+        """Inside property lists a bare atom names an object or routine - or,
+        as W?WORD, a dictionary word (added to the dictionary like one in code)."""
+        if isinstance(v, r.Atom) and not v.name.startswith("W?"):
             return ast.Global(v.name, v.location)
         return self.expr(v)
 

@@ -41,7 +41,8 @@ Two ways to write a game's parser:
 Object clauses: `(IN obj)` / `(LOC obj)`, `(DESC "short name")`,
 `(FLAGS F1 F2)`, `(SYNONYM w...)`, `(ADJECTIVE w...)`, `(PROP TO room)`
 (1-byte exit), `(PROP values...)` (word values: numbers, strings, objects,
-routines, W?words). Execution starts at `<ROUTINE GO ...>`.
+routines, W?words - a W?word used only here is added to the dictionary, as one in
+code is). Execution starts at `<ROUTINE GO ...>`.
 
 ## Expressions (codegen.py)
 

@@ -10,6 +10,7 @@ Nothing here knows about ZIL: lower.py turns this model into code."""
 
 from __future__ import annotations
 
+import itertools
 import re
 from dataclasses import dataclass, field
 
@@ -82,6 +83,7 @@ class Obj:
     texts: dict[str, Text] = field(default_factory=dict)    # description, ...
     values: dict[str, str] = field(default_factory=dict)    # value properties
     words: list[str] = field(default_factory=list)          # extra Understand words
+    phrases: list[list[str]] = field(default_factory=list)  # whole Understand phrases
     proper: bool = False
     private: bool = False                                   # privately-named: no name words
     printed: str | None = None                              # printed name, if not its name
@@ -717,6 +719,24 @@ class ModelBuilder:
             return True
         return False
 
+    def understand_words(self, s: Sentence, obj: Obj, text: str) -> None:
+        """One Understand text for a thing: a word ("peg", "dark/black") or a
+        phrase ("puzzle piece"), which only means the thing as a whole, as in
+        Inform. A slash is between words: "wooden shape/bit" is "wooden shape"
+        or "wooden bit"."""
+        parts = text.split()
+        if len(parts) == 1:
+            obj.words.extend(parts[0].split("/"))
+            return
+        for phrase in itertools.product(*(part.split("/") for part in parts)):
+            bad = [w for w in phrase if not DICT_WORD.match(w)]
+            if bad:
+                self.p.problem(s.where, s.text, f"'{bad[0]}' can't be a word the player types "
+                               f"for {obj.name}: in I7-lite a word is made of letters, digits "
+                               "and hyphens.")
+                return
+            obj.phrases.append(list(phrase))
+
     def understand(self, s, m):
         """Add grammar lines to an action, direction synonyms, or object aliases."""
         words, target = m.group(1), m.group(2).strip()
@@ -737,7 +757,7 @@ class ModelBuilder:
         obj = self.m.find(target)
         if obj:
             for w in words:
-                obj.words.extend(w.lower().split("/"))
+                self.understand_words(s, obj, w.lower())
             return
         self.p.problem(s.where, s.text, f"'{target}' is neither a thing nor an action I know.")
 

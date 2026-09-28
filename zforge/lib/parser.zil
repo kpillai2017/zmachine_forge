@@ -518,12 +518,52 @@
           (<EQUAL? .L ,HERE> <RTRUE>)
           (ELSE <AND .L <IN? .L ,HERE>>)>>
 
+<IFFLAG (I7
+;"Do words FIRST..LAST name O? They are O's own words and whole phrases
+  (Inform's Understand \"puzzle piece\" as ...), in any mixture: each step
+  takes a phrase of O found at that word, or one word that describes O. The
+  words must all be used, and the last step be a phrase or a noun of O -
+  so 'puzzle' alone does not name the piece, but 'puzzle piece' does."
+<ROUTINE MATCHES? (O FIRST LAST "AUX" (I .FIRST) N NOUN)
+    <REPEAT ()
+        <COND (<G? .I .LAST> <RETURN>)>
+        <SET N <PHRASE-AT .O .I .LAST>>
+        <COND (<G? .N 0>
+               <SET I <+ .I .N>>
+               <SET NOUN T>)
+              (<DESCRIBES? .O <WORD-AT .I>>
+               <SET NOUN <IN-PROP? .O ,P?SYNONYM <WORD-AT .I>>>
+               <SET I <+ .I 1>>)
+              (ELSE <RFALSE>)>>
+    <COND (.NOUN <RTRUE>) (ELSE <RFALSE>)>>
+
+;"How many words, from word I (not past LAST), make one of O's phrases? The
+  longest wins; 0 if none. PHRASES holds each phrase's words and then 0."
+<ROUTINE PHRASE-AT (O I LAST "AUX" PT N (K 0) J OK (BEST 0))
+    <SET PT <GETPT .O ,P?PHRASES>>
+    <COND (<ZERO? .PT> <RETURN 0>)>
+    <SET N </ <PTSIZE .PT> 2>>
+    <REPEAT ()
+        <COND (<NOT <L? .K .N>> <RETURN>)>
+        <SET J .I>                              ;"try the phrase starting at K"
+        <SET OK T>
+        <REPEAT ()
+            <COND (<ZERO? <GET .PT .K>> <RETURN>)>
+            <COND (<OR <G? .J .LAST> <NOT <EQUAL? <WORD-AT .J> <GET .PT .K>>>>
+                   <SET OK <>>)>
+            <SET J <+ .J 1>>
+            <SET K <+ .K 1>>>
+        <COND (<AND .OK <G? <- .J .I> .BEST>> <SET BEST <- .J .I>>)>
+        <SET K <+ .K 1>>>                       ;"past the phrase's 0"
+    .BEST>
+) (ELSE
 <ROUTINE MATCHES? (O FIRST LAST)
     ;"the last word is a noun of O; every earlier word describes O"
     <COND (<NOT <IN-PROP? .O ,P?SYNONYM <WORD-AT .LAST>>> <RFALSE>)>
     <DO (I .FIRST <- .LAST 1>)
         <COND (<NOT <DESCRIBES? .O <WORD-AT .I>>> <RFALSE>)>>
     <RTRUE>>
+)>
 
 ;"Could word W be part of a name for O: one of its adjectives or
   synonyms, or an article?"

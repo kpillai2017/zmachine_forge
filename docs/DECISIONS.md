@@ -819,3 +819,24 @@ ZIL gives the typed actions (1, 2, 3, ...). The runtime only ever compares actio
 numbers, never uses them as indexes, so any unused number serves. ZIL games are
 untouched. Also: `silently try ...` (Inform's order) is accepted as well as
 `try silently ...`.
+
+## ADR-041: Understand phrases match only as a whole
+
+**Context.** `Understand "puzzle piece" as the jagged piece` was silently
+dropped: a thing's words were single words only. Splitting a phrase into its
+words was tried and was wrong - Glasshouse's "brass winding key" made "brass
+key" ambiguous, and its "pitcher plant" made plain "pitcher" ambiguous.
+
+**Decision.** As in Inform, a phrase names the thing only as a whole. The
+compiler gives a thing a `PHRASES` property: each phrase's words, then 0 (at
+most 32 words, the Z-machine's limit for a property, §12.4.2 - more is a
+problem). In Inform 7 games `MATCHES?` walks the typed words, each step taking
+a whole phrase of the thing or one word that describes it; the words must all
+be used and the last step be a noun or a phrase. A slash is between words
+("wooden shape/bit"). A phrase word that can't be typed is a problem.
+
+The new `MATCHES?` and its helper `PHRASE-AT` are inside `<IFFLAG (I7 ...)>` in
+`lib/parser.zil`, with the ZIL version left as it was, so ZIL games build
+byte-identical (the golden builds are unchanged). `<PROPDEF PHRASES 0>` is in
+the Inform 7 runtime. ZIL-lite now also adds a `W?word` used only in a
+property list to the dictionary, as it already did for one in code.

@@ -114,6 +114,7 @@ several of them: `A room has a number called the wing.` instead of
 | Sentence | Meaning | Step |
 |---|---|---|
 | `Understand "dark/black/satin" as the cloak.` | extra words for a thing | 7a |
+| `Understand "puzzle piece" or "wooden shape/bit" as the piece.` | a phrase: names the thing only as a whole ("puzzle" alone does not); a slash is between words | 7b |
 | `Understand "hang [something] on [something]" as putting it on.` | a new grammar line for an action | 7a |
 | `Understand "xyzzy" as casting xyzzy.` | grammar for a new action | 7a |
 | `Understand "plugh" as north.` | a word for a direction | 7b |

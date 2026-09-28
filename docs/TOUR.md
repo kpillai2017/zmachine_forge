@@ -162,16 +162,24 @@ words.
 `PARSE-COMMAND` looks for a grammar line whose first word is "take" and
 tries each one in turn (`MATCH-SYNTAX`). For `take OBJECT` it needs a
 thing, so it looks at the words that are left and asks, for every thing
-you can see, whether they describe it. The test is `MATCHES?`: the last
-word must be one of the thing's nouns (its `SYNONYM` list), and every
-earlier word must be a noun, an adjective or "the".
+you can see, whether they describe it. The test is `MATCHES?`. It walks
+along the words: each step takes either one of the thing's own words (a
+noun from its `SYNONYM` list, or "the"), or a whole phrase the author gave
+it with `Understand "puzzle piece" as ...` (its `PHRASES` list). All the
+words must be used up, and the last step must be a noun or a phrase - so
+"puzzle" alone doesn't name the puzzle piece, but "puzzle piece" does.
 
 ```
-<ROUTINE MATCHES? (O FIRST LAST)
-    ;"the last word is a noun of O; every earlier word describes O"
-    <COND (<NOT <IN-PROP? .O ,P?SYNONYM <WORD-AT .LAST>>> <RFALSE>)>
-    ...
+<ROUTINE MATCHES? (O FIRST LAST "AUX" (I .FIRST) N NOUN)
+    <REPEAT ()
+        <COND (<G? .I .LAST> <RETURN>)>
+        <SET N <PHRASE-AT .O .I .LAST>>       ;"a whole phrase here?"
+        ...
 ```
+
+(ZIL games keep the older, simpler test - the last word a noun, every
+earlier word describing the thing - because `parser.zil` chooses between
+the two with `<IFFLAG (I7 ...) (ELSE ...)>`.)
 
 "lamp" is in the brass lamp's `SYNONYM` list, and nothing else in the
 Hall answers to it. So the noun is the lamp, the action is taking, and

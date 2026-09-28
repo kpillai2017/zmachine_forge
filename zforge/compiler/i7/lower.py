@@ -187,6 +187,17 @@ class Lowerer:
                  if DICT_WORD.match(w) and w not in ("the", "a", "an", "of")]
         if words:
             lines.append("    (SYNONYM " + " ".join(dict.fromkeys(w.upper() for w in words)) + ")")
+        # Its Understand phrases ("puzzle piece"): each phrase's words and a 0; the
+        # parser matches a phrase only as a whole. A property holds 32 words (§12.4.2).
+        if o.phrases:
+            phrase_words = []
+            for phrase in o.phrases:
+                phrase_words += [f"W?{w.upper()}" for w in phrase] + ["0"]
+            if len(phrase_words) > 32:
+                self.p.problem(o.where, o.name, f"its Understand phrases need {len(phrase_words)} "
+                               "words (a word for each word of each phrase, and one to end each), "
+                               "but the Z-machine lets a thing have at most 32.")
+            lines.append("    (PHRASES " + " ".join(phrase_words) + ")")
         # Attributes (ZIL calls them flags): from its kinds and its either/or properties.
         flags = self.flags_of(o)
         if flags:

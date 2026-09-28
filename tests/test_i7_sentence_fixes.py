@@ -166,3 +166,37 @@ def test_silently_try_works_in_both_orders():
                  ["wait", "look", "inventory"])
     assert "Have it: yes." in out and "Put down." in out and "carrying nothing" in out
     assert "Taken." not in out and "Dropped." not in out      # silently: no reports
+
+
+# ------------------------------------ 8. Understand phrases: only the whole phrase
+PHRASES = ("The Garden is a room. The small brass key is in the Garden.\n"
+           "The winding key is in the Garden.\n"
+           "Understand \"brass winding key\" as the winding key.\n"
+           "The pitcher is in the Garden. The Duchess is in the Garden.\n"
+           "Understand \"pitcher plant\" and \"green lady/duchess\" as the Duchess.\n")
+
+
+def test_a_phrase_names_the_thing_only_as_a_whole():
+    # Before, a phrase was silently dropped; splitting it into words made
+    # "brass key" and "pitcher" ambiguous. Inform matches only the whole phrase.
+    out = played(PHRASES, ["x brass key", "x brass winding key", "x pitcher",
+                           "x pitcher plant", "x green lady", "x green duchess",
+                           "x the brass winding key"])
+    assert "Which do you mean" not in out
+    assert out.count("nothing special about the small brass key") == 1
+    assert out.count("nothing special about the winding key") == 2
+    assert out.count("nothing special about the pitcher.") == 1
+    assert out.count("nothing special about the Duchess") == 3
+
+
+def test_a_phrase_word_alone_does_not_name_the_thing():
+    out = played(PHRASES, ["x winding", "x plant", "x green"])
+    assert "winding key" in out                      # 'winding' is its own name's word
+    assert out.count("You can't see any such thing.") == 2   # 'plant', 'green': only in phrases
+
+
+def test_a_phrase_word_that_cannot_be_typed_is_a_problem():
+    with pytest.raises(I7Problem) as e:
+        compile_i7('"T" by T\n\nThe Hall is a room. The lamp is in the Hall.\n'
+                   'Understand "old lamp\'s light" as the lamp.\n', "t.ni", 8)
+    assert "can't be a word the player types" in str(e.value)
