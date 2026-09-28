@@ -1,4 +1,4 @@
-"The Glasshouse Bequest" by Anonymous
+"The Glasshouse Bequest" by K. Pillai
 
 [An I7-lite story for zforge. Your great-aunt Ottoline Marsh, botanist,
  explorer and practical joker, has left you Marsh Hall and a riddle.
