@@ -27,6 +27,7 @@ RULE_START = re.compile(
     r"^((the |a )?(first|last) )?"                  # 'The first after ... rule:'
     r"(when play begins|when play ends|every turn|instead of|before|after|check|"
     r"carry out|report|rule for |to |this is the |does the player mean |"
+    r"persuasion rule for |"                          # 'Persuasion rule for asking ...'
     r'for (?=[^"]*:))', re.IGNORECASE)                 # 'For forest-running:' (an
                                                      # activity; the colon is needed)
 

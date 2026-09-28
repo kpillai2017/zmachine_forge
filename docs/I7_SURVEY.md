@@ -182,7 +182,7 @@ kinds of action and its own rulebooks.
 ## Cold Iron's remaining problems (after ADR-050)
 
 Cold Iron gave 59 problems after Definitions (79 before "with nouns
-reversed" and Definitions); after ADR-051 it gives 33, after ADR-052 22, after ADR-053 14, after ADR-054 10. Grouped by what is missing - a problem can hide others
+reversed" and Definitions); after ADR-051 it gives 33, after ADR-052 22, after ADR-053 14, after ADR-054 10, after ADR-055 7. Grouped by what is missing - a problem can hide others
 behind it, so fixing a group may show new ones.
 
 **These counts are of the first stage only.** The compiler reads the
@@ -202,11 +202,11 @@ understood, and will be reported once the first stage is clean.
 | ~~Standard actions missing: entering, attacking~~ done (ADR-052) | 3 | small |
 | ~~Understand ... as a mistake~~ done (ADR-052); ~~descriptions as grammar tokens (`[undirectional goable thing]`)~~ done (ADR-053) | 3 | small |
 | ~~Does the player mean ... (`it is likely`)~~ done (ADR-053) | 3 | medium |
-| Persuasion rules (`Persuasion rule for asking the oak to try ...`) | 2 | medium |
+| ~~Persuasion rules (`Persuasion rule for asking the oak to try ...`)~~ done (ADR-055) | 2 | medium |
 | ~~Parts (`The shadow is part of the knife.`)~~ done (ADR-054) | 2 | medium |
 | ~~A time of day (`The time of the watch is 12:00 AM.`)~~ done (ADR-054) | 2 | medium |
 | Inform 6 inclusions `(- ... -)` | 2 | not planned |
-| Someone other than the player wearing something (`The guy wears the hat.`) | 1 | small |
+| ~~Someone other than the player wearing something (`The guy wears the hat.`)~~ done (ADR-055) | 1 | small |
 | A printed name with substitutions | 1 | small |
 | Backdrops; regions | 1 + 1 | medium each |
 | The printing a locale paragraph about activity | 1 | medium |

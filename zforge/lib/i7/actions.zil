@@ -52,6 +52,25 @@
         <PARA-DIVIDE>>
     <RFALSE>>
 
+<IFFLAG (ORDERS
+;"Inform's requested actions require persuasion rule: 'oak, jump' asks the oak
+  to try jumping. The persuasion rules decide; if none says it succeeds, the
+  person refuses - with Inform's words only if the rules printed nothing. A
+  person persuaded cannot act in I7-lite (there are no actions by other
+  characters), so they are unable to (ADR-055)."
+<ROUTINE ASK-TO-TRY ("AUX" (N ,SAID-COUNT))
+    <SETG PERSUADED 0>
+    <FOLLOW-RULES ,PERSUASION-RULES>
+    <COND (<EQUAL? ,PERSUADED 1>
+           <SAY-CAP-THE ,P-ACTOR>
+           <COND (<FSET? ,P-ACTOR ,PLURALBIT> <TELL " are">) (ELSE <TELL " is">)>
+           <TELL " unable to do that." CR>)
+          (<EQUAL? ,SAID-COUNT .N>
+           <SAY-CAP-THE ,P-ACTOR>
+           <COND (<FSET? ,P-ACTOR ,PLURALBIT> <TELL " have">) (ELSE <TELL " has">)>
+           <TELL " better things to do." CR>)>>
+) (ELSE)>
+
 <ROUTINE TRY (ACTION FN O I "OPT" QUIET "AUX" OLD-A OLD-O OLD-I OLD-QUIET)
     ;"try <action>: run another action now, then carry on with this one"
     <SET OLD-A ,PRSA> <SET OLD-O ,PRSO> <SET OLD-I ,PRSI> <SET OLD-QUIET ,SILENTLY>

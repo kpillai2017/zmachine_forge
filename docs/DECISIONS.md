@@ -1201,3 +1201,48 @@ and a watch with a time (`The watch has a time.`, `five minutes after T`,
 **Consequences.** Cold Iron: 14 problems to 10 (first stage). The original
 Bronze: 465, as before. Glasshouse and Bronze build byte-identical story
 files and play their walkthroughs with the same transcripts.
+
+
+## ADR-055: Someone else's possessions; orders and persuasion
+
+**Context.** Cold Iron's next gaps (docs/I7_SURVEY.md): `The guy wears the
+hat.`, and two persuasion rules for the oak (`Persuasion rule for asking the
+oak to try doing something: instead say "You can't talk to [the oak]."`).
+
+**Decisions.**
+
+- *Possessions.* `<person> wears/carries <things>` places them in the person
+  (who must be a known one), as for the player; `now X carries Y` and the
+  conditions `X carries/wears Y` work for any named person. Inform's can't
+  take people's possessions rule ("That seems to belong to [the owner].",
+  Inform's text) refuses taking what another person holds directly - Inform
+  also looks inside their things; that is left out.
+- *Orders*, as the real Cold Iron shows: the words before a comma name who is
+  asked - nothing in sight: "You seem to want to talk to someone, but I can't
+  see whom."; a thing that is not a person: "You can't talk to the book.";
+  nothing after the comma, or no verb the game knows: it is answering them
+  with those words ("There is no reply.", or an answering rule). As in
+  Inform, a line starting with a verb is a command, so `take key, coin` stays
+  a list (a test caught this).
+- *Persuasion* is one rulebook, like Does the player mean: each rule tests the
+  person asked (P-ACTOR) and the action. `persuasion succeeds / fails` set
+  PERSUADED and decide; an `instead` rule decides too (a failure). As in
+  Inform's requested actions require persuasion rule, a refusal prints
+  "[The person] has better things to do." only if the rules printed nothing
+  (Cold Iron works round this with Inform 6 code setting say__p). A person
+  persuaded cannot act - I7-lite has no actions by other characters - so
+  they are "unable to do that": a real gap, documented.
+- *Only in stories that need it.* The library's code is inside `<IFFLAG
+  (POSSESSIONS ...)>` and `<IFFLAG (ORDERS ...)>`: possessions when someone
+  else holds things (at the start, or `now <someone> carries/wears`), orders
+  when there is a person besides the player or a persuasion rule. Glasshouse
+  builds a byte-identical story file; Bronze, which has a person, gains the
+  orders code and plays its walkthrough identically. (Checked by running each
+  compiler from its own folder: `python -m zforge` imports the package in the
+  current folder before PYTHONPATH, so a copy of an old compiler on
+  PYTHONPATH compiles with the current one.)
+- `instead say "..."` (instead first, as Cold Iron writes it) works in any rule.
+
+**Consequences.** Cold Iron: 10 problems to 7 (first stage). Its real oak is
+scenery made talkable by Inform 6 code, which I7-lite cannot compile; an
+I7-lite version would make the oak a person. The original Bronze: 465.

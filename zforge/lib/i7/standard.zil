@@ -112,6 +112,15 @@
 
 <ROUTINE TAKE-PEOPLE ()
     <COND (<FSET? ,PRSO ,PERSONBIT> <TAKE-PEOPLE-A> <RTRUE>)> <RFALSE>>
+
+<IFFLAG (POSSESSIONS
+;"Inform 7's can't take people's possessions rule: what another person
+  carries or wears directly (Inform also looks inside their things)."
+<ROUTINE TAKE-POSSESSION ("AUX" (H <LOC ,PRSO>))
+    <COND (<AND .H <FSET? .H ,PERSONBIT> <NOT <EQUAL? .H ,PLAYER>>>
+           <TAKE-POSSESSION-A> <RTRUE>)>
+    <RFALSE>>
+) (ELSE)>
 ;"Inform 7's can't take what's already taken rule."
 <ROUTINE TAKE-ALREADY-TAKEN ()
     <COND (<IN? ,PRSO ,PLAYER> <TAKE-ALREADY-TAKEN-A> <RTRUE>)> <RFALSE>>

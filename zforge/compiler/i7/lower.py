@@ -138,6 +138,8 @@ class Lowerer:
                   ' Every routine names the sentence it came from."', "",
                   "<VERSION 5>",
                   *(["<COMPILATION-FLAG PARTS T>"] if m.uses_parts else []),
+                  *(["<COMPILATION-FLAG POSSESSIONS T>"] if m.uses_possessions else []),
+                  *(["<COMPILATION-FLAG ORDERS T>"] if m.uses_orders else []),
                   *(["<COMPILATION-FLAG TIMES T>"] if m.uses_times else []),
                   "<DIRECTIONS " + " ".join(DIRECTION_PROPS.values()) + ">",
                   '<INSERT-FILE "lib/i7/runtime">',
@@ -367,6 +369,22 @@ class Lowerer:
         if stage.startswith("activity "):
             self.activity_rule(rule, stage[len("activity "):])
             return
+        if stage == "persuasion":                      # one rulebook, like the next
+            m = re.match(r"^asking (.+?) to try (.+)$", rule.preamble, re.I)
+            if m is None:
+                self.p.problem(rule.where, rule.preamble, "I expected 'Persuasion rule for "
+                               "asking <someone> to try <an action>' here.")
+                return
+            pattern = self.phrases.action_pattern(m.group(2), rule.where)
+            if pattern is None:
+                return
+            verbs = " ".join(",V?" + self.action_atom[a] for a in pattern.actions)
+            tests = [self.phrases.object_guard(",P-ACTOR", m.group(1), rule.where)]
+            tests += [f"<EQUAL? ,PRSA {verbs}>"] if pattern.actions else []
+            guard = self.phrases.all_of(tests + ([pattern.guard] if pattern.guard else []))
+            name = self.rule_routine(rule, guard, default="<RFALSE>")   # no decision
+            self.add_rule("PERSUASION", "", pattern.specificity, name, rule.placement)
+            return
         if stage == "does the player mean":            # one rulebook for every action:
             pattern = self.phrases.action_pattern(rule.preamble, rule.where)   # the
             if pattern is None:                        # guard tests the action too
@@ -486,6 +504,14 @@ class Lowerer:
         order = sorted(enumerate(entries),        # group, then most specific, then source
                        key=lambda e: (e[1][2], tuple(-x for x in e[1][0]), e[0]))
         self.emit("<GLOBAL DTPM-RULES <LTABLE" + "".join(" ," + r for _, (_, r, _) in order) + ">>")
+        if self.m.uses_orders:                    # persuasion: the same, and the
+            entries = self.rulebooks.get("PERSUASION", {}).get("", [])   # answer
+            order = sorted(enumerate(entries),   # to 'oak, xyzzy' (ADR-055)
+                           key=lambda e: (e[1][2], tuple(-x for x in e[1][0]), e[0]))
+            self.emit("<GLOBAL PERSUASION-RULES <LTABLE"
+                      + "".join(" ," + r for _, (_, r, _) in order) + ">>")
+            answer = self.action_atom.get("answering it that")
+            self.emit(f"<ROUTINE ORDER-ANSWER-ACTION () {',V?' + answer if answer else '0'}>")
         # For each action: its rulebook tables, its V- routine (which runs them),
         # and one SYNTAX line for each way the player can type it.
         for name, action in self.m.actions.items():
@@ -765,8 +791,9 @@ class Lowerer:
                                  f"    <COND {clause_text}>>")
 
     def has(self, rule) -> bool:
-        """Is this library rule in the story? One that needs parts only if it has them."""
-        return rule.needs != "parts" or self.m.uses_parts
+        """Is this library rule in the story? One that needs parts (or other
+        people's possessions) only if it has them."""
+        return not rule.needs or getattr(self.m, "uses_" + rule.needs)
 
     def responses(self) -> None:
         """One routine per library response, e.g. TAKE-REPORT-A, which the

@@ -339,6 +339,14 @@ class PhraseLowerer:
             else:
                 test = f"<IN? {obj} ,PLAYER>"
             return f"<NOT {test}>" if m.group(1) else test
+        m = re.match(r"^(.+?) (does not |is not )?(?:is )?"
+                     r"(carries|carry|carrying|wears|wear|wearing) (.+)$", t, re.I)
+        if m and self.atom_of(m.group(1)):          # someone else (ADR-055)
+            owner, obj = self.value(m.group(1), where), self.value(m.group(4), where)
+            test = f"<IN? {obj} {owner}>"
+            if m.group(3).lower().startswith("wear"):
+                test = f"<AND {test} <FSET? {obj} ,WORNBIT>>"
+            return f"<NOT {test}>" if m.group(2) else test
         m = re.match(r"^(.+?) (?:is|are) (not )?held$", t, re.I)    # held: carried or worn
         if m:
             test = f"<IN? {self.value(m.group(1), where)} ,PLAYER>"
@@ -893,6 +901,8 @@ class PhraseLowerer:
         # 'say "..." instead' / 'try looking instead': do it, then stop the action
         if low.endswith(" instead") and not low.startswith("instead"):
             return self.phrase(t[:-len(" instead")], where) + ["<RTRUE>"]
+        if low.startswith("instead ") and len(low) > 8:   # 'instead say "..."' (ADR-055)
+            return self.phrase(t[8:].strip(), where) + ["<RTRUE>"]
         if low.startswith("say "):
             return self.say(t[4:].strip(), where)
         likely = ("very unlikely", "unlikely", "possible", "likely", "very likely")
@@ -955,6 +965,8 @@ class PhraseLowerer:
             return code + ["<RTRUE>"]
         if low in ("stop the action", "stop", "rule succeeds", "rule fails"):
             return ["<RTRUE>"]
+        if low in ("persuasion succeeds", "persuasion fails"):    # ADR-055
+            return [f"<SETG PERSUADED {1 if low.endswith('succeeds') else 2}>", "<RTRUE>"]
         if low in ("continue the action", "continue the activity", "make no decision"):
             return ["<RFALSE>"]
         if low == "do nothing":                  # the rule applies, and says nothing
@@ -999,6 +1011,11 @@ class PhraseLowerer:
             if m.group(1).lower() == "wears":
                 return f"<MOVE {obj} ,PLAYER> <FSET {obj} ,WORNBIT>" + self.unpart(obj)
             return f"<MOVE {obj} ,PLAYER>" + self.unpart(obj)
+        m = re.match(r"^(.+?) (carries|wears) (.+)$", t, re.I)
+        if m and self.atom_of(m.group(1)):            # someone else (ADR-055)
+            owner, obj = self.value(m.group(1), where), self.value(m.group(3), where)
+            flag = "FSET" if m.group(2).lower() == "wears" else "FCLEAR"
+            return f"<MOVE {obj} {owner}> <{flag} {obj} ,WORNBIT>" + self.unpart(obj)
         m = re.match(r"^(.+?) (?:is|are) part of (.+)$", t, re.I)
         if m:                                         # a part: it goes with its whole
             obj = self.value(m.group(1), where)

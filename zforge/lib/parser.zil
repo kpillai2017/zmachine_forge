@@ -75,6 +75,8 @@
 ;"PARTS: the story has parts ('The shadow is part of the knife.'): each is
   a child of its whole with PARTBIT. Set by the Inform 7 compiler only then."
 <COMPILATION-FLAG-DEFAULT PARTS <>>
+<COMPILATION-FLAG-DEFAULT POSSESSIONS <>>
+<COMPILATION-FLAG-DEFAULT ORDERS <>>     ;"'oak, jump': orders and persuasion (ADR-055)"   ;"someone else carries or wears things (ADR-055)"
 ;"TIMES: the story has times of day (minutes since midnight, as in Inform)"
 <COMPILATION-FLAG-DEFAULT TIMES <>>
 <IFFLAG (TIMES <GLOBAL P-TIME 0>) (ELSE)>   ;"the time understood: a [time] slot's"
@@ -101,8 +103,73 @@
 
 <ROUTINE PARSER ()
     <COND (<READ-COMMAND>
-           <IFFLAG (I7 <COND (<AGAIN-OR-KEEP> <PARSE-COMMAND>)>)
+           <IFFLAG (I7 <IFFLAG (ORDERS <COND (<AND <AGAIN-OR-KEEP> <ORDER-PREFIX>> <PARSE-ORDER>)>)
+                               (ELSE <COND (<AGAIN-OR-KEEP> <PARSE-COMMAND>)>)>)
                    (ELSE <PARSE-COMMAND>)>)>>
+
+<IFFLAG (ORDERS
+;"Orders, as in Inform: 'oak, jump'. The words before the first comma name
+  who is asked; they are taken out, and the rest is parsed as a command for
+  the persuasion rules (ASK-TO-TRY). With nothing after the comma, or no
+  verb the game knows, it is answering them instead: 'oak, regleotis'."
+<GLOBAL P-ACTOR 0>       ;"the person asked, or 0"
+<GLOBAL PERSUADED 0>     ;"a persuasion rule's decision: 1 succeeds, 2 fails"
+
+<ROUTINE ORDER-PREFIX ("AUX" (K 0) FIRST)
+    <SETG P-ACTOR 0>
+    ;"a command starts with its verb, and its commas are a list's: 'drop the
+      lamp, keys and food' - so, as in Inform, only words that are no verb
+      can be the name of someone asked"
+    <COND (<VERB-KNOWN? <WORD-AT 1>> <RTRUE>)>
+    <DO (I 2 ,P-LEN) <COND (<COMMA? .I> <SET K .I> <RETURN>)>>
+    <COND (<ZERO? .K> <RTRUE>)>                  ;"not an order"
+    <SET FIRST <SKIP-ARTICLES 1 <- .K 1>>>
+    <PUT ,P-MATCHES1 0 0>
+    <COND (<NOT <G? .FIRST <- .K 1>>> <SEARCH-SCOPE .FIRST <- .K 1> ,P-MATCHES1>)>
+    <COND (<ZERO? <GET ,P-MATCHES1 0>>
+           <TELL "You seem to want to talk to someone, but I can't see whom." CR>
+           <RFALSE>)>
+    <SETG P-ACTOR <GET ,P-MATCHES1 1>>
+    <COND (<NOT <FSET? ,P-ACTOR ,PERSONBIT>>
+           <TELL "You can't talk to "> <SAY-THE ,P-ACTOR> <TELL "." CR>
+           <SETG P-ACTOR 0>
+           <RFALSE>)>
+    ;"take out the words up to the comma: word J+K becomes word J (§13.6.3)"
+    <DO (J 1 <- ,P-LEN .K>)
+        <PUT ,PARSEBUF <- <* 2 .J> 1> <GET ,PARSEBUF <- <* 2 <+ .J .K>> 1>>>
+        <PUT ,PARSEBUF <* 2 .J> <GET ,PARSEBUF <* 2 <+ .J .K>>>>>
+    <SETG P-LEN <- ,P-LEN .K>>
+    <PUTB ,PARSEBUF 1 ,P-LEN>
+    <RTRUE>>
+
+<ROUTINE PARSE-ORDER ()
+    <COND (<ZERO? ,P-ACTOR> <PARSE-COMMAND>)
+          (<OR <ZERO? ,P-LEN> <NOT <VERB-KNOWN? <WORD-AT 1>>>> <ORDER-AS-ANSWER>)
+          (ELSE <PARSE-COMMAND>)>>
+
+<ROUTINE VERB-KNOWN? (W "AUX" (ROW <+ ,SYNTAX-TABLE 2>))
+    <COND (<ZERO? .W> <RFALSE>)>
+    <DO (I 1 <GET ,SYNTAX-TABLE 0>)
+        <COND (<EQUAL? <GET .ROW ,S-VERB> .W> <RTRUE>)>
+        <SET ROW <+ .ROW <* 2 ,S-SIZE>>>>
+    <RFALSE>>
+
+<ROUTINE ORDER-AS-ANSWER ("AUX" (ROW <+ ,SYNTAX-TABLE 2>) (A <ORDER-ANSWER-ACTION>))
+    ;"answering the person that <the words>: that action's own grammar row"
+    <DO (I 1 <GET ,SYNTAX-TABLE 0>)
+        <COND (<AND .A <EQUAL? <GET .ROW ,S-ACTION> .A>>
+               <SETG P-SYNTAX .ROW>
+               <SETG PRSA .A>
+               <SETG PRSO ,P-ACTOR>
+               <SETG PRSI 0>
+               <SETG P-TOPIC-FIRST 1>
+               <SETG P-TOPIC-LAST ,P-LEN>
+               <SETG P-ACTOR 0>                   ;"the player answers: not an order"
+               <RTRUE>)>
+        <SET ROW <+ .ROW <* 2 ,S-SIZE>>>>
+    <TELL "There is no reply." CR>
+    <RFALSE>>
+) (ELSE)>
 
 <IFFLAG (I7
 ;"Inform's AGAIN (or G): the last command typed at the prompt, typed again -

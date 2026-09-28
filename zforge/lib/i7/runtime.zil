@@ -79,7 +79,8 @@
               (<EQUAL? <ZOP SAVE_UNDO> 2>         ;"we are back here after an UNDO"
                <TELL "[Previous turn undone.]" CR>)
               (ELSE
-               <COND (,P-MULTIPLE <RUN-FOR-EACH>)
+               <COND <IFFLAG (ORDERS (,P-ACTOR <ASK-TO-TRY>)) (ELSE)>  ;"'oak, jump'"
+                     (,P-MULTIPLE <RUN-FOR-EACH>)
                      (ELSE <APPLY <GET ,P-SYNTAX ,S-ROUTINE>>)>
                <COND (<AND <NOT ,OUT-OF-WORLD> <NOT ,STORY-ENDED>>
                       <FOLLOW-RULES ,EVERY-TURN-RULES>

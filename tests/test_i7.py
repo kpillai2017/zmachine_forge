@@ -317,8 +317,9 @@ def test_every_library_rule_is_listed_in_the_docs():
     # 83: the carrying requirements rule serves three actions; one routine
     # serves the three clothes-being-worn rules, but each is a rule of its own;
     # the four actions on a topic have five; attacking and entering one each;
-    # taking one more, the can't take component parts rule (ADR-054)
-    assert len(set(names)) == 84
+    # taking two more, can't take component parts (ADR-054) and can't take
+    # people's possessions (ADR-055)
+    assert len(set(names)) == 85
     assert [n for n in LIBRARY_RULES if f"| {n} |" not in doc] == []   # internal ones too
 
 

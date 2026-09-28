@@ -182,6 +182,10 @@ class WorldModel:
     """The game's complete model: objects, map, rules, variables, actions, and metadata."""
     title: str = "Untitled"
     uses_times: bool = False     # times of day: the library's time code is in
+    uses_orders: bool = False    # a person besides the player, or a persuasion rule:
+                                 # 'oak, jump' and the persuasion rules (ADR-055)
+    uses_possessions: bool = False   # someone other than the player carries or wears
+                                     # something: the can't take people's possessions rule (ADR-055)
     uses_parts: bool = False     # 'part of' outside quotes: the library's parts code is in
     author: str = "Anonymous"
     headline: str = "An Interactive Fiction"
@@ -742,6 +746,22 @@ class ModelBuilder:
                 obj.relation = "carried"
             self.last_object = obj
 
+    def person_possession(self, s, m):
+        """The guy wears the hat. / The oak carries a crown and a sash. Someone
+        other than the player: the things go in that person (ADR-055)."""
+        owner = self.m.find(m.group(1))
+        if owner is None or not self.m.is_a(owner.kind, "person"):
+            self.p.problem(s.where, s.text, f"only a person can {m.group(2).lower()} "
+                           f"things, and '{m.group(1)}' is not one I know")
+            return
+        worn = m.group(2).lower() in ("wears", "is wearing")
+        for obj in self.listed_objects(s, m.group(3), plural_some=False):
+            obj.parent, obj.relation = owner.name, "worn" if worn else "carried"
+            if worn:
+                obj.flags |= {"WEARABLEBIT", "WORNBIT"}
+            self.last_object = obj
+        self.m.uses_possessions = True
+
     def adjectives(self, s, m):
         """X is scenery. / It is fixed in place and lit. / The Bar is dark.
         Also 'A, B, and C are lighted.': with 'are', as in Inform 7, a subject
@@ -1054,6 +1074,7 @@ class ModelBuilder:
          thing_value_property),
         (r"^understand (.+?) as (.+)$", understand),
         (r"^the player (carries|wears) (.+)$", possession),
+        (r'^([^"]+?) (carries|wears|is carrying|is wearing) ([^"]+)$', person_possession),
         (r"^(in|on) (.+?) (?:is|are) an? (.+?) called (.+)$", placed_called),
         # greedy descriptor: 'a fixed in place thing in the Hall' splits at the last 'in'
         (r"^(.+?) (?:is|are) (?:([a-z ,-]+) )?(in|on) (.+)$", placed),
@@ -1204,6 +1225,13 @@ class ModelBuilder:
                           r"every turn|when play begins)\b", m.group(2), re.I):
             placement, preamble = m.group(1).lower(), m.group(2)
             low = preamble.lower()
+        # 'Persuasion rule for asking the oak to try incanting:' (ADR-055): the
+        # person asked and the action are split when the rule is compiled
+        m = re.match(r"^persuasion rule for (asking .+)$", preamble, re.I)
+        if m:
+            self.m.rules.append(Rule("persuasion", m.group(1), s.body, s.where, number,
+                                     named, placement, heading=written))
+            return
         # Activities: "Rule for printing the name of the lamp", "Before
         # printing the banner text". Checked before actions, so "Before
         # printing ..." is not read as a before-rule for an action.

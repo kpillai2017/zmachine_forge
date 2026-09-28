@@ -198,3 +198,48 @@ def test_a_time_token_reads_the_times_players_type():
                      "The watch reads 12:00 am.", "The watch reads 9:00 pm.",
                      "The watch reads 9:05 pm."]
     assert r[5] == r[6] == "You can't see any such thing."   # not times
+
+
+# --- ADR-055: someone else's possessions; orders and persuasion
+
+PEOPLE = '''"T" by T
+
+The Clearing is a room. The guy is a man in the Clearing. The printed name is "man".
+The guy wears a hat. The guy carries a coin. A key is in the Clearing.
+The oak is a person in the Clearing.
+Giving is an action applying to nothing. Understand "give" as giving.
+Carry out giving: now the guy carries the key; say "He pockets the key."
+Checking is an action applying to nothing. Understand "check" as checking.
+Carry out checking:
+\tif the guy wears the hat:
+\t\tsay "Hatted.";
+\tif the guy carries the key:
+\t\tsay "Keyed."
+Persuasion rule for asking the oak to try waiting: say "The oak creaks."; persuasion fails.
+Persuasion rule for asking the oak to try taking something: persuasion succeeds.
+Persuasion rule for asking the oak to try examining something:
+\tinstead say "You can't talk to [the oak]."
+'''
+
+
+def test_what_someone_else_carries_or_wears_is_theirs():
+    r = replies(["take hat", "take coin", "check", "give", "check", "take key"], PEOPLE)
+    assert r[0] == r[1] == r[5] == "That seems to belong to the man."
+    assert (r[2], r[3], r[4]) == ("Hatted.", "He pockets the key.", "Hatted. Keyed.")
+
+
+def test_orders_go_to_the_persuasion_rules():
+    r = replies(["oak, wait", "oak, take key", "oak, x hat", "guy, x hat", "hat, wait",
+                 "xyzzy, wait", "oak,", "oak, regleotis"], PEOPLE)
+    assert r[0] == "The oak creaks."                       # it printed: no refusal
+    assert r[1] == "The oak is unable to do that."        # persuaded (no NPC actions)
+    assert r[2] == "You can't talk to the oak."           # an instead rule
+    assert r[3] == "The man has better things to do."     # no rule decided
+    assert r[4] == "You can't talk to the hat."
+    assert r[5] == "You seem to want to talk to someone, but I can't see whom."
+    assert r[6] == r[7] == "There is no reply."           # answering them instead
+
+
+def test_a_command_with_a_list_is_not_an_order():
+    assert replies(["take key, coin"], PEOPLE) == [
+        "key: Taken. coin: That seems to belong to the man."]

@@ -52,6 +52,16 @@ def generate_zil(source: str, filename: str = "story.ni",
     model = build_model(read_sentences(source), problems, testing)
     bare = re.sub(r'"[^"]*"|\[[^\]]*\]', "", source)      # no quoted texts, no comments
     model.uses_parts = model.uses_parts or bool(re.search(r"\bpart of\b", bare, re.I))
+    # orders ('oak, jump'): a story with someone besides the player to ask, or a
+    # persuasion rule (ADR-055)
+    model.uses_orders = any(r.stage == "persuasion" for r in model.rules) or any(
+        name != "yourself" and model.is_a(o.kind, "person")
+        for name, o in model.objects.items())
+    # 'now the guy carries the key': someone other than the player (ADR-055)
+    model.uses_possessions = model.uses_possessions or bool(re.search(
+        r"\bnow (?!the player\b|you\b|yourself\b)[^.;:]*?"
+        r"\b(carries|wears|is carrying|is wearing)\b",
+        bare, re.I))
     model.uses_times = bool(re.search(r"\b\d{1,2}:\d\d\b|\bhas an? time\b", bare, re.I)
                             or "[time]" in source)
     problems.raise_if_any()                        # no point lowering a broken model

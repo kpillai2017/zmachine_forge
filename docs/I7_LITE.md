@@ -63,6 +63,7 @@ listed in room descriptions (not yet checked against real Inform 7).
 | `The cloak is on the hook.` / `in the box` | placement on a supporter / in a container | 7a |
 | `The shadow is part of the knife.` | a part (ADR-054): it goes wherever its whole goes and is in reach whenever the whole is; it can't be taken on its own ("That seems to be a part of the knife."), and room descriptions and TAKE ALL leave it out. `now X is part of Y` and the condition `X is part of Y` work too, and `[the holder of X]` names the whole | Cold Iron |
 | `The player wears a velvet cloak.` / `carries` | the player's possessions; a list makes several (`The player carries a lamp and some coins.`) | 7a |
+| `The guy wears the hat.` / `The guy carries a coin.` | someone else's possessions (ADR-055): they go in that person (who must be one), `now the guy carries the key` moves them, and `if the guy wears the hat` tests it. Taking one is refused, as in Inform: "That seems to belong to the man." (only what they hold directly - Inform also looks inside their things) | Cold Iron |
 | `A red ball and a blue ball are in the Hall.` | a list (with "are"): one thing for each name, as in Inform (a name containing "and" needs `called`). A name with "some" (`some beads`) is plural-named | |
 | `It is scenery.` / `It is fixed in place.` | `It` = the last thing named | 7a |
 | `The hook is scenery.` `The box is open/closed/openable/locked/lockable.` | either/or properties | 7a |
@@ -260,6 +261,30 @@ An action can also apply to one thing and one time (ADR-054), with `[time]`:
 
 As in Inform, a rule can name an action by its first word alone -
 `Report timesetting:` for timesetting it to - when only one action begins so.
+
+**Orders and persuasion** (ADR-055). In a story with someone besides the
+player, the player can give orders as in Inform - `oak, open the door` - and
+persuasion rules decide:
+
+    Persuasion rule for asking the oak to try waiting: say "The oak creaks."; persuasion fails.
+    Persuasion rule for asking someone to try taking something: persuasion succeeds.
+    Persuasion rule for asking the oak to try doing something:
+        instead say "You can't talk to [the oak]."
+
+The replies, as in Inform (the first three checked against *Cold Iron*):
+
+| Order | Reply |
+|---|---|
+| the name before the comma is nothing in sight | "You seem to want to talk to someone, but I can't see whom." |
+| a thing, not a person | "You can't talk to the book." |
+| nothing after the comma, or no verb the game knows | answering them with the words instead (`oak, regleotis`): "There is no reply." unless a rule answers |
+| no persuasion rule decides, or one says `persuasion fails` and printed nothing | "The man has better things to do." (Inform's text, not checked against a game) |
+| `persuasion succeeds` | "The oak is unable to do that." - I7-lite has no actions by other characters |
+
+A line that starts with a verb is a command, not an order, so its commas
+make a list: `take key, coin`. `instead say "..."` (instead first) works in
+any rule, like `say "..." instead`. The two "can't" replies are printed
+directly, not through the printing a parser error activity.
 
 A rule names a topic in quotation marks. A slash separates the words that
 may stand in one place, `--` means that place may be left out, and `or`
@@ -480,6 +505,7 @@ the order they run. Response letters and default texts follow Inform 7.
 | check | can't take yourself rule | (A) "You are always self-possessed." |
 | check | can't take other people rule | (A) "I don't suppose [the noun] would care for that." |
 | check | can't take component parts rule | (A) "[if the noun is plural-named]Those seem[otherwise]That seems[end if] to be a part of [the holder of the noun]." (only in a story with parts; Inform's text, not checked against a game) |
+| check | can't take people's possessions rule | (A) "[if the noun is plural-named]Those seem[otherwise]That seems[end if] to belong to [the holder of the noun]." (only in a story where someone else carries or wears things; Inform's text, not checked against a game) |
 | check | can't take what's already taken rule | (A) "You already have that." |
 | check | can't take scenery rule | (A) "That's hardly portable." |
 | check | can't take what's fixed in place rule | (A) "That's fixed in place." |
