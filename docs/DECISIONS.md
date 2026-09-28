@@ -1082,3 +1082,30 @@ list of properties (seventeen problems).
 **Consequences.** Cold Iron went from 59 problems to 33. Glasshouse and
 Bronze play their walkthroughs with the same transcripts; the ZIL golden
 builds are unchanged.
+
+## ADR-052: A property of one thing; "not"; attacking and entering; mistakes
+
+**Context.** Four small forms Cold Iron uses: `Forest1 has a number called
+the counter. The counter is 1.`, `The oak is not worded.`, commands for
+attacking and entering, and `Understand "help" as a mistake ("...")`.
+
+**Decision.**
+- `X has a number (text, truth state) called P.` gives one thing the
+  property, starting at 0 (no text, false); `The P is V.` straight after
+  gives that thing its value, as Inform reads it.
+- "not" before an adjective in an assertion says the thing is not so.
+- attacking and entering are standard actions with the words and replies
+  of the real library, taken from Cold Iron (16 commands, all 16 replies
+  the same). Words older Inform versions had (kill, fight, murder, lie on)
+  are not in it, so not here. I7-lite has no enterable things: entering is
+  always refused, its reply chosen by the verb (enter / sit down on / stand
+  on) - one response in Inform, three here (A, B, C).
+- Each `Understand ... as a mistake ("text")` line is an action of its own,
+  out of world (no turn passes), whose carry out rule says the text.
+
+**Consequences.** Cold Iron went from 33 problems to 22. Glasshouse and
+Bronze play their walkthroughs with the same transcripts; the ZIL golden
+builds are unchanged. Two of Cold Iron's mistake lines still fail: their
+grammar uses a description as a token (`[undirectional goable thing]`).
+One of its "has a number" lines follows an activity I7-lite misreads, so
+its thing is not known yet (see I7_SURVEY).

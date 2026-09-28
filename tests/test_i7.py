@@ -314,10 +314,10 @@ def test_every_library_rule_is_listed_in_the_docs():
     from zforge.compiler.i7.standard import ACTIONS, LIBRARY_RULES
     doc = (Path(__file__).parent.parent / "docs" / "I7_LITE.md").read_text()
     names = [r.name for a in ACTIONS for rules in a.rules.values() for r in rules]
-    # 81: the carrying requirements rule serves three actions; one routine
+    # 83: the carrying requirements rule serves three actions; one routine
     # serves the three clothes-being-worn rules, but each is a rule of its own;
-    # the four actions on a topic have five
-    assert len(set(names)) == 81
+    # the four actions on a topic have five; attacking and entering one each
+    assert len(set(names)) == 83
     assert [n for n in LIBRARY_RULES if f"| {n} |" not in doc] == []   # internal ones too
 
 

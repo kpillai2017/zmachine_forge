@@ -104,6 +104,8 @@ that isn't part of the other one's.
 | `A treasure is a kind of thing.` | new kind | 7a |
 | `A room is usually dark.` / `The printed name of a forest is usually "Forest".` | kind defaults | 7b |
 | `Every room has a number called the visit count.` | every room gets it (starting at 0) | Advent |
+| `Forest1 has a number called the counter. The counter is 1.` | a property of one thing; "The counter is 1." next gives its value (ADR-052) | Cold Iron |
+| `The oak can be worded. The oak is not worded.` | "not" before an adjective: the thing is not so | Cold Iron |
 | `Every room has a text called the short description.` `The short description is "[We]['re] here again."` | a text property; the short form means the last thing named | Advent |
 | `The Lab, the Hall and the Yard are lighted.` | several subjects at once | Advent |
 
@@ -148,6 +150,7 @@ compared with `""` (no text).
 | `Understand "xyzzy" as casting xyzzy.` | grammar for a new action | 7a |
 | `Understand "plugh" as north.` | a word for a direction | 7b |
 | `Understand "wreath", "circlet" as the branches when the branches are woven.` | words that name the thing only while the condition holds (single words, not phrases; ADR-051) | Cold Iron |
+| `Understand "help" as a mistake ("(Type ABOUT for credits.)").` | a command that only says the text; no turn passes (ADR-052) | Cold Iron |
 | `Understand the command "grab" as "take".` | verb synonym | 7b |
 | `Understand the commands "open", "close" as something new.` | forget their earlier grammar | Advent |
 | `Understand nothing as dropping.` | forget an action's earlier grammar | Advent |
@@ -195,7 +198,11 @@ The standard actions (7a unless marked): looking, examining, taking,
 dropping, going, taking inventory, putting it on, inserting it into,
 wearing, taking off, waiting, requesting the score, saving the game,
 restoring the game, quitting the game; 7b: opening, closing, locking it
-with, unlocking it with, switching on, switching off. `read X` means
+with, unlocking it with, switching on, switching off; ADR-052: attacking
+(`attack`, `break`, `smash`, `hit`, `punch`, `destroy`, `thump`) and
+entering (`enter`, `get in/into/on/onto`, `sit on/in/inside`, `stand on`),
+with the words and replies of the real library (checked against *Cold
+Iron*). There are no enterable things, so entering is always refused. `read X` means
 examining X; `undo` is handled before actions, as in Inform 7. `again`
 (or `g`) repeats the last command typed, even one that failed, and says
 "You can hardly repeat that." when there is none (checked against the real
@@ -579,6 +586,19 @@ the order they run. Response letters and default texts follow Inform 7.
 | Stage | Rule | Responses |
 |---|---|---|
 | check | block answering rule | (A) "There is no reply." |
+
+**attacking**
+
+| Stage | Rule | Responses |
+|---|---|---|
+| check | block attacking rule | (A) "Violence isn't the answer to this one." |
+
+**entering** (I7-lite has no enterable things: entering is always refused.
+Inform's one response adapts to the verb; here it is three.)
+
+| Stage | Rule | Responses |
+|---|---|---|
+| check | can't enter what's not enterable rule | (A) "That's not something you can enter." (B) "That's not something you can sit down on." (C) "That's not something you can stand on." |
 
 **waiting**
 

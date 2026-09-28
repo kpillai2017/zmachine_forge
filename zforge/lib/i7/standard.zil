@@ -332,6 +332,13 @@
     <COND (<EQUAL? ,PRSO ,PLAYER> <TELL-YOURSELF-A> <RTRUE>)> <RFALSE>>
 <ROUTINE TELL-BLOCK () <TELL-BLOCK-A> <RTRUE>>
 <ROUTINE ANSWER-BLOCK () <ANSWER-BLOCK-A> <RTRUE>>
+<ROUTINE ATTACK-BLOCK () <ATTACK-BLOCK-A> <RTRUE>>                 ;"check: stops"
+;"Inform's reply names the verb: sit down on, stand on, or enter."
+<ROUTINE ENTER-NOT-ENTERABLE ()
+    <COND (<EQUAL? <WORD-AT 1> ,W?SIT> <ENTER-NOT-ENTERABLE-B>)
+          (<EQUAL? <WORD-AT 1> ,W?STAND> <ENTER-NOT-ENTERABLE-C>)
+          (ELSE <ENTER-NOT-ENTERABLE-A>)>
+    <RTRUE>>
 
 <ROUTINE SCORE-ANNOUNCE ()             ;"the announce the score rule"
     <PARA-FLUSH>

@@ -222,6 +222,22 @@ ACTIONS: tuple[StandardAction, ...] = (
                     "shout [text] to [someone]", "speak [text] to [someone]"), {"check": (
         R("block answering rule", "ANSWER-BLOCK", (("A", "There is no reply."),)),)},
         topic=True),
+    # Words and replies as the real library gives them (checked against Cold
+    # Iron, built by Inform 7). I7-lite has no enterable things, so entering is
+    # always refused; Inform's one response adapts to the verb, here A/B/C.
+    StandardAction("attacking", 1,
+                   ("attack [something]", "break [something]", "smash [something]",
+                    "hit [something]", "punch [something]", "destroy [something]",
+                    "thump [something]"), {"check": (
+        R("block attacking rule", "ATTACK-BLOCK",
+          (("A", "Violence isn't the answer to this one."),)),)}),
+    StandardAction("entering", 1,
+                   ("enter [something]", "get in/into/on/onto [something]",
+                    "sit on/in/inside [something]", "stand on [something]"), {"check": (
+        R("can't enter what's not enterable rule", "ENTER-NOT-ENTERABLE",
+          (("A", "That's not something you can enter."),
+           ("B", "That's not something you can sit down on."),
+           ("C", "That's not something you can stand on."))),)}),
     StandardAction("waiting", 0, ("wait", "z"), {"report": (
         R("standard report waiting rule", "WAIT-REPORT", (("A", "Time passes."),)),)}),
     StandardAction("requesting the score", 0, ("score",),

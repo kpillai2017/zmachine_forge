@@ -730,16 +730,22 @@ class ModelBuilder:
         """'fixed in place', 'scenery and fixed in place': adjectives only?"""
         table = {**ADJECTIVES, **self.m.either_or}
         chunks = [c.strip().lower() for c in re.split(r",\s*|\s+and\s+", text) if c.strip()]
-        return bool(chunks) and all(c in table or c in NAMING for c in chunks)
+        return bool(chunks) and all(c in table or c in NAMING
+                                    or (c.startswith("not ") and c[4:].strip() in table)
+                                    for c in chunks)
 
     def apply_adjective(self, obj: Obj, adj: str) -> bool:
         if adj in NAMING:
             obj.private = adj == "privately-named"
             return True
         table = {**ADJECTIVES, **self.m.either_or}
+        negated = adj.startswith("not ") and adj[4:].strip() in table
+        if negated:                                     # 'The oak is not worded.'
+            adj = adj[4:].strip()
         if adj not in table:
             return False
         flag, value = table[adj]
+        value = value != negated
         (obj.flags if value else obj.unflags).add(flag)
         (obj.unflags if value else obj.flags).discard(flag)
         return True
@@ -801,6 +807,17 @@ class ModelBuilder:
         if owner in self.m.kinds:
             self.m.property_owners[prop] = owner
 
+    def thing_value_property(self, s, m):
+        """Forest1 has a number called the counter.  (a property of one thing;
+        'The counter is 1.' next gives its value)"""
+        obj = self.m.find(m.group(1).strip()) or self.m.find(strip_article(m.group(1)))
+        if obj is None:
+            return False                                # not a thing: let others try
+        prop, kind = strip_article(m.group(3)).lower(), m.group(2).lower()
+        self.m.value_properties.setdefault(prop, kind)
+        obj.values.setdefault(prop, {"number": "0", "text": '""'}.get(kind, "false"))
+        self.last_own_property = (obj, prop)
+
     def variable(self, s, m):
         """The trample count is a number that varies."""
         name = strip_article(m.group(1)).lower()
@@ -811,6 +828,10 @@ class ModelBuilder:
         name = strip_article(m.group(1)).lower()
         if name in self.m.variables:
             self.m.variables[name].initial = m.group(2).strip()
+            return True
+        own = getattr(self, "last_own_property", None)
+        if own and own[1] == name:                      # 'Forest1 has a number called
+            own[0].values[name] = m.group(2).strip()    # the counter. The counter is 1.'
             return True
         return False
 
@@ -852,6 +873,21 @@ class ModelBuilder:
         if action:
             for w in words:
                 action.grammar.append((w + (REVERSED if reversed_ else ""), s.where))
+            return
+        # Understand "help" as a mistake ("..."): a command that only says the
+        # text. Each such line is an action of its own, out of world (no turn
+        # passes), whose carry out rule says the text.
+        mistake = re.match(r'^a mistake \((".*")\)$', target, re.I | re.S)
+        if mistake:
+            name = f"mistake {sum(a.startswith('mistake ') for a in self.m.actions) + 1}"
+            tokens = len(re.findall(r"\[", " ".join(words)))
+            action = Action(name, min(tokens, 2), None, out_of_world=True)
+            action.grammar.extend((w, s.where) for w in words)
+            self.m.actions[name] = action
+            self.m.rules.append(Rule("carry out", name,
+                                     [BodyLine(f"say {mistake.group(1)}", s.where, 1)],
+                                     s.where, len(self.m.rules) + 1,
+                                     heading=f"Understand ... as a mistake (line {s.where.line})"))
             return
         # Understand "wreath" as the branches when the branches are woven: words
         # that name the thing only while the condition holds.
@@ -984,6 +1020,8 @@ class ModelBuilder:
         (r"^(an? .+?|.+?) can be (.+)$", either_or),
         (r"^((?:an?|every) .+?) (?:has|have) an? (number|text|truth state) called (.+)$",
          value_property),
+        (r"^(.+?) (?:has|have) an? (number|text|truth state) called (.+)$",
+         thing_value_property),
         (r"^understand (.+?) as (.+)$", understand),
         (r"^the player (carries|wears) (.+)$", possession),
         (r"^(in|on) (.+?) (?:is|are) an? (.+?) called (.+)$", placed_called),
