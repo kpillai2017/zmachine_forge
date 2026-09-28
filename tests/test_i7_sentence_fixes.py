@@ -236,3 +236,17 @@ def test_a_one_line_rule_can_follow_another_sentence_on_its_line():
                  'Carry out counting: say "Turns: [count]."',
                  ["wait", "take lamp", "count"])
     assert "Too hot." in out and "Turns: 2." in out
+
+
+# ------------------------------------ 11. 'if X, say "..." instead' stops only when X holds
+def test_a_one_line_if_with_instead_stops_only_when_true():
+    # The stopping was compiled outside the 'if', so the rule always stopped
+    # there and the lines after it never ran.
+    out = played('The Hall is a room. The box is in the Hall. The box can be seen.\n'
+                 'Before examining the box:\n'
+                 '\tif the box is not seen, say "Not seen." instead;\n'
+                 '\tsay "Seen." instead.\n'
+                 'Jumping is an action applying to nothing. Understand "jump" as jumping.\n'
+                 'Carry out jumping: now the box is seen; say "Marked."',
+                 ["x box", "jump", "x box"])
+    assert out.count("Not seen.") == 1 and "Seen." in out.split("Marked.")[1]

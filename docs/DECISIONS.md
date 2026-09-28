@@ -876,3 +876,16 @@ the start of a line.
 **Consequences.** A name containing "and" in such a sentence must use
 `called`, as in Inform. The five I7 examples build byte-identical.
 Tests: tests/test_i7_sentence_fixes.py sections 9-10.
+
+## ADR-044: 'if X, <phrase> instead' stops only when X holds
+
+**Context.** In a rule, `if the box is not seen, say "Not seen." instead;`
+was compiled with the stopping outside the `if`, so the rule always stopped
+at that line and the lines after it never ran, with no warning.
+
+**Decision.** The one-line `if X, <phrase>` form is recognised before a
+trailing `instead`, so the `instead` belongs to the branch, as in Inform 7.
+
+**Consequences.** None of the examples used the form, so all build
+byte-identical. Test: tests/test_i7_sentence_fixes.py section 11.
+Found while adding the Rooted Room's inscription reply to Bronze.

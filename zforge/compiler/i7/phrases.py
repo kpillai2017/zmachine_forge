@@ -657,13 +657,15 @@ class PhraseLowerer:
         """Translate one Inform 7 phrase into zero or more ZIL-lite statements."""
         t = text.strip()
         low = t.lower()
-        # 'say "..." instead' / 'try looking instead': do it, then stop the action
-        if low.endswith(" instead") and not low.startswith("instead"):
-            return self.phrase(t[:-len(" instead")], where) + ["<RTRUE>"]
+        # 'if X, <phrase>' comes first, so that in 'if X, say "..." instead'
+        # the stopping belongs to the branch: it stops only when X holds.
         m = re.match(r"^if (.+?), (.+)$", t, re.I)             # if X, <phrase>
         if m and not t.endswith(":"):
             return [f"<COND ({self.condition(m.group(1), where)} "
                     f"{' '.join(self.phrase(m.group(2), where))})>"]
+        # 'say "..." instead' / 'try looking instead': do it, then stop the action
+        if low.endswith(" instead") and not low.startswith("instead"):
+            return self.phrase(t[:-len(" instead")], where) + ["<RTRUE>"]
         if low.startswith("say "):
             return self.say(t[4:].strip(), where)
         if low in ("decide yes", "decide no"):          # a 'To decide whether' answer
