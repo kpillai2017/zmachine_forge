@@ -28,6 +28,10 @@ RULE_START = re.compile(
     r"(when play begins|when play ends|every turn|instead of|before|after|check|"
     r"carry out|report|rule for |to |this is the )", re.IGNORECASE)
 
+# 'Definition: a thing is mentionable:' - a definition with lines below (a
+# one-line definition, 'Definition: ... if ...', is an ordinary sentence)
+DEFINITION_BLOCK = re.compile(r"^definition:.*:\s*$", re.IGNORECASE)
+
 
 @dataclass
 class BodyLine:
@@ -255,6 +259,10 @@ def read_sentences(source: str) -> list[Sentence]:
         colon = colon_outside_quotes(text)
         comma = comma_outside_quotes(text)
         body_from = i + 1
+        if DEFINITION_BLOCK.match(text):
+            # 'Definition: a thing is mentionable:' - a body of yes/no lines follows
+            i = read_rule(lines, i, text, len(text.rstrip()) - 1, where, out, body_from)
+            continue
         if RULE_START.match(text) and (
                 colon < 0 and (comma < 0 or text.lower().startswith("to "))
                 or comma >= 0 and colon < 0 and not text[comma + 1:].strip()):
@@ -273,7 +281,8 @@ def read_sentences(source: str) -> list[Sentence]:
         # an assertion paragraph: gather lines up to a blank line or a rule
         chunk, first = [raw], i
         i += 1
-        while i < len(lines) and lines[i].strip() and not RULE_START.match(lines[i].strip()):
+        while (i < len(lines) and lines[i].strip() and not RULE_START.match(lines[i].strip())
+               and not DEFINITION_BLOCK.match(lines[i].strip())):
             chunk.append(lines[i])
             i += 1
         for s in split_sentences("\n".join(chunk), Location(line_no(first), 1), first):

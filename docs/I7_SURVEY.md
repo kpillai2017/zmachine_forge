@@ -178,3 +178,29 @@ I7_LITE.md section 9). With them, an I7-lite port of Advent's opening
 matches the real game exactly (eval `i7-advent-differential`). Advent as a
 whole still cannot be compiled: it also uses activities, action variables,
 kinds of action and its own rulebooks.
+
+## Cold Iron's remaining problems (after ADR-050)
+
+Cold Iron now gives 59 problems (79 before "with nouns reversed" and
+Definitions). Grouped by what is missing - a problem can hide others
+behind it, so fixing a group may show new ones:
+
+| What is missing | Problems | Size |
+|---|---|---|
+| A sentence ending in a semicolon at the end of a paragraph (`...[end if]";`), read as a list of properties | 17 (2 sentences) | tiny |
+| Understand ... when a condition holds (`Understand "wreath" as the branches when the branches are woven.`) | 9 | medium |
+| A property for one object (`Forest1 has a number called the counter.`), and its value | 5 | small |
+| Activities the author makes (`Forest-running is an activity.`, `For forest-running: ...`) | 4 | medium |
+| Standard actions missing: entering, attacking | 3 | small |
+| Understand ... as a mistake (`... as a mistake ("Try GO TO.")`) | 3 | small |
+| Does the player mean ... (`it is likely`) | 3 | medium |
+| Persuasion rules (`Persuasion rule for asking the oak to try ...`) | 2 | medium |
+| Parts (`The shadow is part of the knife.`) | 2 | medium |
+| A time of day (`The time of the watch is 12:00 AM.`) | 2 | medium |
+| Inform 6 inclusions `(- ... -)` | 2 | not planned |
+| Someone other than the player wearing something (`The guy wears the hat.`) | 1 | small |
+| A printed name with substitutions | 1 | small |
+| Backdrops; regions | 1 + 1 | medium each |
+| The printing a locale paragraph about activity | 1 | medium |
+| Understand ... as a kind (`... as a tale`) | 1 | medium |
+| `The oak is not worded.` (not yet looked into) | 1 | ? |

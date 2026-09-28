@@ -134,3 +134,12 @@ line follows the "book:" label on the same line. (ADR-038)
   check is skipped.
 - **Comparison with dfrotz**, a well-known interpreter, runs only if you
   have it installed.
+
+- **The player does not get a kind's "usually" values.** The player is an
+  object of the runtime library, not of the story, so `The scent of a thing
+  is usually "nothing".` gives every thing a scent but the player: the
+  player's scent is no text, and printing it prints nothing. (ADR-050)
+- **A text ending in punctuation and a space** (`say "goable. "`) ends the
+  line, as if it ended with the punctuation. Real Inform, I believe, only
+  ends the line when the last character is `.`, `!` or `?`; not yet checked
+  against a real game.

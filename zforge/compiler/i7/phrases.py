@@ -79,6 +79,11 @@ class ParamPhrase:
     preamble: str
 
 
+def definition_routine(adjective: str) -> str:
+    """The routine that says whether something is ADJECTIVE (a 'Definition:')."""
+    return "DEF-" + re.sub(r"[^A-Z0-9]+", "-", adjective.upper()).strip("-")
+
+
 def entry_routine(column: str) -> str:
     """'reply' -> ENTRY-REPLY: prints the reply entry of the row a topic was found in."""
     return "ENTRY-" + re.sub(r"[^A-Z0-9]+", "-", column.upper()).strip("-")
@@ -203,7 +208,8 @@ class PhraseLowerer:
         words = m.group(2).split()
         for n in range(1, len(words)):
             adjective, noun = " ".join(words[:n]).lower(), " ".join(words[n:])
-            known = adjective in ADJECTIVES or adjective in self.L.m.either_or
+            known = (adjective in ADJECTIVES or adjective in self.L.m.either_or
+                     or adjective in self.L.m.definitions)
             if known and self.L.m.find(noun):
                 article = m.group(1) or ""
                 return (f"{article}{noun} {m.group(3)} {adjective} and "
@@ -330,6 +336,8 @@ class PhraseLowerer:
     def is_test(self, subject: str, what: str, where: Location, whole: str) -> str:
         """'X is lit', 'X is a container', 'X is the Foyer', 'X is 3'."""
         adj = what.lower().strip()
+        if adj in self.L.m.definitions:                 # defined by 'Definition:'
+            return f"<{definition_routine(adj)} {self.value(subject, where)}>"
         table = {**ADJECTIVES, **self.L.m.either_or}
         if adj in table:
             flag, value = table[adj]
@@ -338,7 +346,25 @@ class PhraseLowerer:
         kind = strip_article(adj)
         if what.lower().startswith(("a ", "an ")) and kind in KIND_FLAGS:
             return f"<FSET? {self.value(subject, where)} ,{KIND_FLAGS[kind]}>"
+        if what.strip().startswith('"'):                 # 'the scent of it is "nothing"'
+            return self.text_is(subject, what.strip(), where)
         return f"<EQUAL? {self.value(subject, where)} {self.value(what, where)}>"
+
+    def text_is(self, subject: str, quoted: str, where: Location) -> str:
+        """SUBJECT is the text QUOTED. A text value is a string (set by 'now') or,
+        for a property's plain text, the one routine for its wording: either may
+        match. (A text with substitutions is its own routine, equal only to itself.)"""
+        try:
+            parts = parse_text(quoted).parts
+        except TextError as e:
+            return self.problem(where, quoted, f"the text is malformed: {e}.")
+        if not all(isinstance(p, Literal) for p in parts):
+            return self.problem(where, quoted, "I7-lite can compare a text only with a text "
+                                "without substitutions.")
+        wording = "".join(p.text for p in parts)
+        routine = self.L.plain_text(wording)
+        values = [self.value(quoted, where)] + ([f",{routine}"] if routine else [])
+        return f"<EQUAL? {self.value(subject, where)} {' '.join(values)}>"
 
     # ------------------------------------------------------------ actions
     def action_pattern(self, preamble: str, where: Location) -> ActionPattern | None:
@@ -501,7 +527,42 @@ class PhraseLowerer:
         kind = strip_article(n)
         if n.startswith(("a ", "an ")) and kind in KIND_FLAGS:
             return f"<FSET? {global_name} ,{KIND_FLAGS[kind]}>"
+        described = self.described(global_name, n, where)
+        if described is not None:
+            return described
         return f"<EQUAL? {global_name} {self.value(noun, where)}>"
+
+    def adjective_test(self, global_name: str, adjective: str) -> str | None:
+        """The test that the object in GLOBAL_NAME is ADJECTIVE, or None."""
+        if adjective in self.L.m.definitions:
+            return f"<{definition_routine(adjective)} {global_name}>"
+        table = {**ADJECTIVES, **self.L.m.either_or}
+        if adjective in table:
+            flag, value = table[adjective]
+            test = f"<FSET? {global_name} ,{flag}>"
+            return test if value else f"<NOT {test}>"
+        return None
+
+    def described(self, global_name: str, n: str, where: Location) -> str | None:
+        """'something scented', 'a scented thing', 'an open container': adjectives
+        and a kind. None if N is not such a description (e.g. it names a thing)."""
+        if self.L.m.find(n):
+            return None
+        words = n.split()
+        if words and words[0] in ("something", "anything", "someone"):
+            adjectives, kind = words[1:], ("person" if words[0] == "someone" else "thing")
+        elif words and words[0] in ("a", "an") and len(words) > 2:
+            adjectives, kind = words[1:-1], words[-1]
+        else:
+            return None
+        tests = [self.adjective_test(global_name, a) for a in adjectives]
+        if not adjectives or None in tests:
+            return None
+        if kind in KIND_FLAGS:
+            tests.append(f"<FSET? {global_name} ,{KIND_FLAGS[kind]}>")
+        elif kind not in ("thing", "person"):
+            return None
+        return self.all_of(tests)
 
     @staticmethod
     def activity_atom(name: str) -> str | None:
@@ -755,8 +816,8 @@ class PhraseLowerer:
             return self.phrase(t[:-len(" instead")], where) + ["<RTRUE>"]
         if low.startswith("say "):
             return self.say(t[4:].strip(), where)
-        if low in ("decide yes", "decide no"):          # a 'To decide whether' answer
-            return ["<RTRUE>" if low == "decide yes" else "<RFALSE>"]
+        if low in ("decide yes", "decide no", "yes", "no"):   # a 'To decide whether' (or
+            return ["<RTRUE>" if low.endswith("yes") else "<RFALSE>"]   # definition's) answer
         m = re.match(r"^let (.+?) be (.+)$", t, re.I)
         if m:
             return [self.let(m.group(1), m.group(2), where)]
@@ -865,8 +926,33 @@ class PhraseLowerer:
                 return f"<{'FSET' if on else 'FCLEAR'} {self.value(subject, where)} ,{flag}>"
             target = self.value(subject, where)
             if target.startswith((",", "<GETP ")):
-                return self.assign(target, self.value(m.group(3), where), where, text)
+                new = m.group(3).strip()             # a property's text is a routine
+                value = (self.text_value(new, where)   # (a text variable's, a string)
+                         if new.startswith('"') and target.startswith("<GETP ")
+                         else self.value(new, where))
+                return self.assign(target, value, where, text)
         return self.problem(where, text, "I7-lite cannot make this true with 'now'.")
+
+    def text_value(self, quoted: str, where: Location) -> str:
+        """A text as a value, to store: a routine that prints it, like a property's
+        text (the same one for the same plain wording) - or 0 for "", no text."""
+        if quoted == '""':
+            return "0"
+        try:
+            text = parse_text(quoted)
+        except TextError as e:
+            return self.problem(where, quoted, f"the text is malformed: {e}.")
+        before = len(self.L.routines)
+        routine = self.L.text_routine("TEXT", text, f"a text set at line {where.line}",
+                                      where, share=True)
+        if len(self.L.routines) > before:               # a new routine: can it run later?
+            used = [n for n, (local, _) in self.bindings.items()
+                    if re.search(re.escape(local) + r"(?![\w?-])", self.L.routines[-1])]
+            if used:
+                self.L.routines.pop()
+                return self.problem(where, quoted, f"this text uses '{used[0]}', a name that "
+                                    "only exists while this rule runs, so it cannot be stored.")
+        return f",{routine}"
 
     def assign(self, target: str, new: str, where: Location, wrote: str) -> str:
         """Store into a variable (,X -> SETG) or a property (GETP -> PUTP)."""

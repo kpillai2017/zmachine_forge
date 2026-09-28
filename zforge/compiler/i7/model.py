@@ -151,6 +151,19 @@ class PhraseDef:
 
 
 @dataclass
+class Definition:
+    """'Definition: a thing is goable if it is scenery or it is fixed in place.'
+    An adjective worked out when asked: for things of a kind, or for one object."""
+    adjective: str              # "goable"
+    subject: str                # "thing" (a kind), or "the axehead" (one object)
+    called: str | None          # 'a direction (called thataway)': another name for it
+    condition: str | None       # the condition after 'if' - or None, and a body
+    body: list[BodyLine]        # 'Definition: a thing is mentionable:' and lines of yes/no
+    where: Location
+    negated: bool = False       # the 'rather than' adjective: true when the other is not
+
+
+@dataclass
 class Table:
     """A topic table ('Table of Notes'): a topic column and text columns,
     for 'a topic listed in the Table of Notes' and '[reply entry]'."""
@@ -180,6 +193,7 @@ class WorldModel:
     phrases: list[PhraseDef] = field(default_factory=list)
     either_or: dict[str, tuple[str, bool]] = field(default_factory=dict)  # adj -> (flag, value)
     tables: dict[str, Table] = field(default_factory=dict)   # 'table of notes' -> table
+    definitions: dict[str, list[Definition]] = field(default_factory=dict)
     either_or_where: dict[str, tuple] = field(default_factory=dict)  # flag -> (where, sentence)
     value_properties: dict[str, str] = field(default_factory=dict)        # name -> kind
     direction_words: dict[str, list[str]] = field(default_factory=dict)  # 'north' -> ['plugh']
@@ -309,17 +323,49 @@ class ModelBuilder:
         for s in sentences:                          # pass 1: names (and tables)
             if s.table:
                 self.table(s)
+            elif s.text.lower().startswith("definition:"):
+                continue                             # an adjective: see pass 2
             elif not s.is_rule:
                 self.declare_names(s)
         self.last_object = self.last_room = None
         for i, s in enumerate(sentences):            # pass 2: meaning
             if s.table:
                 continue
-            if s.is_rule:
+            if s.text.lower().startswith("definition:"):
+                self.definition(s)
+            elif s.is_rule:
                 self.rule(s)
             else:
                 self.assertion(s, first=(i == 0))
         return self.m
+
+    DEFINITION = re.compile(r"^definition: *(?:a |an |the )?(.+?)(?: \(called ([^)]+)\))? "
+                            r"(?:is|are) ([a-z][a-z-]*)(?: rather than ([a-z][a-z-]*))?"
+                            r"(?: if (.+))?$", re.I | re.S)
+
+    def definition(self, s: Sentence) -> None:
+        """'Definition: a thing is heavy if its weight is greater than 5.', or
+        'Definition: a thing is mentionable:' with lines that say yes or no."""
+        text = s.text.rstrip().rstrip(":" if s.is_rule else ".")
+        m = self.DEFINITION.match(" ".join(text.split()))
+        if not m or (m.group(5) is None) == (not s.is_rule):
+            self.p.problem(s.where, s.text, "a definition is written 'Definition: a thing is "
+                           "heavy if ...', or ends with a colon and lines that say yes or no.")
+            return
+        subject, called, adjective, opposite, condition = m.groups()
+        adjective = adjective.lower()
+        for adj in (adjective, opposite and opposite.lower()):
+            if adj and (adj in ADJECTIVES or adj in self.m.either_or):
+                self.p.problem(s.where, s.text, f"'{adj}' is already an adjective here "
+                               "(something can be it or not), so it cannot be defined.")
+                return
+        body = s.body if s.is_rule else []
+        self.m.definitions.setdefault(adjective, []).append(
+            Definition(adjective, subject.strip(), called, condition, body, s.where))
+        if opposite:
+            self.m.definitions.setdefault(opposite.lower(), []).append(
+                Definition(opposite.lower(), subject.strip(), called, condition, body,
+                           s.where, negated=True))
 
     def table(self, s: Sentence) -> None:
         """A table: I7-lite has topic tables - a 'topic' column, and columns of

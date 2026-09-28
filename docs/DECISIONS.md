@@ -1025,3 +1025,38 @@ problem).
 **Consequences.** Cold Iron: 79 problems to 77; the original Bronze: 665
 to 657. A reversed line cannot take several things (`[things]`) in its
 first slot. Tests: tests/test_i7_topics.py.
+
+## ADR-050: Definitions; texts compared by their words
+
+**Context.** Real sources define adjectives with `Definition:` (Cold Iron
+five times, the original Bronze a dozen), and many of them compare texts:
+`Definition: a thing is scented if the scent of it is not "nothing"`. In
+I7-lite a text compared by its address, so that was always true; and a
+text set with `now` was stored as a string where a routine was expected,
+so printing it later stopped the game.
+
+**Decision.**
+- Each defined adjective becomes a routine `DEF-<ADJECTIVE> (IT)`. Its
+  definitions are tried in order: one for IT's kind, or for IT itself,
+  decides; an object none is for is not so. A definition's condition or
+  body is compiled with "it" (and "they", "them", a `(called ...)` name)
+  bound to IT. A body's `yes` and `no` answer. A kind's test is its flag,
+  ROOMBIT for a room, not ROOMBIT for a thing; a kind the author made is
+  the list of its members, known when compiling (a kind never changes).
+- A defined adjective is tested where either/or properties are, and rule
+  preambles now accept adjectives of both sorts: `something scented`,
+  `a scented thing`, `an open container`.
+- A plain text given to a property (no substitutions) has one routine for
+  its wording, shared, and `now` stores a property's text the same way. So
+  two texts with the same words are the same value, and `X is "words"`
+  compares X with that routine and with the string (a text variable's
+  value is a string, as before). Texts with substitutions are compared
+  only with `""`.
+
+**Consequences.** Every I7 story with repeated plain texts builds smaller
+(Bronze by 2.7 KB); Glasshouse and Bronze play their walkthroughs with the
+same transcript, and the ZIL golden builds are unchanged. Cold Iron went
+from 77 problems to 59, the original Bronze from 657 to 495. The player is
+an object of the library, so it does not get a kind's `usually` values:
+"a thing is scented" is true of the player when the scent is only given
+as a default (see KNOWN_GAPS).

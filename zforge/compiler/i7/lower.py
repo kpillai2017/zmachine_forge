@@ -10,12 +10,12 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 
-from zforge.compiler.i7.model import DICT_WORD, REVERSED, Obj, Rule, WorldModel
-from zforge.compiler.i7.phrases import PhraseLowerer, entry_routine
+from zforge.compiler.i7.model import DICT_WORD, REVERSED, Obj, Rule, WorldModel, strip_article
+from zforge.compiler.i7.phrases import KIND_FLAGS, definition_routine, PhraseLowerer, entry_routine
 from zforge.compiler.i7.problems import Location, Problems
 from zforge.compiler.i7.standard import ACTIVITIES, DIRECTIONS, INTERNAL_RULES, LIBRARY_RULES, \
     STAGES, TESTING_ACTIONS, zil_name, zil_string
-from zforge.compiler.i7.text import parse_text
+from zforge.compiler.i7.text import Literal, parse_text
 
 # ZIL names the library already uses: generated names must not clash
 RESERVED = {"PLAYER", "HERE", "LIT", "PRSA", "PRSO", "PRSI", "GO", "SCORE", "TURN-COUNT",
@@ -94,6 +94,7 @@ class Lowerer:
             if o.name != "yourself":
                 self.atom[o.name] = self.names.new(o.name)
         self.var_atom = {v: self.names.new(v) for v in m.variables}
+        self.plain_texts: dict[str, str] = {}          # wording -> routine (text_routine)
         self.action_atom = {a: zil_name(a) for a in m.actions}
         self.phrases.declare(m.phrases)
         # Emit sections: header, directions, objects, variables, rules, actions, activities.
@@ -105,6 +106,7 @@ class Lowerer:
                       + " ".join("," + a for a in self.atom.values()) + ">>", "")
         self.variables()
         self.tables()
+        self.definitions()
         self.rules()
         self.actions()
         self.activities()
@@ -210,7 +212,7 @@ class Lowerer:
         # the property holds the routine.
         for prop, text in self.texts_of(o).items():
             routine = self.text_routine(f"{atom}-{zil_name(prop)}", text,
-                                        f"the {prop} of {o.name}", o.where)
+                                        f"the {prop} of {o.name}", o.where, share=True)
             lines.append(f"    ({zil_name(prop)} ,{routine})")
         # Value properties: 'The weight of the rock is 5.'
         for prop, value in o.values.items():
@@ -279,13 +281,28 @@ class Lowerer:
             flags.add("PROPERBIT")
         return flags
 
-    def text_routine(self, base: str, text, what: str, where: Location | None = None) -> str:
+    def text_routine(self, base: str, text, what: str, where: Location | None = None,
+                     share: bool = False) -> str:
         """Turn one text into a routine that prints it; return the routine's name.
-        Texts are routines because substitutions like [if ...] must run when printed."""
+        Texts are routines because substitutions like [if ...] must run when printed.
+        With SHARE, a plain text (no substitutions) has one routine for its wording,
+        so two texts with the same words are the same value: 'if the scent of the
+        lamp is "nothing"' compares them (see plain_text)."""
+        plain = share and text.parts and all(isinstance(p, Literal) for p in text.parts)
+        if plain:
+            wording = "".join(p.text for p in text.parts)
+            if wording in self.plain_texts:
+                return self.plain_texts[wording]
         name = self.names.new(base)
+        if plain:
+            self.plain_texts[wording] = name
         body = self.phrases.tell(text, sentence_break=False, where=where)
         self.routines.append(f'<ROUTINE {name} ()   ;"{what}"\n    {body}>')
         return name
+
+    def plain_text(self, wording: str) -> str | None:
+        """The routine a property's plain text with this WORDING became, if any."""
+        return self.plain_texts.get(wording)
 
     def names_prop(self, name: str) -> str:
         """A value property's ZIL name: 'weight' -> WEIGHT."""
@@ -611,6 +628,63 @@ class Lowerer:
                 "docs/I7_LITE.md; the author's own are named with '(this is the ... rule)'.)")
 
     # ------------------------------------------------------------ responses
+    def definitions(self) -> None:
+        """Each adjective defined by 'Definition:' becomes a routine DEF-<ADJECTIVE>
+        (IT): true if IT is so. Its definitions are tried in order: one for IT's
+        kind (or for IT itself) decides; an object none is for is not so."""
+        ph = self.phrases
+        for adjective, definitions in self.m.definitions.items():
+            routine, clauses = definition_routine(adjective), []
+            for n, d in enumerate(definitions, 1):
+                ph.bindings = {name: (".IT", "thing") for name in ("it", "they", "them", "itself")}
+                if d.called:
+                    ph.bindings[d.called.strip().lower()] = (".IT", "thing")
+                kind = strip_article(d.subject).lower()
+                if kind in self.m.kinds or kind == "object":
+                    guard = self.kind_guard(kind, d)
+                elif self.m.find(d.subject):
+                    guard = f"<EQUAL? .IT {ph.value(d.subject, d.where)}>"
+                else:
+                    self.p.problem(d.where, f"Definition: {d.subject} is {adjective}",
+                                   f"'{d.subject}' is neither a kind nor a thing I know.")
+                    continue
+                if d.condition is not None:
+                    test = ph.condition(d.condition, d.where)
+                else:                               # lines that say yes or no
+                    part = f"{routine}-{n}"
+                    lines = ph.body(d.body)
+                    locals_ = ph.locals_list(["IT"], ph.take_aux())
+                    self.routines.append("\n".join(
+                        [f'<ROUTINE {part} ({locals_})   ;"Definition: {d.subject} is '
+                         f'{adjective} (line {d.where.line})"']
+                        + ["    " + line for line in lines] + ["    <RFALSE>>"]))
+                    test = f"<{part} .IT>"
+                ph.bindings = {}
+                if d.negated:
+                    test = f"<NOT {test}>"
+                clauses += ([f"(<AND {guard} {test}> <RTRUE>)", f"({guard} <RFALSE>)"] if guard
+                            else [f"({test} <RTRUE>)", "(T <RFALSE>)"])
+            self.routines.append(f'<ROUTINE {routine} (IT)   ;"is IT {adjective}? (Definition:)"\n'
+                                 f"    <COND {' '.join(clauses)}>\n    <RFALSE>>")
+
+    def kind_guard(self, kind: str, d) -> str:
+        """The test that IT is of KIND, for a definition. A thing's kind never
+        changes, so a kind the author made is its members, listed here."""
+        if kind == "object":
+            return ""
+        if kind == "thing":
+            return "<NOT <FSET? .IT ,ROOMBIT>>"         # rooms are not things
+        if kind == "room":
+            return "<FSET? .IT ,ROOMBIT>"
+        if kind in KIND_FLAGS:
+            return f"<FSET? .IT ,{KIND_FLAGS[kind]}>"
+        members = [o for o in self.m.objects.values()
+                   if any(k.name == kind for k in self.kind_chain(o))]
+        if not members:
+            return "<EQUAL? .IT -1>"                    # no such things: it never applies
+        return "<EQUAL? .IT " + " ".join(self.phrases.value(o.name, d.where)
+                                         for o in members) + ">"
+
     def tables(self) -> None:
         """Topic tables. 'A topic listed in the Table of Notes' is TABLE-n-FIND:
         it tries each row's topic in turn and remembers the first that fits

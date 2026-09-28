@@ -114,6 +114,29 @@ listing the ones that didn't fit. One number property can often replace
 several of them: `A room has a number called the wing.` instead of
 `A room can be central.`, `A room can be ancient.` and so on.
 
+**Definitions** (ADR-050) make an adjective that is worked out when it is
+used, rather than stored:
+
+    Definition: a thing is goable if it is scenery or it is fixed in place.
+    Definition: the lamp is glowing rather than dim if it is lit.
+    Definition: a room is high if it is the Attic.
+    Definition: a thing is mentionable:
+        if it is the player, no;
+        yes.
+
+The definition is for a kind (a thing, a room, a kind the author made) or
+for one object, and the thing is called "it" ("they" for plural things,
+or a name given with `(called ...)`). The same adjective can be defined for
+several objects (Bronze defines "solved" for each puzzle). "Rather than"
+names the opposite. A defined adjective works where an either/or property
+does: `if the lamp is glowing`, and in a rule's preamble,
+`Instead of sniffing something scented` or `... a scented thing`.
+
+**Texts compare by their words**: `if the scent of the noun is "nothing"`
+is true when the scent has those words, whether it was set in the source
+or by `now`. A text with substitutions (`"[if ...]..."`) can only be
+compared with `""` (no text).
+
 ## 4. Understanding the player
 
 | Sentence | Meaning | Step |
@@ -659,12 +682,12 @@ message that says so.
 
 ## Not supported (a problem message says so)
 
-Relations and relation verbs, tables, activities other than the six in
+Relations and relation verbs, tables other than topic tables, activities other than the six in
 section 10, editing the parser error internal rule's responses, texts
 given to a phrase that use the giver's own names, `To decide which/what`, Inform 6 inclusions `(- -)`,
 extensions (`Include`), `does nothing`, action variables, kinds of action
-(`... is attempting entry`), rulebooks the author makes, `Definition:`,
-backdrops, regions, scenes, kinds of value, `[text]` tokens, units,
+(`... is attempting entry`), rulebooks the author makes,
+backdrops, regions, scenes, kinds of value, units,
 lists, and any viewpoint other than second person present.
 
 ## Testing commands
