@@ -840,3 +840,18 @@ The new `MATCHES?` and its helper `PHRASE-AT` are inside `<IFFLAG (I7 ...)>` in
 byte-identical (the golden builds are unchanged). `<PROPDEF PHRASES 0>` is in
 the Inform 7 runtime. ZIL-lite now also adds a `W?word` used only in a
 property list to the dictionary, as it already did for one in code.
+
+## ADR-042: AGAIN (G) in Inform 7 games
+
+**Context.** Inform's AGAIN, or G, repeats the last command; the official
+*Bronze* walkthrough uses it, and I7-lite did not have it.
+
+**Decision.** In Inform 7 games the parser keeps a copy of each command typed
+at the prompt - its text buffer and its word buffer, whose word positions
+count from the start of the text buffer (§13.6.3), so the copies stay in step.
+A command that is just `again` or `g` puts the copy back and is parsed as if
+typed. As the real *Bronze* does: a command that failed is repeated too, AGAIN
+never repeats itself, and with nothing to repeat it says "You can hardly
+repeat that." and takes no turn. An answer to "Which do you mean" is not kept,
+so AGAIN repeats the whole command (and asks again). The code is inside
+`<IFFLAG (I7 ...)>` in `lib/parser.zil`, so ZIL games are unchanged.

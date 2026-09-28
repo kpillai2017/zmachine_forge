@@ -166,7 +166,10 @@ dropping, going, taking inventory, putting it on, inserting it into,
 wearing, taking off, waiting, requesting the score, saving the game,
 restoring the game, quitting the game; 7b: opening, closing, locking it
 with, unlocking it with, switching on, switching off. `read X` means
-examining X; `undo` is handled before actions, as in Inform 7.
+examining X; `undo` is handled before actions, as in Inform 7. `again`
+(or `g`) repeats the last command typed, even one that failed, and says
+"You can hardly repeat that." when there is none (checked against the real
+*Bronze*; ADR-042).
 
 New actions (7a):
 

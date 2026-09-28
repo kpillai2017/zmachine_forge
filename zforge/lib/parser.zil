@@ -94,7 +94,41 @@
 "------------------------------------------------------------ reading"
 
 <ROUTINE PARSER ()
-    <COND (<READ-COMMAND> <PARSE-COMMAND>)>>
+    <COND (<READ-COMMAND>
+           <IFFLAG (I7 <COND (<AGAIN-OR-KEEP> <PARSE-COMMAND>)>)
+                   (ELSE <PARSE-COMMAND>)>)>>
+
+<IFFLAG (I7
+;"Inform's AGAIN (or G): the last command typed at the prompt, typed again -
+  even one that failed. Its text and its words are kept here; an answer to
+  'Which do you mean' is not kept, so AGAIN repeats the whole command."
+<GLOBAL AGAIN-READBUF <ITABLE 80 (BYTE)>>
+<GLOBAL AGAIN-PARSEBUF <ITABLE 50 (BYTE)>>
+<GLOBAL P-CAN-AGAIN 0>          ;"true once a command has been kept"
+
+<ROUTINE AGAIN-OR-KEEP ()
+    ;"AGAIN or G alone: put back the kept command (false if there is none);
+      any other command is kept, for the next AGAIN"
+    <COND (<AND <EQUAL? ,P-LEN 1> <EQUAL? <WORD-AT 1> ,W?AGAIN ,W?G>>
+           <COND (<ZERO? ,P-CAN-AGAIN>
+                  <TELL "You can hardly repeat that." CR>
+                  <RFALSE>)>
+           <COPY-BYTES ,AGAIN-READBUF ,READBUF 80>
+           <COPY-BYTES ,AGAIN-PARSEBUF ,PARSEBUF 50>
+           <SETG P-LEN <GETB ,PARSEBUF 1>>)
+          (ELSE
+           <COPY-BYTES ,READBUF ,AGAIN-READBUF 80>
+           <COPY-BYTES ,PARSEBUF ,AGAIN-PARSEBUF 50>
+           <SETG P-CAN-AGAIN 1>)>
+    <RTRUE>>
+
+<ROUTINE COPY-BYTES (FROM TO N)
+    ;"the first N bytes of table FROM into table TO. The word buffer's
+      positions count from the start of the text buffer (§13.6.3), so the
+      two copies stay in step."
+    <DO (I 0 <- .N 1>)
+        <PUTB .TO .I <GETB .FROM .I>>>>
+) (ELSE)>
 
 <ROUTINE READ-COMMAND ()
     ;"read a line into READBUF and tokenise it into PARSEBUF; false if empty"
