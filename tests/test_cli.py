@@ -51,3 +51,26 @@ def test_output_piped_into_head_does_not_crash(tmp_path):
     proc.wait(timeout=30)
     assert "Traceback" not in err and "Exception ignored" not in err, err
     assert proc.returncode == 0
+
+
+def test_compile_makes_the_output_folder(tmp_path, capsys):
+    # A fresh copy has no build/ folder; `-o build/game.z8` used to fail with
+    # a traceback. All three build commands now make the folder.
+    for cmd, src, out in [("compile", "examples/cloak.ni", "a/b/cloak.z8"),
+                          ("compile", "examples/cloak.zil", "c/cloak.z5"),
+                          ("asm", "tests/samples/hello.zas", "d/e/hello.z5")]:
+        assert main([cmd, str(ROOT / src), "-o", str(tmp_path / out)]) == 0
+        assert (tmp_path / out).exists()
+
+
+def test_a_file_that_cannot_be_written_is_a_plain_error(tmp_path, capsys):
+    story = tmp_path / "hello.z5"
+    main(["asm", str(ROOT / "tests/samples/hello.zas"), "-o", str(story)])
+    capsys.readouterr()
+    blocker = tmp_path / "not_a_folder"
+    blocker.write_text("a file, where a folder is needed")
+    status = main(["run", str(story), "--ui", "plain",
+                   "--transcript", str(blocker / "log.txt")])
+    err = capsys.readouterr().err
+    assert status == 1 and "Traceback" not in err
+    assert err.startswith("zforge: ") and "log.txt" in err

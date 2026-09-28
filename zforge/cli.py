@@ -128,7 +128,7 @@ def cmd_compile(args) -> int:
     # each step of the compiler can be looked at.
     origin = target.origin if target else "the source"
     out = Path(args.output) if args.output else src.with_suffix(f".z{result.version}")
-    out.write_bytes(result.story)
+    write_output(out, result.story)
     extras = []
     if args.emit_asm:
         out.with_suffix(".zas").write_text(result.assembly)
@@ -155,7 +155,7 @@ def compile_inform7(args, src: Path, target) -> int:
                         testing=args.testing)
     origin = target.origin if target else f"the I7-lite default (z{DEFAULT_TARGET})"
     out = Path(args.output) if args.output else src.with_suffix(f".z{result.version}")
-    out.write_bytes(result.story)
+    write_output(out, result.story)
     extras = []
     if args.emit_zil:
         out.with_suffix(".zil").write_text(result.zil)
@@ -181,7 +181,7 @@ def cmd_asm(args) -> int:
     target = resolve_target(args.target, DEFAULT_VERSION)
     story = assemble(src.read_text(), str(src), target.version)
     out = Path(args.output) if args.output else src.with_suffix(f".z{target.version}")
-    out.write_bytes(story)
+    write_output(out, story)
     print(f"assembled {src} -> {out}  ({len(story)} bytes, {target.describe()})")
     return 0
 
@@ -298,6 +298,13 @@ def build_parser() -> argparse.ArgumentParser:
     return p
 
 
+def write_output(out: Path, data: bytes) -> None:
+    """Write a built story file, first making its folder if need be, so that
+    `-o build/game.z8` works in a fresh copy that has no build/ folder yet."""
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_bytes(data)
+
+
 def main(argv: list[str] | None = None) -> int:
     """Run one zforge command and return its exit status.
 
@@ -327,6 +334,15 @@ def main(argv: list[str] | None = None) -> int:
         devnull = os.open(os.devnull, os.O_WRONLY)
         os.dup2(devnull, sys.stdout.fileno())
         return 0
+    except OSError as exc:
+        # Any other trouble with a file (one that can't be read or written, a
+        # transcript in a missing folder ...): one plain line, not a traceback.
+        # This comes after BrokenPipeError, which is a kind of OSError.
+        if args.debug:
+            raise
+        where = f"{exc.filename}: " if exc.filename else ""
+        print(f"zforge: {where}{exc.strerror or exc}", file=sys.stderr)
+        return 1
 
 
 if __name__ == "__main__":
