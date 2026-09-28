@@ -47,10 +47,11 @@ FIELDS = ["S-VERB", "S-NOBJ", "S-PREP1", "S-PREP2", "S-FIND1", "S-FIND2",
 # inside the indirect object", for TAKE KEY FROM BOX. See ADR-019.
 # MANY (Infocom's): object 1 may be several things - TAKE ALL, DROP A AND B.
 # Only the I7 runtime's parser acts on it (ADR-035).
-BITS = {"SO-HELD": 1, "SO-ROOM": 2, "SO-INSIDE": 4, "SO-MANY": 8}
+# TOPIC (zforge's, for Inform's [text]): the slot takes any words, not a thing.
+BITS = {"SO-HELD": 1, "SO-ROOM": 2, "SO-INSIDE": 4, "SO-MANY": 8, "SO-TOPIC": 16}
 OPTION_BITS = {"HELD": "SO-HELD", "CARRIED": "SO-HELD", "HAVE": "SO-HELD",
                "ON-GROUND": "SO-ROOM", "IN-ROOM": "SO-ROOM", "INSIDE-PRSI": "SO-INSIDE",
-               "MANY": "SO-MANY"}
+               "MANY": "SO-MANY", "TOPIC": "SO-TOPIC"}
 TABLE_NAME = "SYNTAX-TABLE"
 NO_FIND = -1
 

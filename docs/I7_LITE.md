@@ -174,6 +174,33 @@ examining X; `undo` is handled before actions, as in Inform 7. `again`
 "You can hardly repeat that." when there is none (checked against the real
 *Bronze*; ADR-042).
 
+**Topics** (ADR-045). Four standard actions take a *topic* - whatever words
+the player types, even ones the game doesn't know - as well as a thing:
+consulting it about (`consult X about T`, `look up T in X`, `read about T
+in X`), asking it about (`ask X about T`), telling it about (`tell X about
+T`) and answering it that (`answer T to X`, `say T to X`). Their default
+replies are Inform 7's, checked against *Cold Iron*. An author's own action
+can apply to one topic, or to one thing and one topic, with `[text]` in its
+Understand lines:
+
+    Pondering is an action applying to one topic.
+    Understand "ponder [text]" as pondering.
+    Carry out pondering: say "You ponder [the topic understood]."
+
+A rule names a topic in quotation marks. A slash separates the words that
+may stand in one place, `--` means that place may be left out, and `or`
+joins whole phrases:
+
+    Instead of consulting the notes about "roses/rose/garden" or "rose garden", ...
+    Instead of asking the Beast about "the/-- djinn", ...
+    Instead of asking the Beast about when the topic understood includes "father", ...
+
+In a rule the topic must match all the words typed; `if the topic
+understood matches "..."` does the same, and `includes "..."` finds the
+words anywhere in it (`does not include` too). `[the topic understood]`
+prints the words as typed. A command that stops where the topic should be
+(CONSULT THE NOTES) is not understood, as in Inform 7.
+
 New actions (7a):
 
     Casting xyzzy is an action applying to nothing.
@@ -477,6 +504,31 @@ the order they run. Response letters and default texts follow Inform 7.
 | check | can't switch off what's already off rule | (A) "That's already off." |
 | carry out | standard switching off rule | - |
 | report | standard report switching off rule | (A) "You switch [the noun] off." |
+
+**consulting it about** (the noun is the thing; the topic is the words typed)
+
+| Stage | Rule | Responses |
+|---|---|---|
+| report | block consulting rule | (A) "You discover nothing of interest in [the noun]." |
+
+**asking it about**
+
+| Stage | Rule | Responses |
+|---|---|---|
+| check | block asking rule | (A) "There is no reply." |
+
+**telling it about**
+
+| Stage | Rule | Responses |
+|---|---|---|
+| check | telling yourself rule | (A) "You talk to yourself a while." |
+| check | block telling rule | (A) "This provokes no reaction." |
+
+**answering it that**
+
+| Stage | Rule | Responses |
+|---|---|---|
+| check | block answering rule | (A) "There is no reply." |
 
 **waiting**
 

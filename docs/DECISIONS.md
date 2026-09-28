@@ -889,3 +889,34 @@ trailing `instead`, so the `instead` belongs to the branch, as in Inform 7.
 **Consequences.** None of the examples used the form, so all build
 byte-identical. Test: tests/test_i7_sentence_fixes.py section 11.
 Found while adding the Rooted Room's inscription reply to Bronze.
+
+## ADR-045: Topics (Inform's [text]), steps A and B of docs/TOPICS_PLAN.md
+
+**Context.** Inform 7 lets a command carry free words - a *topic* - for
+conversation (ASK, TELL, ANSWER), books and notes (LOOK UP, CONSULT) and an
+author's own actions. I7-lite had none, so Bronze's port faked LOOK UP with
+hidden objects whose names clashed with real things.
+
+**Decision.**
+* A grammar slot marked `(TOPIC)` (option bit `SO-TOPIC`) takes the words up
+  to the next word its line expects, or the end, and records where they are
+  (`P-TOPIC-FIRST` / `P-TOPIC-LAST`). It names no thing: the thing typed in
+  the other slot is the noun either way (`look up T in X`, `consult X about T`).
+* Unknown words: in an Inform 7 game they are only an error once no grammar
+  line takes them as part of a topic (still at once for the verb); the
+  errors are the ones given before. A missing topic is not asked for:
+  "I didn't understand that sentence.", as Cold Iron says.
+* A topic pattern becomes a table of word positions, each with the
+  dictionary words allowed there (0 for `--`); `TOPIC-FITS?` tries it,
+  whole (rules, `matches`) or anywhere (`includes`).
+* The four standard actions, with the rules and replies of Inform 7. Their
+  replies were compared with Cold Iron's, word for word; that the block
+  asking, telling and answering rules are *check* rules and the block
+  consulting rule a *report* rule is from memory of the Standard Rules.
+* Everything is inside `<IFFLAG (I7 ...)>` (a global rather than a local,
+  since a new local would change every game's PARSE-COMMAND): ZIL games and
+  their golden builds are unchanged. Inform 7 games grow by the four actions.
+
+**Consequences.** Found on the way: a quotation mark in a rule's preamble
+ended the ZIL comment the compiler writes above the rule; comments now use
+single quotes. Tests: tests/test_i7_topics.py.

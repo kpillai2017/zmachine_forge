@@ -143,6 +143,89 @@
            <RFALSE>)>
     <RTRUE>>
 
+<IFFLAG (I7
+;"Topics (Inform's [text]): a grammar slot marked (TOPIC) takes any words -
+  even ones the game doesn't know - up to the next word the line expects, or
+  the end. Words P-TOPIC-FIRST to P-TOPIC-LAST are 'the topic understood'
+  (0: there is none). The slot names no thing: the noun is the other slot's."
+<GLOBAL P-TOPIC-FIRST 0>
+<GLOBAL P-TOPIC-LAST 0>
+<GLOBAL P-BAD-WORD 0>           ;"the command's first unknown word, or 0"
+
+<ROUTINE TOPIC-SLOT? (ROW SLOT)
+    <BAND <GET .ROW <COND (<EQUAL? .SLOT 1> ,S-OPTS1) (ELSE ,S-OPTS2)>> ,SO-TOPIC>>
+
+<ROUTINE TOPIC-PHRASE (STOP "AUX" FIRST)
+    ;"the words up to STOP (a preposition) or the end are the topic; false
+      if there are none"
+    <SETG P-DEFAULTED 0>
+    <SET FIRST ,P-WORD>
+    <REPEAT ()
+        <COND (<G? ,P-WORD ,P-LEN> <RETURN>)
+              (<AND .STOP <EQUAL? <WORD-AT ,P-WORD> .STOP>> <RETURN>)>
+        <SETG P-WORD <+ ,P-WORD 1>>>
+    <COND (<G? .FIRST <- ,P-WORD 1>> <RFALSE>)>
+    <SETG P-TOPIC-FIRST .FIRST>
+    <SETG P-TOPIC-LAST <- ,P-WORD 1>>
+    <RTRUE>>
+
+<ROUTINE FIRST-UNKNOWN-WORD ("AUX" FOUND)
+    ;"the first word not in the dictionary (a comma is no word), or 0"
+    <DO (I 1 ,P-LEN)
+        <COND (<AND <ZERO? <WORD-AT .I>> <NOT <COMMA? .I>>> <SET FOUND .I> <RETURN>)>>
+    .FOUND>
+
+<ROUTINE UNKNOWN-OUTSIDE-TOPIC? ("AUX" FOUND)
+    ;"is there a word the game doesn't know anywhere but in the topic?"
+    <DO (I 1 ,P-LEN)
+        <COND (<AND <ZERO? <WORD-AT .I>> <NOT <COMMA? .I>>
+                    <OR <ZERO? ,P-TOPIC-FIRST> <L? .I ,P-TOPIC-FIRST> <G? .I ,P-TOPIC-LAST>>>
+               <SET FOUND T>
+               <RETURN>)>>
+    .FOUND>
+
+;"A topic pattern ('\"roses/rose/garden\"', '\"the/-- rose garden\"') is a
+  table: word 0 is its length; then, for each word position, how many
+  words may stand there and those dictionary words (0: 'nothing', for
+  '--'). TOPIC-FITS? tries the positions from OFF on against topic words I
+  to LAST; with WHOLE, every word must be used up."
+<ROUTINE TOPIC-FITS? (TBL OFF I LAST WHOLE "AUX" N W)
+    <COND (<G? .OFF <GET .TBL 0>>                   ;"every position has been fitted"
+           <COND (<OR <ZERO? .WHOLE> <G? .I .LAST>> <RTRUE>)>
+           <RFALSE>)>
+    <SET N <GET .TBL .OFF>>
+    <DO (K 1 .N)
+        <SET W <GET .TBL <+ .OFF .K>>>
+        <COND (<ZERO? .W>
+               <COND (<TOPIC-FITS? .TBL <+ .OFF .N 1> .I .LAST .WHOLE> <RTRUE>)>)
+              (<AND <NOT <G? .I .LAST>> <EQUAL? <WORD-AT .I> .W>
+                    <TOPIC-FITS? .TBL <+ .OFF .N 1> <+ .I 1> .LAST .WHOLE>>
+               <RTRUE>)>>
+    <RFALSE>>
+
+<ROUTINE TOPIC-MATCHES? (TBL)
+    ;"the topic understood is the pattern, all of it"
+    <AND ,P-TOPIC-FIRST <TOPIC-FITS? .TBL 1 ,P-TOPIC-FIRST ,P-TOPIC-LAST T>>>
+
+<ROUTINE TOPIC-INCLUDES? (TBL)
+    ;"the pattern appears somewhere in the topic understood"
+    <COND (,P-TOPIC-FIRST
+           <DO (I ,P-TOPIC-FIRST ,P-TOPIC-LAST)
+               <COND (<TOPIC-FITS? .TBL 1 .I ,P-TOPIC-LAST 0> <RTRUE>)>>)>
+    <RFALSE>>
+
+<ROUTINE PRINT-TOPIC ("AUX" START END)
+    ;"[the topic understood]: the letters as typed, from the start of its
+      first word to the end of its last (§13.6.3: in each word's block,
+      byte 2 is its length and byte 3 its position in READBUF)"
+    <COND (<ZERO? ,P-TOPIC-FIRST> <RTRUE>)>
+    <SET START <GETB ,PARSEBUF <+ <* 4 ,P-TOPIC-FIRST> 1>>>
+    <SET END <+ <GETB ,PARSEBUF <+ <* 4 ,P-TOPIC-LAST> 1>> <GETB ,PARSEBUF <* 4 ,P-TOPIC-LAST>>>>
+    <DO (J .START <- .END 1>)
+        <PRINTC <GETB ,READBUF .J>>>>
+)
+(ELSE)>
+
 <ROUTINE PARSE-COMMAND ("AUX" ROW FOUND ORPHAN)
     ;"match the words in PARSEBUF against SYNTAX-TABLE"
     <SETG PRSA 0>
@@ -152,24 +235,39 @@
     <SETG P-ERROR 0>
     ;"P-MULTIPLE here too: a reply to 'Which do you mean' can be a new
       command, and it is parsed from FINISH-COMMAND"
-    <IFFLAG (I7 <SETG P-MULTIPLE 0> <SETG P-AMBIG-LEN 0> <SETG P-SOFAR-ROW 0>) (ELSE)>
+    <IFFLAG (I7 <SETG P-MULTIPLE 0> <SETG P-AMBIG-LEN 0> <SETG P-SOFAR-ROW 0>
+                <SETG P-TOPIC-FIRST 0> <SETG P-TOPIC-LAST 0>)
+            (ELSE)>
+    ;"A word the game doesn't know: in an Inform 7 game it may be part of a
+      topic, so that is only an error once no grammar line takes it as one
+      (below) - unless it is the verb."
+    <IFFLAG (I7
+    <SETG P-BAD-WORD <FIRST-UNKNOWN-WORD>>
+    <COND (<EQUAL? ,P-BAD-WORD 1> <I7-PARSER-ERROR ,PE-NOT-A-VERB> <RFALSE>)>)
+    (ELSE
     <DO (I 1 ,P-LEN)
-        <COND (<IFFLAG (I7 <AND <ZERO? <WORD-AT .I>> <NOT <COMMA? .I>>>)  ;"',' is no error"
-                       (ELSE <ZERO? <WORD-AT .I>>)>
-               <IFFLAG (I7 <COND (<EQUAL? .I 1> <I7-PARSER-ERROR ,PE-NOT-A-VERB>)
-                                 (ELSE <I7-PARSER-ERROR ,PE-CANT-SEE>)>)
-                       (ELSE
+        <COND (<ZERO? <WORD-AT .I>>
                <COND (<AND ,P-I7-STYLE <EQUAL? .I 1>> <TELL "That's not a verb I recognise." CR>)
                      (,P-I7-STYLE <TELL "You can't see any such thing." CR>)
-                     (ELSE <TELL "I don't know the word \""> <PRINT-WORD .I> <TELL "\"." CR>)>)>
-               <RFALSE>)>>
+                     (ELSE <TELL "I don't know the word \""> <PRINT-WORD .I> <TELL "\"." CR>)>
+               <RFALSE>)>>)>
     <SET ROW <+ ,SYNTAX-TABLE 2>>              ;"word 0 is the row count"
     <DO (I 1 <GET ,SYNTAX-TABLE 0>)
         <COND (<EQUAL? <GET .ROW ,S-VERB> <WORD-AT 1>>
                <SET FOUND T>
+               ;"a missing topic is not asked for ('What do you want to ...?')"
+               <IFFLAG (I7
                <COND (<MATCH-SYNTAX .ROW> <SETG P-SYNTAX .ROW> <RETURN>)
-                     (<AND ,P-MISSING <ZERO? .ORPHAN>> <SET ORPHAN .ROW>)>)>
+                     (<AND ,P-MISSING <ZERO? .ORPHAN> <NOT <TOPIC-SLOT? .ROW ,P-MISSING>>>
+                      <SET ORPHAN .ROW>)>)
+               (ELSE
+               <COND (<MATCH-SYNTAX .ROW> <SETG P-SYNTAX .ROW> <RETURN>)
+                     (<AND ,P-MISSING <ZERO? .ORPHAN>> <SET ORPHAN .ROW>)>)>)>
         <SET ROW <+ .ROW <* 2 ,S-SIZE>>>>
+    <IFFLAG (I7 <COND (<AND ,P-BAD-WORD <OR <ZERO? ,P-SYNTAX> <UNKNOWN-OUTSIDE-TOPIC?>>>
+                       <I7-PARSER-ERROR ,PE-CANT-SEE>
+                       <RFALSE>)>)
+            (ELSE)>
     <COND (,P-SYNTAX <RETURN <FINISH-COMMAND>>)
           (.ORPHAN <RETURN <ORPHAN-COMMAND .ORPHAN>>)>
     <PARSE-ERROR .FOUND>
@@ -238,22 +336,27 @@
     <SET N <GET .ROW ,S-NOBJ>>
     <COND (<NOT <MATCH-PREP <GET .ROW ,S-PREP1>>> <MISSING-IF-ENDED 1 .N> <RFALSE>)>
     <COND (<G? .N 0>
-           <IFFLAG (I7 <SET O <OBJECTS-PHRASE <GET .ROW ,S-PREP2> <GET .ROW ,S-FIND1>
-                                               <GET .ROW ,S-OPTS1> .ROW>>)
+           <IFFLAG (I7 <SET O <COND (<TOPIC-SLOT? .ROW 1> <TOPIC-PHRASE <GET .ROW ,S-PREP2>>)
+                                    (ELSE <OBJECTS-PHRASE <GET .ROW ,S-PREP2> <GET .ROW ,S-FIND1>
+                                                          <GET .ROW ,S-OPTS1> .ROW>)>>)
                    (ELSE
            <SET O <NOUN-PHRASE <GET .ROW ,S-PREP2> <GET .ROW ,S-FIND1> ,P-MATCHES1>>)>
            <COND (<ZERO? .O> <MISSING-IF-ENDED 1 .N> <RFALSE>)>
            <SETG PRSO .O>
+           <IFFLAG (I7 <COND (<TOPIC-SLOT? .ROW 1> <SETG PRSO 0>)>) (ELSE)>
            <SETG P-DEFAULT1 ,P-DEFAULTED>
            <SETG P-NOUN1 <WORD-AT <- ,P-WORD 1>>>)>
     <COND (<NOT <MATCH-PREP <GET .ROW ,S-PREP2>>> <MISSING-IF-ENDED 2 .N> <RFALSE>)>
     <COND (<G? .N 1>
            <IFFLAG (I7                  ;"as in Inform 7: object 2 is always one thing"
-                    <COND (<MULTI-WORDS? ,P-WORD ,P-LEN> <MULTI-REFUSED .ROW 2> <RFALSE>)>)
-                   (ELSE)>
-           <SET O <NOUN-PHRASE 0 <GET .ROW ,S-FIND2> ,P-MATCHES2>>
+                    <COND (<TOPIC-SLOT? .ROW 2> <SET O <TOPIC-PHRASE 0>>)
+                          (<MULTI-WORDS? ,P-WORD ,P-LEN> <MULTI-REFUSED .ROW 2> <RFALSE>)
+                          (ELSE <SET O <NOUN-PHRASE 0 <GET .ROW ,S-FIND2> ,P-MATCHES2>>)>)
+                   (ELSE
+           <SET O <NOUN-PHRASE 0 <GET .ROW ,S-FIND2> ,P-MATCHES2>>)>
            <COND (<ZERO? .O> <MISSING-IF-ENDED 2 .N> <RFALSE>)>
            <SETG PRSI .O>
+           <IFFLAG (I7 <COND (<TOPIC-SLOT? .ROW 2> <SETG PRSI 0>)>) (ELSE)>
            <SETG P-DEFAULT2 ,P-DEFAULTED>)>
     <G? ,P-WORD ,P-LEN>>                 ;"no words left over"
 
@@ -646,6 +749,8 @@
             (ELSE)>
     <COND (,P-DEFAULT1 <TELL "(the " D ,PRSO ")" CR>)>
     <COND (,P-DEFAULT2 <TELL "(the " D ,PRSI ")" CR>)>
+    ;"as in Inform, the thing is the noun whichever slot it was typed in"
+    <IFFLAG (I7 <COND (<TOPIC-SLOT? ,P-SYNTAX 1> <SETG PRSO ,PRSI> <SETG PRSI 0>)>) (ELSE)>
     <COND (,PRSO <SETG P-IT ,PRSO>)>
     <RTRUE>>
 

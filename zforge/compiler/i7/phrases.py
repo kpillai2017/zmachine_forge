@@ -16,8 +16,8 @@ import re
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
-from zforge.compiler.i7.model import ADJECTIVES, BUILTIN_KINDS, TEXT_PROPERTIES, PhraseDef, \
-    strip_article, unquote
+from zforge.compiler.i7.model import ADJECTIVES, BUILTIN_KINDS, DICT_WORD, TEXT_PROPERTIES, \
+    PhraseDef, strip_article, unquote
 from zforge.compiler.i7.problems import Location
 from zforge.compiler.i7.source import BodyLine
 from zforge.compiler.i7.standard import (ACTIVITIES, DIRECTIONS, PARSER_ERRORS, zil_name,
@@ -83,6 +83,7 @@ class PhraseLowerer:
     def __init__(self, lowerer: Lowerer):
         self.L = lowerer
         self.say_phrases: dict[str, str] = {}      # 'nokeys' -> routine
+        self.topic_tables: dict[str, str] = {}     # a topic's table entries -> its global
         self.decide_phrases: dict[str, str] = {}   # 'the cloak is hung' -> routine
         self.do_phrases: dict[str, str] = {}
         # phrases with parameters ('To pose the question (proposition - a text)
@@ -204,6 +205,13 @@ class PhraseLowerer:
     def condition(self, text: str, where: Location) -> str:
         """Translate one Inform 7 condition into a ZIL test that returns true or false."""
         t = " ".join(text.strip().rstrip(",").split())
+        # 'the topic understood matches "x" or "y"': before splitting at 'or',
+        # which here joins the topic's phrases
+        m = re.match(r'^the topic understood (does not |doesn\'t )?(match(?:es)?|include[s]?) '
+                     r'(".*)$', t, re.I)
+        if m:
+            test = self.topic_test(m.group(3), m.group(2).lower().startswith("match"), where)
+            return f"<NOT {test}>" if m.group(1) else test
         # Handle 'or': split and combine with <OR ...>
         if len(ors := split_outside_quotes(t, " or ")) > 1:
             return "<OR " + " ".join(self.condition(x, where) for x in ors) + ">"
@@ -360,15 +368,25 @@ class PhraseLowerer:
             return ActionPattern(["going"], self.all_of(["<ZERO? ,GOING-TO>"] + guards),
                                  tuple(spec))
         actions, noun_guards = [], []
-        alternatives = split_outside_quotes(text, " or ")
+        alternatives = []
+        for alt in split_outside_quotes(text, " or "):
+            if alt.strip().startswith('"') and alternatives:   # 'about "roses" or "rose garden"':
+                alternatives[-1] += " or " + alt              # one topic, not two actions
+            else:
+                alternatives.append(alt)
         for alt in alternatives:
             found = self.find_action(alt.strip(), where)
             if found is None:
                 return None
             name, nouns = found
             actions.append(name)
+            topic = None
+            if self.L.m.actions[name].topic and len(nouns) == self.L.m.actions[name].applying:
+                topic = nouns.pop()                 # the last slot is the topic, not a thing
             if nouns and alt is alternatives[-1]:
                 noun_guards = self.noun_guards(nouns, where)
+            if topic is not None and alt is alternatives[-1]:
+                noun_guards.append(self.topic_guard(topic, where))
         spec[0] = len(noun_guards)
         return ActionPattern(actions, self.all_of(noun_guards + guards), tuple(spec))
 
@@ -388,6 +406,10 @@ class PhraseLowerer:
                 m = re.match(rf"^{re.escape(verb)} (.+?) {re.escape(preposition)} (.+)$", low)
                 if m:
                     nouns = [text[m.start(1):m.end(1)], text[m.start(2):m.end(2)]]
+                elif self.L.m.actions[name].topic:   # 'asking the Beast about': any topic
+                    m = re.match(rf"^{re.escape(verb)} (.+?) {re.escape(preposition)}$", low)
+                    if m:
+                        nouns = [text[m.start(1):m.end(1)]]
             elif low == name:
                 nouns = []
             elif low.startswith(name + " "):
@@ -399,6 +421,45 @@ class PhraseLowerer:
                          "for the standard actions, or define it with '... is an action "
                          "applying to ...').")
         return best
+
+    def topic_guard(self, topic: str, where: Location) -> str:
+        """The test that the topic understood fits TOPIC, from a rule's preamble:
+        'asking the Beast about "roses" or "rose garden"' - all of it, as in Inform."""
+        return self.topic_test(topic, True, where)
+
+    def topic_test(self, text: str, whole: bool, where: Location) -> str:
+        """'"roses/rose/garden" or "rose garden"' -> a test of the topic understood.
+        Each quoted phrase becomes a table for the parser's TOPIC-FITS?: a slash
+        separates the words that may stand in one place, and '--' means none."""
+        tests = []
+        for phrase in split_outside_quotes(text, " or "):
+            phrase = phrase.strip()
+            if len(phrase) < 2 or not (phrase.startswith('"') and phrase.endswith('"')):
+                self.problem(where, text, "a topic is written in quotation marks, like "
+                             '"roses/rose garden" or "the Beast".')
+                return "<RFALSE>"
+            table = []
+            for position in phrase[1:-1].lower().split():
+                words = [w for w in position.split("/") if w]
+                bad = [w for w in words if w != "--" and not DICT_WORD.match(w)]
+                if bad or not words:
+                    self.problem(where, text, f"'{position}' can't be a word of a topic "
+                                 "(use letters, digits and hyphens).")
+                    return "<RFALSE>"
+                table += [str(len(words))] + ["0" if w == "--" else f",W?{w.upper()}"
+                                              for w in words]
+            if not table:
+                self.problem(where, text, "a topic needs at least one word.")
+                return "<RFALSE>"
+            key = " ".join(table)
+            if key not in self.topic_tables:
+                name = self.L.names.new("TOPIC")
+                self.topic_tables[key] = name
+                self.L.routines.append(f'<GLOBAL {name} <TABLE {len(table)} {key}>>   '
+                                       f';"the topic {phrase[1:-1]}"')
+            test = "TOPIC-MATCHES?" if whole else "TOPIC-INCLUDES?"
+            tests.append(f"<{test} ,{self.topic_tables[key]}>")
+        return tests[0] if len(tests) == 1 else "<OR " + " ".join(tests) + ">"
 
     def noun_guards(self, nouns: list[str], where: Location) -> list[str]:
         guards = [self.object_guard(global_name, noun, where) for global_name, noun
@@ -464,7 +525,8 @@ class PhraseLowerer:
             self.bindings = {n: (f".{local}", kind) for n, local, kind in params}
             lines = self.body(ph.body)
             locals_ = self.locals_list([local for _, local, _ in params], self.take_aux())
-            body = [f'<ROUTINE {name} ({locals_})   ;"{ph.preamble} (line {ph.where.line})"']
+            comment = ph.preamble.replace('"', "'")   # a quotation mark would end the comment
+            body = [f'<ROUTINE {name} ({locals_})   ;"{comment} (line {ph.where.line})"']
             body += ["    " + line for line in lines]
             body.append("    <RFALSE>>")
             self.bindings = {}
@@ -873,7 +935,8 @@ class PhraseLowerer:
                   "variable letter spacing": "<HLIGHT 0>", "no line break": "",
                   "run paragraph on": "", "/b": "", "b": "",
                   "bracket": '<TELL "[">', "close bracket": '<TELL "]">',  # [ and ] themselves
-                  "parser command so far": "<SAY-COMMAND-SO-FAR>"}
+                  "parser command so far": "<SAY-COMMAND-SO-FAR>",
+                  "the topic understood": "<PRINT-TOPIC>", "topic understood": "<PRINT-TOPIC>"}
         if low in simple:
             return simple[low]
         if low in self.say_phrases:

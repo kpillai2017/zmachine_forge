@@ -401,7 +401,8 @@ class Lowerer:
         heading = " ".join(f"{rule.stage} {rule.preamble}".split()) or f"the {rule.named}"
         body = self.phrases.body(rule.body)           # first: it may make 'let' locals
         locals_ = self.phrases.locals_list([], self.phrases.take_aux())
-        lines = [f'<ROUTINE {name} ({locals_})   ;"{heading} (line {rule.where.line})"']
+        comment = heading.replace('"', "'")       # a quotation mark would end the comment
+        lines = [f'<ROUTINE {name} ({locals_})   ;"{comment} (line {rule.where.line})"']
         if guard:
             lines.append(f"    <COND (<NOT {guard}> <RFALSE>)>")
         if self.m.testing:                            # RULES: it applies
@@ -635,6 +636,13 @@ class Lowerer:
         for part in parts:
             if part.startswith("["):
                 token = part[1:-1]
+                if token == "text":             # a topic: any words (the parser's TOPIC slot)
+                    if not self.m.actions[action].topic:
+                        self.p.problem(where, line, f"[text] stands for a topic, but "
+                                       f"'{action}' does not apply to a topic.")
+                        return []
+                    options = [o + ["OBJECT", "(TOPIC)"] for o in options]
+                    continue
                 if token not in ("something", "someone", "things", "any thing", "anything",
                                  "something preferably held", "thing",
                                  "things preferably held"):
@@ -657,6 +665,10 @@ class Lowerer:
             if o.count("OBJECT") != applying:
                 self.p.problem(where, line, f"'{action}' applies to {applying} "
                                f"thing(s), but this line has {o.count('OBJECT')}.")
+                return []
+            if self.m.actions[action].topic and o.count("(TOPIC)") != 1:
+                self.p.problem(where, line, f"'{action}' applies to a topic, so each of "
+                               "its grammar lines needs one [text].")
                 return []
             out.append(Grammar(o[0], o[1:]))
         return out

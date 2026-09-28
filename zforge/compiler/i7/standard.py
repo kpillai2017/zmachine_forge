@@ -38,6 +38,7 @@ class StandardAction:
     rules: dict[str, tuple[LibraryRule, ...]] = field(default_factory=dict)
     out_of_world: bool = False                  # takes no time (saving, quitting)
     variables: str = ""                         # routine setting its action variables
+    topic: bool = False                         # its last slot is a topic ([text])
 
 
 # How to read an entry below:
@@ -202,6 +203,25 @@ ACTIONS: tuple[StandardAction, ...] = (
         "carry out": (R("standard switching off rule", "SWITCH-OFF-STANDARD"),),
         "report": (R("standard report switching off rule", "SWITCH-OFF-REPORT",
                      (("A", "You switch [the noun] off."),)),)}),
+    # The four actions on a topic: the words typed as [text] (docs/TOPICS_PLAN.md).
+    # 'applying' counts the topic's slot as well as the thing's.
+    StandardAction("consulting it about", 2,
+                   ("consult [something] on/about [text]", "look up [text] in [something]",
+                    "read about [text] in [something]"), {"report": (
+        R("block consulting rule", "CONSULT-BLOCK",
+          (("A", "You discover nothing of interest in [the noun]."),)),)}, topic=True),
+    StandardAction("asking it about", 2, ("ask [someone] about [text]",), {"check": (
+        R("block asking rule", "ASK-BLOCK", (("A", "There is no reply."),)),)}, topic=True),
+    StandardAction("telling it about", 2, ("tell [someone] about [text]",), {"check": (
+        R("telling yourself rule", "TELL-YOURSELF",
+          (("A", "You talk to yourself a while."),)),
+        R("block telling rule", "TELL-BLOCK", (("A", "This provokes no reaction."),)))},
+        topic=True),
+    StandardAction("answering it that", 2,
+                   ("answer [text] to [someone]", "say [text] to [someone]",
+                    "shout [text] to [someone]", "speak [text] to [someone]"), {"check": (
+        R("block answering rule", "ANSWER-BLOCK", (("A", "There is no reply."),)),)},
+        topic=True),
     StandardAction("waiting", 0, ("wait", "z"), {"report": (
         R("standard report waiting rule", "WAIT-REPORT", (("A", "Time passes."),)),)}),
     StandardAction("requesting the score", 0, ("score",),

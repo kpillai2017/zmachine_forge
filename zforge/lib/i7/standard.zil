@@ -317,6 +317,15 @@
 ;"--------------------------------------------------------------- misc"
 <ROUTINE WAIT-REPORT () <WAIT-REPORT-A> <RFALSE>>
 
+;"----------------------------------------- consulting, asking, telling, answering"
+;"the noun is the thing; the topic is the words typed for [text]"
+<ROUTINE CONSULT-BLOCK () <CONSULT-BLOCK-A> <RFALSE>>            ;"report"
+<ROUTINE ASK-BLOCK () <ASK-BLOCK-A> <RTRUE>>                     ;"check: stops"
+<ROUTINE TELL-YOURSELF ()
+    <COND (<EQUAL? ,PRSO ,PLAYER> <TELL-YOURSELF-A> <RTRUE>)> <RFALSE>>
+<ROUTINE TELL-BLOCK () <TELL-BLOCK-A> <RTRUE>>
+<ROUTINE ANSWER-BLOCK () <ANSWER-BLOCK-A> <RTRUE>>
+
 <ROUTINE SCORE-ANNOUNCE ()             ;"the announce the score rule"
     <PARA-FLUSH>
     <COND (<NOT ,SCORING> <TELL "There is no score in this story." CR> <RFALSE>)>
