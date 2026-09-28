@@ -158,6 +158,24 @@
                      (<L? .DONE .TOTAL> <TELL ", ">)>)>>
     .TOTAL>
 
+<ROUTINE SAY-BRIEF-LIST (PARENT TEST "AUX" TOTAL DONE)
+    ;"SAY-LIST as a room description lists: each thing with what Inform 7 adds,
+      '(closed)', '(on which is a book)' (BRIEF-ANNOTATION; ADR-057)"
+    <SET TOTAL <COUNT-LISTED .PARENT .TEST>>
+    <SET DONE 0>
+    <MAP-CONTENTS (O .PARENT)
+        <COND (<APPLY .TEST .O>
+               <SAY-A .O> <BRIEF-ANNOTATION .O>
+               <SET DONE <+ .DONE 1>>
+               <COND (<EQUAL? .DONE <- .TOTAL 1>> <TELL " and ">)
+                     (<L? .DONE .TOTAL> <TELL ", ">)>)>>
+    .TOTAL>
+
+<ROUTINE LIST-PLURAL? (PARENT TEST "AUX" (N 0) ONE)
+    ;"is/are for a list: 'are' for two or more, or one that is plural ('some mugs')"
+    <MAP-CONTENTS (O .PARENT) <COND (<APPLY .TEST .O> <SET N <+ .N 1>> <SET ONE .O>)>>
+    <OR <G? .N 1> <AND .ONE <FSET? .ONE ,PLURALBIT>>>>
+
 ;"------------------------------------------------------------- numbers"
 
 <IFFLAG (TIMES

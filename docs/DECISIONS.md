@@ -1246,3 +1246,49 @@ oak to try doing something: instead say "You can't talk to [the oak]."`).
 **Consequences.** Cold Iron: 10 problems to 7 (first stage). Its real oak is
 scenery made talkable by Inform 6 code, which I7-lite cannot compile; an
 I7-lite version would make the oak a person. The original Bronze: 465.
+
+
+## ADR-056: Comparing with an earlier version (`zbuilder compare`)
+
+**Context.** Claims like "Glasshouse and Bronze play their walkthroughs
+identically" were checked by hand, with a copy of the old code on PYTHONPATH.
+But `python -m zforge` imports the package in the current folder first, so
+the "old" builds used the current code. The claim in ADR-055 was wrong
+(Bronze's story file does change); rechecked properly, every walkthrough in
+ADR-050 to ADR-055 does play identically.
+
+**Decision.** `python -m zbuilder compare <commit> [game ...]` exports the
+commit with `git archive` into build/compare/<sha>/, checks that Python run
+there imports that copy, builds every examples/*.ni with both versions (each
+run from its own folder) and plays each walkthrough with each version's own
+interpreter. It reports, per game, identical or differing story files and
+walkthroughs (with the first differing line), and fails if a walkthrough
+differs or a game compiles with only one version. CONTRIBUTING.md lists it
+with the other gates.
+
+**Consequences.** A comparison with `ba0f71b` (before ADR-048's blank lines)
+fails at Glasshouse's first new blank line, as it should.
+
+## ADR-057: Room descriptions list contents; opening reveals them
+
+**Context.** Room descriptions said "You can see a table here." with a book on
+it. Inform 7 lists things "giving brief inventory information" and
+"including contents"; the real Bronze prints "a bentwood table (on which is a
+jigsaw puzzle)". The real *The Ambassador's Daughter* prints "On the kitchen
+tables are some empty mugs." (I7-lite said "is" for one plural thing.)
+
+**Decision.** SAY-BRIEF-LIST lists the things in "You can see ..." and on
+scenery supporters with BRIEF-ANNOTATION: "(providing light)", "(closed)"
+(an openable container that is closed), "(empty)" (an open container with
+nothing listable in it), combined as Inform does ("closed and providing
+light"), then "(on which is/are ...)" / "(in which is/are ...)", recursively.
+The words are the list writer internal rule's responses E, F, H, I, R and T,
+beside D, K and L. is/are agrees with the list (LIST-PLURAL?). Inform's
+reveal any newly visible interior rule is a report opening rule: "You open
+the box, revealing a tale." The inventory is unchanged. I7-lite has no
+transparency, so a closed container never shows its contents.
+
+**Consequences.** Every Inform 7 game's room descriptions change where
+something is on a supporter or in a container (`zbuilder compare`: Glasshouse
+1 line, Bronze 38 - all listings or "revealing"). Checked against the real
+Bronze: the bentwood table, and the iron cage's "revealing" (see the report).

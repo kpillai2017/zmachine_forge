@@ -318,8 +318,9 @@ def test_every_library_rule_is_listed_in_the_docs():
     # serves the three clothes-being-worn rules, but each is a rule of its own;
     # the four actions on a topic have five; attacking and entering one each;
     # taking two more, can't take component parts (ADR-054) and can't take
-    # people's possessions (ADR-055)
-    assert len(set(names)) == 85
+    # people's possessions (ADR-055); opening one, reveal any newly visible
+    # interior (ADR-057)
+    assert len(set(names)) == 86
     assert [n for n in LIBRARY_RULES if f"| {n} |" not in doc] == []   # internal ones too
 
 
@@ -442,7 +443,7 @@ def test_rule_for_printing_the_name_replaces_the_name_everywhere():
 Rule for printing the name of the lamp when the lamp is switched on:
 	say "glowing lamp".
 ''', ["look", "switch on lamp", "take lamp", "i"])
-    assert "You can see a lamp, a box and a rock here." in text    # off: the plain name
+    assert "You can see a lamp, a box (empty) and a rock here." in text    # off: the plain name
     assert "You switch the glowing lamp on." in text                 # on: the rule's name
     assert "  a glowing lamp" in text                                 # in the inventory too
 
@@ -466,7 +467,7 @@ Rule for printing the name of something:
 Rule for printing the name of the rock:
 	say "pebble".
 ''', ["look"])
-    assert "You can see a thing, a <thing> and a pebble here." in text
+    assert "You can see a thing, a <thing> (empty) and a pebble here." in text
 
 
 def test_continue_the_activity_lets_the_library_name_it():
@@ -486,7 +487,7 @@ Rule for writing a paragraph about the box:
 	do nothing.
 ''', ["look"])
     assert ("A clean lab.\n\nA rock squats in the corner.\n\n"
-            "You can see a lamp and a box here.") in text
+            "You can see a lamp and a box (empty) here.") in text
 
 
 def test_the_banner_and_the_dark_room_activities():

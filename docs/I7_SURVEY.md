@@ -212,3 +212,25 @@ understood, and will be reported once the first stage is clean.
 | The printing a locale paragraph about activity | 1 | medium |
 | Understand ... as a kind (`... as a tale`) | 1 | medium |
 | ~~`The oak is not worded.`~~ done: "not" before an adjective (ADR-052) | 1 | small |
+
+
+## Cold Iron beyond the first stage (after ADR-055)
+
+The counts above are the compiler's first stage (the sentences). Run with the
+later stages forced on anyway, Cold Iron has **265 problems in the second
+stage** (the rules and phrases); the third stage (the generated ZIL) cannot
+be reached yet. Most come from a few causes:
+
+| Cause | Problems | Size |
+|---|---|---|
+| Phrases written in Inform 6 (`To say em: (- style underline; -)`, `KeyPause`, `say__p` ...) and the text substitutions built on them (`[para]`, `[em]`, `[/em]`, `[dot]`) | about 110 | not planned: a port would rewrite them |
+| Standard actions I7-lite lacks: searching, touching, climbing, giving, showing, exiting, drinking, sleeping, tasting, rubbing, pushing, turning | about 35 | small each |
+| `[first time]...[only]` (text shown only once) | 18 | small |
+| `off-stage`; the `[other things]` token | 8 each | small |
+| Sections marked `(not for release)` (the ZAP testing command) | about 6 | small: skip them |
+| One or two each: To decide which/what phrases, lists (`a list of things in the watch`, `the number of things carried by the player`), backdrops, regions (`all WoodsRooms`), actions as values (`the weaving action`), stored actions, the status line | about 20 | medium to large |
+
+So Cold Iron will not compile unchanged (the Inform 6 code), and a lightly
+edited copy is some 15-20 features away. The standard actions, `[first
+time]`, `off-stage` and `(not for release)` are the most useful to other
+games too.

@@ -73,16 +73,16 @@
                       <FSET .O ,MENTIONEDBIT>)>)>>
     <COND (<NOT <ZERO? <COUNT-LISTED ,HERE ,LISTED-HERE?>>>
            <PARA-ABSORB>
-           <CRLF> <TELL "You can see "> <SAY-LIST ,HERE ,LISTED-HERE?> <TELL " here.">
+           <CRLF> <TELL "You can see "> <SAY-BRIEF-LIST ,HERE ,LISTED-HERE?> <TELL " here.">
            <SENTENCE-BREAK>)>
     ;"what is on scenery supporters (Inform 7 mentions these too)"
     <MAP-CONTENTS (O ,HERE)
         <COND (<AND <FSET? .O ,SCENERYBIT> <FSET? .O ,SUPPORTERBIT>
                     <NOT <ZERO? <COUNT-LISTED .O ,VISIBLE-THING?>>>>
                <PARA-ABSORB> <CRLF> <TELL "On "> <SAY-THE .O> <TELL " ">
-               <COND (<EQUAL? <COUNT-LISTED .O ,VISIBLE-THING?> 1> <TELL "is ">)
-                     (ELSE <TELL "are ">)>
-               <SAY-LIST .O ,VISIBLE-THING?> <TELL "."> <SENTENCE-BREAK>)>>
+               <COND (<LIST-PLURAL? .O ,VISIBLE-THING?> <TELL "are ">)
+                     (ELSE <TELL "is ">)>
+               <SAY-BRIEF-LIST .O ,VISIBLE-THING?> <TELL "."> <SENTENCE-BREAK>)>>
     <RFALSE>>
 
 <ROUTINE LOOK-NEW-ARRIVAL ()           ;"the check new arrival rule"
@@ -191,6 +191,29 @@
         <TELL "  "> <SAY-A .O> <LIST-ANNOTATION .O> <CRLF>>
     <RFALSE>>
 
+<ROUTINE BRIEF-ANNOTATION (O "AUX" (N 0) CLOSED EMPTY)
+    ;"what Inform 7 adds to a thing in a room description ('giving brief
+      inventory information' and 'including contents'): '(closed)',
+      '(empty)', '(providing light)', then what is on it or in it -
+      'a table (on which is a book)' (ADR-057)"
+    <COND (<FSET? .O ,CONTAINERBIT>
+           <SET N <COUNT-LISTED .O ,VISIBLE-THING?>>
+           <COND (<AND <FSET? .O ,OPENABLEBIT> <NOT <FSET? .O ,OPENBIT>>> <SET CLOSED T>)
+                 (<ZERO? .N> <SET EMPTY T>)>)
+          (<FSET? .O ,SUPPORTERBIT> <SET N <COUNT-LISTED .O ,VISIBLE-THING?>>)>
+    <COND (<FSET? .O ,LITBIT>
+           <TELL " (">
+           <COND (.CLOSED <LIST-WRITER-H>) (.EMPTY <LIST-WRITER-I>) (ELSE <LIST-WRITER-D>)>
+           <TELL ")">)
+          (.CLOSED <TELL " ("> <LIST-WRITER-E> <TELL ")">)
+          (.EMPTY <TELL " ("> <LIST-WRITER-F> <TELL ")">)>
+    <COND (<AND .N <NOT .CLOSED>>
+           <TELL " (">
+           <COND (<FSET? .O ,SUPPORTERBIT> <LIST-WRITER-R>) (ELSE <LIST-WRITER-T>)>
+           <COND (<LIST-PLURAL? .O ,VISIBLE-THING?> <TELL "are ">) (ELSE <TELL "is ">)>
+           <SAY-BRIEF-LIST .O ,VISIBLE-THING?>
+           <TELL ")">)>>
+
 <ROUTINE LIST-ANNOTATION (O)
     ;"the list writer internal rule: '(providing light)', '(being worn)'"
     <COND (<AND <FSET? .O ,LITBIT> <FSET? .O ,WORNBIT>>
@@ -272,6 +295,15 @@
 <ROUTINE OPEN-STANDARD () <FSET ,PRSO ,OPENBIT> <RFALSE>>
 ;"Inform 7's standard report opening rule."
 <ROUTINE OPEN-REPORT () <OPEN-REPORT-A> <RFALSE>>
+;"Inform 7's reveal any newly visible interior rule: opening a container with
+  something in it (from outside) says what: 'You open the box, revealing a
+  tale.' The response is the words before the list (ADR-057)."
+<ROUTINE OPEN-REVEAL ()
+    <COND (<AND <FSET? ,PRSO ,CONTAINERBIT> <NOT <IN? ,PLAYER ,PRSO>>
+                <NOT <ZERO? <COUNT-LISTED ,PRSO ,VISIBLE-THING?>>>>
+           <OPEN-REVEAL-A> <SAY-LIST ,PRSO ,VISIBLE-THING?> <TELL "."> <SENTENCE-BREAK>
+           <RTRUE>)>
+    <RFALSE>>
 ;"Inform 7's can't close unless openable rule."
 <ROUTINE CLOSE-UNOPENABLE ()
     <COND (<NOT <FSET? ,PRSO ,OPENABLEBIT>> <CLOSE-UNOPENABLE-A> <RTRUE>)> <RFALSE>>

@@ -191,6 +191,7 @@ ruff check .                   # tidy code
 pytest -q                      # the unit tests
 python -m eval.run_eval        # the acceptance cases, including the real-game comparisons
 python -m zbuilder golden --check   # earlier builds still come out byte for byte the same
+python -m zbuilder compare HEAD     # the Inform 7 examples, built and played with the last commit and now
 ```
 
 The real-game comparisons are skipped if you haven't downloaded the games.

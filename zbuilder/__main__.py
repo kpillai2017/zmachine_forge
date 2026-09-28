@@ -11,6 +11,9 @@
     status                show every task's state
     golden --record|--check
                           freeze / compare today's build outputs (refactor gate)
+    compare COMMIT [GAME ...]
+                          build the Inform 7 examples with COMMIT and with the
+                          working tree; compare story files and walkthroughs
 """
 from __future__ import annotations
 
@@ -44,7 +47,16 @@ def main(argv: list[str] | None = None) -> int:
     g = sub.add_parser("golden")
     g.add_argument("--record", action="store_true", help="a human runs this once, before Tier 5")
     g.add_argument("--check", action="store_true")
+    c = sub.add_parser("compare")
+    c.add_argument("commit")
+    c.add_argument("games", nargs="*", help="example names (default: every examples/*.ni)")
     args = p.parse_args(argv)
+
+    if args.command == "compare":
+        from zbuilder.tools import compare
+        results = compare.compare(args.commit, args.games or None)
+        print("\n".join(compare.report(args.commit, results)))
+        return 0 if all(r.ok for r in results) else 1
 
     if args.command == "golden":
         from zbuilder.tools import golden

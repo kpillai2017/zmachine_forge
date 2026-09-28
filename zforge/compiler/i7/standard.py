@@ -154,7 +154,9 @@ ACTIONS: tuple[StandardAction, ...] = (
             R("can't open what's already open rule", "OPEN-ALREADY",
               (("A", "That's already open."),))),
         "carry out": (R("standard opening rule", "OPEN-STANDARD"),),
-        "report": (R("standard report opening rule", "OPEN-REPORT",
+        "report": (R("reveal any newly visible interior rule", "OPEN-REVEAL",
+                     (("A", "You open [the noun], revealing "),)),        # ADR-057
+                   R("standard report opening rule", "OPEN-REPORT",
                      (("A", "You open [the noun]."),)),)}),
     StandardAction("closing", 1, ("close [something]", "shut [something]"), {
         "check": (
@@ -285,8 +287,10 @@ del R
 # line of an inventory: "a lamp (providing light)", "a cloak (being worn)".
 INTERNAL_RULES: tuple[LibraryRule, ...] = (
     LibraryRule("list writer internal rule", "LIST-WRITER",
-                (("D", "providing light"), ("K", "providing light and being worn"),
-                 ("L", "being worn"))),
+                (("D", "providing light"), ("E", "closed"), ("F", "empty"),
+                 ("H", "closed and providing light"), ("I", "empty and providing light"),
+                 ("K", "providing light and being worn"), ("L", "being worn"),
+                 ("R", "on which "), ("T", "in which "))),       # ADR-057
     # 'if the player consents' asks again: Advent edits it (source line 397)
     LibraryRule("yes or no question internal rule", "YES-OR-NO",
                 (("A", "Please answer yes or no."),)),

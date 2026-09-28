@@ -18,7 +18,19 @@ Adaptive text agrees with the object named most recently, exactly as in
 Inform 7 - so "[We] [are] by a stream that [flow]" prints "flow" (it
 agrees with "you"); write "[regarding the stream]" or plain "flows". Details that differ from Inform 7:
 doors are closed and openable by default, containers open; a door is
-listed in room descriptions (not yet checked against real Inform 7).
+listed in room descriptions (not yet checked against real Inform 7; the real
+Bronze leaves its heavy door out, which may be Bronze's own doing).
+
+Room descriptions list things as Inform 7 does (ADR-057): "You can see a
+table (on which is a book), a box (closed), a crate (empty), a lamp
+(providing light) and a chest (in which are a coin and a ring) here." - what
+is on a supporter or in an open container, and "(closed)" / "(empty)" /
+"(providing light)"; checked against the real Bronze ("a bentwood table (on
+which is a jigsaw puzzle)"). The same goes for what is on scenery supporters
+("On the shelf are some mugs.", with is/are agreeing as in the real *The
+Ambassador's Daughter*). Opening a container with something in it says what:
+"You open the box, revealing a tale." A closed transparent container is
+shown as "(closed)" only - I7-lite has no transparency.
 
 ## Source layout
 
@@ -587,6 +599,7 @@ the order they run. Response letters and default texts follow Inform 7.
 | check | can't open what's locked rule | (A) "It seems to be locked." |
 | check | can't open what's already open rule | (A) "That's already open." |
 | carry out | standard opening rule | - |
+| report | reveal any newly visible interior rule | (A) "You open [the noun], revealing " - then the list of what is inside, and a full stop: opening a container with something in it from outside, as Inform does (ADR-057) |
 | report | standard report opening rule | (A) "You open [the noun]." |
 
 **closing**

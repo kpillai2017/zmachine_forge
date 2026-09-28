@@ -17,8 +17,15 @@ when a student can follow it with the Z-Machine Standard open beside it.
        pytest -q
        python -m eval.run_eval
        python -m zbuilder golden --check
+       python -m zbuilder compare HEAD      # the Inform 7 examples: same walkthroughs?
        python -m zbuilder --provider brief review
 
    **The v1 suite and the golden hashes are a contract.** `python -m
    eval.run_eval --suite v1` must stay green and `zbuilder golden --check`
    byte-identical. Re-recording golden hashes (`--record`) needs an ADR.
+
+   **Comparing with an earlier version:** use `zbuilder compare <commit>`,
+   not a copy of the old code on PYTHONPATH - `python -m zforge` imports the
+   package in the current folder first, so such a copy is silently ignored
+   (ADR-056). A walkthrough that differs is not always wrong - a change to
+   what the game prints should - but every difference must be explained.

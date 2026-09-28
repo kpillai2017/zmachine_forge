@@ -169,7 +169,7 @@ def test_two_unclear_items_are_asked_about_in_turn():
 def test_the_reply_can_cancel_or_be_a_new_command():
     t = run(["take lamp and coin", "", "take lamp and coin", "look"], WARDROBE)
     assert "I beg your pardon?" in t
-    assert "You can see a table, a box, a gold coin, a silver coin and a lamp here." in \
+    assert "You can see a table, a box (empty), a gold coin, a silver coin and a lamp here." in \
         reply(t, "look")                                 # 'look' ran; nothing was taken
 
 
