@@ -17,8 +17,8 @@ from dataclasses import dataclass, field
 from zforge.compiler.i7.problems import Location, Problems
 from zforge.compiler.i7.source import BodyLine, Sentence
 from zforge.compiler.i7.standard import (
-    ACTIONS, ACTIVITIES, DIRECTIONS, OPPOSITE, TESTING_ACTIONS, UNSUPPORTED_ACTIVITIES,
-    StandardAction)
+    ACTIONS, ACTIVITIES, DIRECTIONS, LibraryActivity, OPPOSITE, TESTING_ACTIONS,
+    UNSUPPORTED_ACTIVITIES, StandardAction)
 from zforge.compiler.i7.text import Text, TextError, parse_text
 
 ARTICLES = ("the ", "a ", "an ", "some ")
@@ -197,6 +197,7 @@ class WorldModel:
     either_or: dict[str, tuple[str, bool]] = field(default_factory=dict)  # adj -> (flag, value)
     tables: dict[str, Table] = field(default_factory=dict)   # 'table of notes' -> table
     definitions: dict[str, list[Definition]] = field(default_factory=dict)
+    activities: list = field(default_factory=list)   # the author's: 'X is an activity.'
     either_or_where: dict[str, tuple] = field(default_factory=dict)  # flag -> (where, sentence)
     value_properties: dict[str, str] = field(default_factory=dict)        # name -> kind
     direction_words: dict[str, list[str]] = field(default_factory=dict)  # 'north' -> ['plugh']
@@ -328,6 +329,8 @@ class ModelBuilder:
                 self.table(s)
             elif s.text.lower().startswith("definition:"):
                 continue                             # an adjective: see pass 2
+            elif self.ACTIVITY.match(" ".join(s.text.rstrip(".").split())):
+                self.new_activity(s)                 # known before its rules are read
             elif not s.is_rule:
                 self.declare_names(s)
         self.last_object = self.last_room = None
@@ -336,11 +339,26 @@ class ModelBuilder:
                 continue
             if s.text.lower().startswith("definition:"):
                 self.definition(s)
+            elif not s.is_rule and self.ACTIVITY.match(" ".join(s.text.rstrip(".").split())):
+                continue                             # an activity: done in pass 1
             elif s.is_rule:
                 self.rule(s)
             else:
                 self.assertion(s, first=(i == 0))
         return self.m
+
+    ACTIVITY = re.compile(r"^(.+?) is an activity(?: on nothing)?$", re.I)
+
+    def new_activity(self, s: Sentence) -> None:
+        """'Forest-running is an activity.': an activity of the author's, with
+        before, for and after rules like the library's (activities.zil)."""
+        text = " ".join(s.text.rstrip(".").split())
+        name = strip_article(self.ACTIVITY.match(text).group(1)).lower()
+        if self.activity_named(name) is not None:
+            self.p.problem(s.where, s.text, f"there is already an activity called '{name}'.")
+            return
+        atom = re.sub(r"[^A-Z0-9]+", "-", name.upper()).strip("-") + "-ACTIVITY"
+        self.m.activities.append(LibraryActivity(name, atom))
 
     DEFINITION = re.compile(r"^definition: *(?:a |an |the )?(.+?)(?: \(called ([^)]+)\))? "
                             r"(?:is|are) ([a-z][a-z-]*)(?: rather than ([a-z][a-z-]*))?"
@@ -1144,7 +1162,8 @@ class ModelBuilder:
     # ------------------------------------------------------------ rules
     STAGE_WORDS = (("when play begins", "when play begins"), ("every turn", "every turn"),
                    ("instead of", "instead"), ("before", "before"), ("after", "after"),
-                   ("check", "check"), ("carry out", "carry out"), ("report", "report"))
+                   ("check", "check"), ("carry out", "carry out"), ("report", "report"),
+                   ("does the player mean", "does the player mean"))
 
     def rule(self, s: Sentence) -> None:
         """Parse a rule preamble and body into the model."""
@@ -1169,16 +1188,17 @@ class ModelBuilder:
         # specificity. Only when a real rule follows ('Last Chance' is a room).
         placement = ""
         m = re.match(r"^(?:the |a )?(first|last) (.+?)(?: rule)?$", preamble, re.I)
-        if m and re.match(r"^(rule for|before|after|instead|check|carry out|report|"
+        if m and re.match(r"^(rule for|for|before|after|instead|check|carry out|report|"
                           r"every turn|when play begins)\b", m.group(2), re.I):
             placement, preamble = m.group(1).lower(), m.group(2)
             low = preamble.lower()
         # Activities: "Rule for printing the name of the lamp", "Before
         # printing the banner text". Checked before actions, so "Before
         # printing ..." is not read as a before-rule for an action.
-        m = re.match(r"^(rule for|before|after) (.+)$", preamble, re.I)
-        if m:
-            stage, rest = m.group(1).lower(), m.group(2)
+        m = re.match(r"^(rule for|for|before|after) (.+)$", preamble, re.I)
+        if m:                                           # 'For forest-running:' is
+            stage, rest = m.group(1).lower(), m.group(2)  # 'Rule for forest-running:'
+            stage = "rule for" if stage == "for" else stage
             activity = self.activity_named(rest)
             if activity is not None:
                 self.m.rules.append(Rule("activity " + ("for" if stage == "rule for" else stage),
@@ -1206,14 +1226,20 @@ class ModelBuilder:
                 return
         self.p.unsupported(s.where, s.text, "this kind of rule")
 
-    @staticmethod
-    def activity_named(preamble: str):
-        """The library activity a rule preamble starts with, or None."""
+    def activity_named(self, preamble: str):
+        """The activity (the library's or the author's) a rule preamble starts
+        with, or None."""
         low = preamble.lower()
-        for activity in ACTIVITIES:               # longest names first
+        for activity in all_activities(self.m):   # longest names first
             if low == activity.name or low.startswith(activity.name + " "):
                 return activity
         return None
+
+
+def all_activities(m) -> list:
+    """The library's activities and the author's, longest names first (so
+    'printing the name of a dark room' is not 'printing the name' of it)."""
+    return sorted([*ACTIVITIES, *m.activities], key=lambda a: -len(a.name))
 
 
 def build_model(sentences: list[Sentence], problems: Problems,

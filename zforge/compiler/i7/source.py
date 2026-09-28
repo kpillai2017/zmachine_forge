@@ -26,7 +26,9 @@ TITLE = re.compile(r'^"[^"]+"(\s+by\s+.+)?\.?$')
 RULE_START = re.compile(
     r"^((the |a )?(first|last) )?"                  # 'The first after ... rule:'
     r"(when play begins|when play ends|every turn|instead of|before|after|check|"
-    r"carry out|report|rule for |to |this is the )", re.IGNORECASE)
+    r"carry out|report|rule for |to |this is the |does the player mean |"
+    r'for (?=[^"]*:))', re.IGNORECASE)                 # 'For forest-running:' (an
+                                                     # activity; the colon is needed)
 
 # 'Definition: a thing is mentionable:' - a definition with lines below (a
 # one-line definition, 'Definition: ... if ...', is an ordinary sentence)

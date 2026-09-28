@@ -157,7 +157,31 @@ compared with `""` (no text).
 | `... when the location is the Bar` (on an Understand line) | only there | after Cloak (decision in I7_SURVEY) |
 
 Tokens: `[something]`, `[someone]`, `[things]` and `[things preferably
-held]` (several objects, below); `[text]` is not supported.
+held]` (several objects, below), and `[text]` (a topic, section 5).
+
+A token can also be a **description** (ADR-053): adjectives - either/or
+properties or the author's definitions, each maybe after `not` - and a
+kind, the library's or the author's: `[open container]`,
+`[undirectional goable thing]`. The slot takes only the things that fit.
+If none does, the parser tries the verb's other lines, as in Inform; if
+no line fits, it says "You can't see any such thing." (Inform's usual
+reply for a thing a command cannot use; not checked against a real game).
+A description token has no implied object, and can't take several things.
+
+**Does the player mean** (ADR-053), as in Inform 7, settles which thing a
+word means when it fits several:
+
+    Does the player mean taking the blue ball: it is very likely.
+    Does the player mean doing something to a not known tale: it is likely.
+    Does the player mean answering Bob that: it is likely.
+
+Each candidate is tried as the noun of the command being parsed (on a
+topic line the person is the noun, as for the action itself) and scored:
+`very unlikely`, `unlikely`, `possible` (when no rule applies), `likely`,
+`very likely`. Only the best-scored are kept; if one is left, the parser
+says which, `(the blue ball)`, and otherwise asks "Which do you mean ...?"
+among those. A proper-named thing is named without "the" there, as in
+Inform: `(Bob)`, "Which do you mean, Bob or Bill?".
 
 **Several objects at once** (ADR-035), as in Inform 7: the library's take,
 drop, put ... on / in and insert lines use `[things]` / `[things preferably
@@ -270,8 +294,16 @@ New actions (7a):
 
 Action patterns: `taking the lamp`, `taking something`, `putting the cloak
 on the hook`, `going north`, `going`, `doing something`, `doing something
-other than going`, `examining or taking the cloak`; optional
-`in <room>` / `in the presence of X` (7b) and `when <condition>`.
+other than going`, `doing something to the lamp` (any action on it,
+ADR-053), `examining or taking the cloak`; optional
+`in <room>` / `in the presence of X` (7b) and `when <condition>`. A
+condition can also be `in <room>` (`when in Forest3`: the player is there).
+
+Where a rule or condition names a kind - `a container`, or the author's
+`a tale` (`if the noun is a tale`) - it means any thing of that kind or of
+a kind of it, and a description can put adjectives before it, with `not`
+(`an important not known tale`). The author's kinds are tested by their
+members, which the compiler knows (ADR-053).
 
 One-line forms (7b): `Instead of eating the lamp, say "No.".`,
 `Instead of thinking, try looking.`
@@ -673,6 +705,21 @@ skipped, unless the rule ends with `continue the activity`.
   `end the X activity`, or all three at once with
   `carry out the X activity [with <thing>]`.
 
+**The author's own activities** (ADR-053), as in Inform 7:
+
+    Forest-running is an activity.
+    For forest-running: say "You run through the trees."
+    For forest-running when in Forest3: ...
+    First for forest-running when the player carries the bead: ...; continue the activity.
+    Before forest-running when in the Garden: ...
+    Carry out running: carry out the forest-running activity.
+
+`For X:` is short for `Rule for X:`. They work as the library's own
+activities do: all the before rules; then the first for rule that applies
+(`First` rules first, then the more specific: a `when` rule before one
+without); then all the after rules. An activity is on nothing: `... is an
+activity on things` is not supported.
+
 *Printing a parser error* (ADR-034) runs when a command cannot be
 understood. `the latest parser error` says why, by Inform 7's own names
 (checked against the compiled Advent): I7-lite's parser makes
@@ -704,7 +751,7 @@ message that says so.
 ## Not supported (a problem message says so)
 
 Relations and relation verbs, tables other than topic tables, activities other than the six in
-section 10, editing the parser error internal rule's responses, texts
+section 10 and the author's own (on nothing), editing the parser error internal rule's responses, texts
 given to a phrase that use the giver's own names, `To decide which/what`, Inform 6 inclusions `(- -)`,
 extensions (`Include`), `does nothing`, action variables, kinds of action
 (`... is attempting entry`), rulebooks the author makes,

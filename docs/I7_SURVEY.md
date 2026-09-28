@@ -182,7 +182,7 @@ kinds of action and its own rulebooks.
 ## Cold Iron's remaining problems (after ADR-050)
 
 Cold Iron gave 59 problems after Definitions (79 before "with nouns
-reversed" and Definitions); after ADR-051 it gives 33, after ADR-052 22. Grouped by what is missing - a problem can hide others
+reversed" and Definitions); after ADR-051 it gives 33, after ADR-052 22, after ADR-053 14. Grouped by what is missing - a problem can hide others
 behind it, so fixing a group may show new ones.
 
 **These counts are of the first stage only.** The compiler reads the
@@ -197,11 +197,11 @@ understood, and will be reported once the first stage is clean.
 |---|---|---|
 | ~~A sentence ending in a semicolon at the end of a paragraph (`...[end if]";`), read as a list of properties~~ done (ADR-051) | 17 (2 sentences) | tiny |
 | ~~Understand ... when a condition holds (`Understand "wreath" as the branches when the branches are woven.`)~~ done (ADR-051) | 9 | medium |
-| ~~A property for one object (`Forest1 has a number called the counter.`), and its value~~ done (ADR-052) - but the oak's waits on activities | 5 | small |
-| Activities the author makes (`Forest-running is an activity.`, `For forest-running: ...`) | 4 | medium |
+| ~~A property for one object (`Forest1 has a number called the counter.`), and its value~~ done (ADR-052; the oak's with activities) | 5 | small |
+| ~~Activities the author makes (`Forest-running is an activity.`, `For forest-running: ...`)~~ done (ADR-053) | 4 | medium |
 | ~~Standard actions missing: entering, attacking~~ done (ADR-052) | 3 | small |
-| ~~Understand ... as a mistake~~ done (ADR-052); two lines wait on descriptions as grammar tokens (`[undirectional goable thing]`) | 3 | small |
-| Does the player mean ... (`it is likely`) | 3 | medium |
+| ~~Understand ... as a mistake~~ done (ADR-052); ~~descriptions as grammar tokens (`[undirectional goable thing]`)~~ done (ADR-053) | 3 | small |
+| ~~Does the player mean ... (`it is likely`)~~ done (ADR-053) | 3 | medium |
 | Persuasion rules (`Persuasion rule for asking the oak to try ...`) | 2 | medium |
 | Parts (`The shadow is part of the knife.`) | 2 | medium |
 | A time of day (`The time of the watch is 12:00 AM.`) | 2 | medium |

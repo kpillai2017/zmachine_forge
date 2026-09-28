@@ -10,10 +10,11 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 
-from zforge.compiler.i7.model import DICT_WORD, REVERSED, Obj, Rule, WorldModel, strip_article
+from zforge.compiler.i7.model import DICT_WORD, REVERSED, Obj, Rule, WorldModel, \
+    all_activities, strip_article
 from zforge.compiler.i7.phrases import KIND_FLAGS, definition_routine, PhraseLowerer, entry_routine
 from zforge.compiler.i7.problems import Location, Problems
-from zforge.compiler.i7.standard import ACTIVITIES, DIRECTIONS, INTERNAL_RULES, LIBRARY_RULES, \
+from zforge.compiler.i7.standard import DIRECTIONS, INTERNAL_RULES, LIBRARY_RULES, \
     STAGES, TESTING_ACTIONS, zil_name, zil_string
 from zforge.compiler.i7.text import Literal, parse_text
 
@@ -95,6 +96,7 @@ class Lowerer:
                 self.atom[o.name] = self.names.new(o.name)
         self.var_atom = {v: self.names.new(v) for v in m.variables}
         self.plain_texts: dict[str, str] = {}          # wording -> routine (text_routine)
+        self.token_tests: dict[str, str] = {}          # [description] -> routine (token_test)
         self.action_atom = {a: zil_name(a) for a in m.actions}
         self.phrases.declare(m.phrases)
         # Emit sections: header, directions, objects, variables, rules, actions, activities.
@@ -360,6 +362,16 @@ class Lowerer:
         if stage.startswith("activity "):
             self.activity_rule(rule, stage[len("activity "):])
             return
+        if stage == "does the player mean":            # one rulebook for every action:
+            pattern = self.phrases.action_pattern(rule.preamble, rule.where)   # the
+            if pattern is None:                        # guard tests the action too
+                return
+            verbs = " ".join(",V?" + self.action_atom[a] for a in pattern.actions)
+            tests = [f"<EQUAL? ,PRSA {verbs}>"] if pattern.actions else []
+            guard = self.phrases.all_of(tests + ([pattern.guard] if pattern.guard else []))
+            name = self.rule_routine(rule, guard, default="<RFALSE>")
+            self.add_rule("DTPM", "", pattern.specificity, name, rule.placement)
+            return
         # Everything else is about an action: 'Instead of taking the lamp when ...'.
         # The pattern gives the actions it covers, a guard (its conditions) and how
         # specific it is, which decides its place in the rulebook.
@@ -381,7 +393,8 @@ class Lowerer:
         activity) and/or when a condition holds. A for rule that applies makes
         the decision (so the library's own way is skipped) unless it says
         'continue the activity'; a before or after rule never stops the others."""
-        activity = next(a for a in ACTIVITIES if rule.preamble.lower().startswith(a.name))
+        activity = next(a for a in all_activities(self.m)
+                        if rule.preamble.lower().startswith(a.name))
         rest = rule.preamble[len(activity.name):].strip()
         when = ""
         m = re.match(r"^(.*?)\s*\bwhen (.+)$", rest, re.I)
@@ -414,7 +427,7 @@ class Lowerer:
         """One global per library activity (activities.zil): its before, for and
         after rulebooks, the most specific rule first (as for actions)."""
         self.emit('"--- activities"')
-        for activity in ACTIVITIES:
+        for activity in all_activities(self.m):
             tables = []
             for stage in ("before", "for", "after"):
                 entries = self.rulebooks.get(activity.atom, {}).get(stage, [])
@@ -463,6 +476,11 @@ class Lowerer:
             rules = [r for _, r, _ in sorted(entries, key=lambda e: e[2])]   # first/last
             self.emit(f"<GLOBAL {book}-RULES <LTABLE {' '.join(',' + r for r in rules)}>>")
         self.emit(self.rulebook_global("GENERAL-RULES", ""))
+        # Does the player mean: one rulebook, the most specific rule first
+        entries = self.rulebooks.get("DTPM", {}).get("", [])
+        order = sorted(enumerate(entries),        # group, then most specific, then source
+                       key=lambda e: (e[1][2], tuple(-x for x in e[1][0]), e[0]))
+        self.emit("<GLOBAL DTPM-RULES <LTABLE" + "".join(" ," + r for _, (_, r, _) in order) + ">>")
         # For each action: its rulebook tables, its V- routine (which runs them),
         # and one SYNTAX line for each way the player can type it.
         for name, action in self.m.actions.items():
@@ -756,6 +774,21 @@ class Lowerer:
                 self.routines.append(f'<ROUTINE {rule.routine}-{letter} ()   '
                                      f';"the {rule.name} response ({letter})"\n    {body}>')
 
+    def token_test(self, token: str, where: Location) -> str | None:
+        """The routine testing that O fits a description used as a grammar token
+        ('undirectional goable thing': adjectives, then a kind), or None if the
+        token is not such a description. One routine per description."""
+        if token in self.token_tests:
+            return self.token_tests[token]
+        test = self.phrases.described(".O", f"a {token}", where)
+        if test is None:
+            return None
+        name = self.names.new("TOKEN")
+        self.routines.append(f'<ROUTINE {name} (O)   ;"does O fit [{token}]?"\n'
+                             f"    <COND ({test} <RTRUE>)>\n    <RFALSE>>")
+        self.token_tests[token] = name
+        return name
+
     def expand_grammar(self, line: str, applying: int, action: str, where) -> list[Grammar]:
         """'put [something] on/onto [something]' -> SYNTAX token lists
         (one per combination of slash alternatives)."""
@@ -779,8 +812,14 @@ class Lowerer:
                 if token not in ("something", "someone", "things", "any thing", "anything",
                                  "something preferably held", "thing",
                                  "things preferably held"):
-                    self.p.unsupported(where, line, f"the grammar token [{token}]")
-                    return []
+                    # [undirectional goable thing]: a description - only the
+                    # objects that fit it (a routine; the parser's TEST slot)
+                    routine = self.token_test(token, where)
+                    if routine is None:
+                        self.p.unsupported(where, line, f"the grammar token [{token}]")
+                        return []
+                    options = [o + ["OBJECT", f"(TEST {routine})"] for o in options]
+                    continue
                 # [things]: several at once - TAKE ALL, DROP A AND B (ADR-035)
                 flags = {"things": ["(MANY)"],
                          "things preferably held": ["(MANY", "HELD)"]}.get(token, [])

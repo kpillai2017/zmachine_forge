@@ -338,6 +338,9 @@
     <COND (<NOT <MATCH-PREP <GET .ROW ,S-PREP1>>> <MISSING-IF-ENDED 1 .N> <RFALSE>)>
     <COND (<G? .N 0>
            <IFFLAG (I7 <SET O <COND (<TOPIC-SLOT? .ROW 1> <TOPIC-PHRASE <GET .ROW ,S-PREP2>>)
+                                    (<TEST-SLOT? .ROW 1>
+                                     <OBJECTS-PHRASE <GET .ROW ,S-PREP2> -1 <GET .ROW ,S-OPTS1> .ROW>
+                                     <ONLY-FITTING ,P-MATCHES1 <GET .ROW ,S-FIND1>>)
                                     (ELSE <OBJECTS-PHRASE <GET .ROW ,S-PREP2> <GET .ROW ,S-FIND1>
                                                           <GET .ROW ,S-OPTS1> .ROW>)>>)
                    (ELSE
@@ -352,6 +355,9 @@
            <IFFLAG (I7                  ;"as in Inform 7: object 2 is always one thing"
                     <COND (<TOPIC-SLOT? .ROW 2> <SET O <TOPIC-PHRASE 0>>)
                           (<MULTI-WORDS? ,P-WORD ,P-LEN> <MULTI-REFUSED .ROW 2> <RFALSE>)
+                          (<TEST-SLOT? .ROW 2>
+                           <NOUN-PHRASE 0 -1 ,P-MATCHES2>
+                           <SET O <ONLY-FITTING ,P-MATCHES2 <GET .ROW ,S-FIND2>>>)
                           (ELSE <SET O <NOUN-PHRASE 0 <GET .ROW ,S-FIND2> ,P-MATCHES2>>)>)
                    (ELSE
            <SET O <NOUN-PHRASE 0 <GET .ROW ,S-FIND2> ,P-MATCHES2>>)>
@@ -360,6 +366,26 @@
            <IFFLAG (I7 <COND (<TOPIC-SLOT? .ROW 2> <SETG PRSI 0>)>) (ELSE)>
            <SETG P-DEFAULT2 ,P-DEFAULTED>)>
     <G? ,P-WORD ,P-LEN>>                 ;"no words left over"
+
+<IFFLAG (I7
+;"A slot for a description, 'go [undirectional goable thing]': (TEST routine)
+  in the SYNTAX. Its FIND word holds the routine, and only the objects it
+  accepts fit - if none do, the row does not fit, and the next is tried."
+<ROUTINE TEST-SLOT? (ROW SLOT)
+    <BAND <GET .ROW <COND (<EQUAL? .SLOT 1> ,S-OPTS1) (ELSE ,S-OPTS2)>> ,SO-TEST>>
+
+<ROUTINE ONLY-FITTING (TBL RTN "AUX" (I 1) (J 0) N O)
+    ;"keep the matches in TBL that RTN accepts; the first of them, or 0"
+    <SET N <GET .TBL 0>>
+    <REPEAT ()
+        <COND (<G? .I .N> <RETURN>)>
+        <SET O <GET .TBL .I>>
+        <COND (<APPLY .RTN .O> <SET J <+ .J 1>> <PUT .TBL .J .O>)>
+        <SET I <+ .I 1>>>
+    <PUT .TBL 0 .J>
+    <COND (<G? .J 0> <GET .TBL 1>)
+          (ELSE <SETG P-ERROR ,P-ERR-NOT-FOUND> 0)>>   ;"none fits: as if none matched"
+) (ELSE)>
 
 <ROUTINE MISSING-IF-ENDED (SLOT N)
     ;"the row needs object SLOT and the player typed nothing more"
@@ -770,8 +796,10 @@
                        <COND (<L? .O 0> <RFALSE>)
                              (<ZERO? .O> <RETURN <PARSE-COMMAND>>)>)>)
             (ELSE)>
-    <COND (,P-DEFAULT1 <TELL "(the " D ,PRSO ")" CR>)>
-    <COND (,P-DEFAULT2 <TELL "(the " D ,PRSI ")" CR>)>
+    <COND (,P-DEFAULT1 <IFFLAG (I7 <COND (T <TELL "("> <SAY-THE ,PRSO> <TELL ")" CR>)>)
+                               (ELSE <TELL "(the " D ,PRSO ")" CR>)>)>
+    <COND (,P-DEFAULT2 <IFFLAG (I7 <COND (T <TELL "("> <SAY-THE ,PRSI> <TELL ")" CR>)>)
+                               (ELSE <TELL "(the " D ,PRSI ")" CR>)>)>
     ;"as in Inform, the thing is the noun whichever slot it was typed in"
     <IFFLAG (I7 <COND (<TOPIC-SLOT? ,P-SYNTAX 1> <SETG PRSO ,PRSI> <SETG PRSI 0>)>) (ELSE)>
     ;"a line 'with nouns reversed': the thing typed first is the second noun"
@@ -786,10 +814,56 @@
     <COND (<BAND .OPTS ,SO-HELD> <KEEP-IF .TBL ,SO-HELD>)>
     <COND (<BAND .OPTS ,SO-ROOM> <KEEP-IF .TBL ,SO-ROOM>)>
     <COND (<AND <BAND .OPTS ,SO-INSIDE> ,PRSI> <KEEP-IF .TBL ,SO-INSIDE>)>
+    <IFFLAG (I7 <MOST-LIKELY .TBL>) (ELSE)>
     <COND (<EQUAL? <GET .TBL 0> 1>
-           <TELL "(the " D <GET .TBL 1> ")" CR>
+           <IFFLAG (I7 <COND (T <TELL "("> <SAY-THE <GET .TBL 1>> <TELL ")" CR>)>)
+                   (ELSE <TELL "(the " D <GET .TBL 1> ")" CR>)>   ;"I7: no 'the' for Bob"
            <GET .TBL 1>)
           (ELSE <WHICH? .TBL>)>>
+
+<IFFLAG (I7
+;"Inform 7's 'Does the player mean' rules: each candidate is tried as the
+  noun (or second noun) of the action being parsed, and scored - very
+  unlikely 0 ... possible 2 (no rule says) ... very likely 4. Only the best
+  are kept. A rule returns its score plus one; 0 is 'does not apply'."
+<GLOBAL P-LIKELY <ITABLE 20>>
+
+<ROUTINE MOST-LIKELY (TBL "AUX" N S (BEST -1) (KEPT 0) O OLD-A OLD-O OLD-I)
+    <COND (<ZERO? <GET ,DTPM-RULES 0>> <RFALSE>)>
+    <SET N <GET .TBL 0>>
+    <COND (<G? .N 20> <RFALSE>)>
+    <SET OLD-A ,PRSA> <SET OLD-O ,PRSO> <SET OLD-I ,PRSI>
+    <SETG PRSA <GET ,P-SYNTAX ,S-ACTION>>
+    <DO (I 1 .N)
+        <COND (<EQUAL? .TBL ,P-MATCHES2> <LIKELY-NOUNS .OLD-O <GET .TBL .I>>)
+              (ELSE <LIKELY-NOUNS <GET .TBL .I> .OLD-I>)>
+        <SET S <LIKELIHOOD>>
+        <PUT ,P-LIKELY .I .S>
+        <COND (<G? .S .BEST> <SET BEST .S>)>>
+    <SETG PRSA .OLD-A> <SETG PRSO .OLD-O> <SETG PRSI .OLD-I>
+    <DO (I 1 .N)
+        <SET O <GET .TBL .I>>
+        <COND (<EQUAL? <GET ,P-LIKELY .I> .BEST> <SET KEPT <+ .KEPT 1>> <PUT .TBL .KEPT .O>)>>
+    <PUT .TBL 0 .KEPT>>
+
+;"Put the objects of slots 1 and 2 where the action will have them, as
+  PARSE-COMMAND does at the end: on a topic line the thing is the noun; on a
+  line with nouns reversed the two swap."
+<ROUTINE LIKELY-NOUNS (S1 S2)
+    <SETG PRSO .S1> <SETG PRSI .S2>
+    <COND (<TOPIC-SLOT? ,P-SYNTAX 1> <SETG PRSO .S2> <SETG PRSI 0>)>
+    <COND (<BAND <GET ,P-SYNTAX ,S-OPTS1> ,SO-REVERSED>
+           <SETG P-SWAP ,PRSO> <SETG PRSO ,PRSI> <SETG PRSI ,P-SWAP>)>>
+
+<ROUTINE LIKELIHOOD ("AUX" N V (SCORE 2))
+    ;"the first rule that applies says; 'it is possible' (2) if none does.
+      (RETURN inside DO leaves only the loop, so the score is kept in SCORE)"
+    <SET N <GET ,DTPM-RULES 0>>
+    <DO (I 1 .N)
+        <SET V <APPLY <GET ,DTPM-RULES .I>>>
+        <COND (<G? .V 0> <SET SCORE <- .V 1>> <RETURN>)>>
+    .SCORE>
+) (ELSE)>
 
 <ROUTINE KEEP-IF (TBL TEST "AUX" N KEPT O)
     ;"narrow TBL to the candidates passing TEST - unless none would be left
@@ -822,7 +896,7 @@
         <SET N <GET .TBL 0>>
         <TELL "Which do you mean, ">
         <DO (I 1 .N)
-            <TELL "the " D <GET .TBL .I>>
+            <IFFLAG (I7 <SAY-THE <GET .TBL .I>>) (ELSE <TELL "the " D <GET .TBL .I>>)>
             <COND (<L? .I <- .N 1>> <TELL ", ">)
                   (<EQUAL? .I <- .N 1>> <TELL " or ">)>>
         <TELL "?" CR "> ">

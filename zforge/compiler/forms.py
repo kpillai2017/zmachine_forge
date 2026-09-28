@@ -250,6 +250,14 @@ class FormParser:
                 self.error(lst, "write (FIND FLAGNAME)")
                 return find
             return items[1].name
+        if items and isinstance(items[0], r.Atom) and items[0].name == "TEST":
+            # (TEST ROUTINE): only objects the routine accepts fit (Inform 7's
+            # descriptions as grammar tokens); its address takes the FIND word
+            if len(items) != 2 or not isinstance(items[1], r.Atom):
+                self.error(lst, "write (TEST ROUTINE)")
+                return find
+            options.add("TEST")
+            return items[1].name
         for item in items:
             name = item.name if isinstance(item, r.Atom) else None
             if name in OPTION_BITS:

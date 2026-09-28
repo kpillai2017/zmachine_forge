@@ -16,11 +16,11 @@ import re
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
-from zforge.compiler.i7.model import ADJECTIVES, BUILTIN_KINDS, DICT_WORD, TEXT_PROPERTIES, \
-    PhraseDef, strip_article, unquote
+from zforge.compiler.i7.model import all_activities, ADJECTIVES, BUILTIN_KINDS, DICT_WORD, \
+    TEXT_PROPERTIES, PhraseDef, strip_article, unquote
 from zforge.compiler.i7.problems import Location
 from zforge.compiler.i7.source import BodyLine
-from zforge.compiler.i7.standard import (ACTIVITIES, DIRECTIONS, PARSER_ERRORS, zil_name,
+from zforge.compiler.i7.standard import (DIRECTIONS, PARSER_ERRORS, zil_name,
                                          zil_string)
 from zforge.compiler.i7.text import IfText, Literal, OneOf, Substitution, Text, TextError, \
     ends_sentence, parse_text
@@ -261,6 +261,11 @@ class PhraseLowerer:
         None: not one of these (the next group is tried)."""
         if low in ("in darkness", "in the dark"):
             return "<NOT ,LIT>"
+        m = re.match(r"^in (.+)$", t, re.I)           # 'when in Forest3': the location
+        if m:
+            room = self.L.m.find(m.group(1))
+            if room is not None and any(k.name == "room" for k in self.L.kind_chain(room)):
+                return f"<EQUAL? ,HERE {self.value(m.group(1), where)}>"
         # 'handling the X activity': test if activity is happening
         m = re.match(r"^handling (the .+ activity)$", t, re.I)
         if m:                                         # true if no for rule decided
@@ -344,8 +349,10 @@ class PhraseLowerer:
             test = f"<FSET? {self.value(subject, where)} ,{flag}>"
             return test if value else f"<NOT {test}>"
         kind = strip_article(adj)
-        if what.lower().startswith(("a ", "an ")) and kind in KIND_FLAGS:
-            return f"<FSET? {self.value(subject, where)} ,{KIND_FLAGS[kind]}>"
+        if what.lower().startswith(("a ", "an ")):
+            test = self.kind_test(self.value(subject, where), kind)
+            if test is not None:
+                return test
         if what.strip().startswith('"'):                 # 'the scent of it is "nothing"'
             return self.text_is(subject, what.strip(), where)
         return f"<EQUAL? {self.value(subject, where)} {self.value(what, where)}>"
@@ -391,6 +398,13 @@ class PhraseLowerer:
                 guards.insert(0, f"<EQUAL? ,HERE ,{self.L.atom[room.name]}>")
                 spec[1] = 1
         low = text.lower()
+        m = re.match(r"^doing (?:something|anything) to (.+)$", low)   # any action on it
+        if m:
+            noun = self.object_guard(",PRSO", text[len(text) - len(m.group(1)):], where)
+            if noun:
+                guards.insert(0, noun)
+                spec[0] = 1
+            return ActionPattern([], self.all_of(guards), tuple(spec))
         m = re.match(r"^doing (?:something|anything)(?: other than (.+))?$", low)
         if m:
             actions = []
@@ -525,8 +539,10 @@ class PhraseLowerer:
         if n in ("something", "anything", "someone", "a thing"):
             return ""
         kind = strip_article(n)
-        if n.startswith(("a ", "an ")) and kind in KIND_FLAGS:
-            return f"<FSET? {global_name} ,{KIND_FLAGS[kind]}>"
+        if n.startswith(("a ", "an ")):
+            test = self.kind_test(global_name, kind)
+            if test is not None:
+                return test
         described = self.described(global_name, n, where)
         if described is not None:
             return described
@@ -555,22 +571,47 @@ class PhraseLowerer:
             adjectives, kind = words[1:-1], words[-1]
         else:
             return None
-        tests = [self.adjective_test(global_name, a) for a in adjectives]
-        if not adjectives or None in tests:
+        tests, negate = [], False
+        for a in adjectives:                      # 'an important not known tale'
+            if a == "not":
+                negate = True
+                continue
+            test = self.adjective_test(global_name, a)
+            if test is None:
+                return None
+            tests.append(f"<NOT {test}>" if negate else test)
+            negate = False
+        if not tests or negate:
             return None
-        if kind in KIND_FLAGS:
-            tests.append(f"<FSET? {global_name} ,{KIND_FLAGS[kind]}>")
-        elif kind not in ("thing", "person"):
-            return None
+        if kind not in ("thing", "person"):
+            test = self.kind_test(global_name, kind)
+            if test is None:
+                return None
+            tests.append(test)
         return self.all_of(tests)
 
-    @staticmethod
-    def activity_atom(name: str) -> str | None:
+    def kind_test(self, operand: str, kind: str) -> str | None:
+        """The test that OPERAND is of KIND, or None if KIND is no kind. A
+        library kind has a flag; the author's kinds are tested by their members
+        (kinds can't change in play), three at a time, as EQUAL? takes four."""
+        if kind in KIND_FLAGS:
+            return f"<FSET? {operand} ,{KIND_FLAGS[kind]}>"
+        if kind not in self.L.m.kinds:
+            return None
+        members = [f",{self.L.atom[o.name]}" for o in self.L.m.objects.values()
+                   if self.L.m.is_a(o.kind, kind)]
+        if not members:
+            return "<EQUAL? 0 1>"                      # a kind with nothing in it
+        tests = [f"<EQUAL? {operand} {' '.join(members[i:i + 3])}>"
+                 for i in range(0, len(members), 3)]
+        return tests[0] if len(tests) == 1 else "<OR " + " ".join(tests) + ">"
+
+    def activity_atom(self, name: str) -> str | None:
         """'the printing the banner text activity' -> PRINTING-BANNER-ACTIVITY"""
         n = name.strip().lower()
         n = n[4:] if n.startswith("the ") else n
         n = n[:-len(" activity")] if n.endswith(" activity") else n
-        for activity in ACTIVITIES:
+        for activity in all_activities(self.L.m):
             if n == activity.name:
                 return activity.atom
         return None
@@ -816,6 +857,9 @@ class PhraseLowerer:
             return self.phrase(t[:-len(" instead")], where) + ["<RTRUE>"]
         if low.startswith("say "):
             return self.say(t[4:].strip(), where)
+        likely = ("very unlikely", "unlikely", "possible", "likely", "very likely")
+        if low.startswith("it is ") and low[6:] in likely:   # a 'Does the player mean'
+            return [f"<RETURN {likely.index(low[6:]) + 1}>"]  # answer: its score, plus one
         if low in ("decide yes", "decide no", "yes", "no"):   # a 'To decide whether' (or
             return ["<RTRUE>" if low.endswith("yes") else "<RFALSE>"]   # definition's) answer
         m = re.match(r"^let (.+?) be (.+)$", t, re.I)

@@ -1109,3 +1109,52 @@ builds are unchanged. Two of Cold Iron's mistake lines still fail: their
 grammar uses a description as a token (`[undirectional goable thing]`).
 One of its "has a number" lines follows an activity I7-lite misreads, so
 its thing is not known yet (see I7_SURVEY).
+
+
+## ADR-053: The author's activities; descriptions as grammar tokens; Does the player mean
+
+**Context.** Cold Iron's next gaps (docs/I7_SURVEY.md): an activity of its
+own (`Forest-running is an activity.`, with `For forest-running when in
+Forest3:` rules), two mistake lines with descriptions as tokens (`go
+[undirectional goable thing]`), and three `Does the player mean` rules.
+
+**Decisions.**
+
+- *Activities.* `X is an activity.` adds a `LibraryActivity` of the
+  author's, registered in the first pass so later rules know it; it uses
+  the library's rulebooks and its runtime `CARRY-OUT`, unchanged. `For X:`
+  starts a rule only when a colon follows on the same line with no quote
+  before it, so a description line starting "For years..." stays text.
+  Activities on nothing only. The condition `in <room>` (`when in Forest3`)
+  tests the location; a room of the author's kind (ForestRoom) counts.
+- *Kinds.* A rule, condition or description naming the author's kind tests
+  membership: `<EQUAL?>` over its members (kinds can't change in play),
+  three at a time (EQUAL? takes four operands), joined by OR. Before this, a
+  kind with several members could not be tested at all, and one with a
+  single member was quietly read as "the (only) tale". Descriptions take
+  `not` before an adjective.
+- *Description tokens.* A grammar option `(TEST routine)`: bit SO-TEST,
+  and the routine's address in the slot's S-FIND word (otherwise used only
+  for the implied object). The parser (Inform 7 games only) keeps, after
+  matching a slot, the objects the routine accepts; if none, it sets the
+  not-found error, so the next line is tried and, at the end, "You can't see
+  any such thing." rather than "What do you want to ...?" (the reply when
+  no line fits is Inform's usual one, not checked against a game). Such a
+  slot has no implied object. Not for several-object slots.
+- *Does the player mean.* One rulebook for all actions, `DTPM-RULES`, each
+  rule guarded by its action (`PRSA` holds an action number; there is no
+  table from numbers to rulebooks), most specific first. A rule returns its
+  score plus one (`it is likely`: 4); 0 means it does not apply; none:
+  possible (2). The parser, in CHOOSE, tries each candidate where the action
+  will have it (LIKELY-NOUNS: a topic line's thing is the noun; a reversed
+  line swaps), and keeps the best. `doing something to X` is a new pattern.
+  (A RETURN inside DO leaves only the loop in ZIL: the score is kept in a
+  variable.)
+- *Articles.* The parser's "(the X)" and "Which do you mean" now print a
+  proper-named thing without "the" in Inform 7 games, through SAY-THE, as
+  Inform does. The ZIL games' branches are unchanged: their builds are
+  byte-identical.
+
+**Consequences.** Cold Iron: 22 problems to 14 (first stage). The original
+Bronze: 465, as before. Glasshouse and Bronze play their walkthroughs with
+identical transcripts.
