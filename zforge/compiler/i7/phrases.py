@@ -924,11 +924,16 @@ class PhraseLowerer:
 
     def parts(self, parts: list, where: Location) -> list[str]:
         out: list[str] = []
+        said_phrase = False     # may a say phrase have just ended a line?
         for part in parts:
             if isinstance(part, Literal):
                 if part.text:
-                    out.append(f"<TELL {zil_string(part.text)}>")
-            elif isinstance(part, Substitution):
+                    # the line goes on after it: no longer at a line's end
+                    out.append(("<SETG SAY-P 0> " if said_phrase else "")
+                               + f"<TELL {zil_string(part.text)}>")
+                    said_phrase = False
+                continue
+            if isinstance(part, Substitution):
                 out.append(self.substitution(part.words, where))
             elif isinstance(part, IfText):
                 clauses = []
@@ -938,6 +943,8 @@ class PhraseLowerer:
                 out.append("<COND " + " ".join(clauses) + ">")
             elif isinstance(part, OneOf):
                 out.append(self.one_of(part, where))
+            if any(f"<{r}>" in out[-1] for r in self.say_phrases.values()):
+                said_phrase = True
         return out
 
     def one_of(self, part: OneOf, where: Location) -> str:

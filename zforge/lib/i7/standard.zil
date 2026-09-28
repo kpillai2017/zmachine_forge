@@ -24,6 +24,7 @@
 <ROUTINE DESCRIBE-ROOM () <FOLLOW-RULES <GET ,LOOKING-RULES ,CARRY-OUT-STAGE>>>
 
 <ROUTINE LOOK-HEADING ()               ;"the room description heading rule"
+    <COND (,GOING-LOOK <SETG PARA-BREAK 1>)>    ;"going spacing: a blank line first"
     <PARA-FLUSH>
     <HLIGHT 2>
     ;"in the dark: the printing the name of a dark room activity, whose
@@ -35,7 +36,8 @@
 
 <ROUTINE LOOK-BODY ()                  ;"the room description body text rule"
     <COND (<NOT ,LIT> <CARRY-OUT ,PRINTING-DARK-DESC-ACTIVITY 0 ,LOOK-BODY-A>)
-          (<GETP ,HERE ,P?DESCRIPTION> <PARA-FLUSH> <SAY-TEXT ,HERE ,P?DESCRIPTION> <CRLF>)>
+          (<GETP ,HERE ,P?DESCRIPTION> <PARA-FLUSH> <SAY-TEXT ,HERE ,P?DESCRIPTION>
+           <PARA-END>)>   ;"a paragraph: what the next rule says is set off"
     <RFALSE>>
 
 <ROUTINE WRITE-PARAGRAPH? (O "AUX" MARK OWED SAID NAMED)
@@ -67,11 +69,12 @@
                <COND (<WRITE-PARAGRAPH? .O> <FSET .O ,MENTIONEDBIT>)
                      (<SHOWS-INITIAL? .O>
                       <SETG PRIOR-NAMED .O>
-                      <PARA-ABSORB> <CRLF> <SAY-TEXT .O ,P?INITIAL-APPEARANCE> <CRLF>
+                      <PARA-ABSORB> <CRLF> <SAY-TEXT .O ,P?INITIAL-APPEARANCE> <PARA-END>
                       <FSET .O ,MENTIONEDBIT>)>)>>
     <COND (<NOT <ZERO? <COUNT-LISTED ,HERE ,LISTED-HERE?>>>
            <PARA-ABSORB>
-           <CRLF> <TELL "You can see "> <SAY-LIST ,HERE ,LISTED-HERE?> <TELL " here." CR>)>
+           <CRLF> <TELL "You can see "> <SAY-LIST ,HERE ,LISTED-HERE?> <TELL " here.">
+           <SENTENCE-BREAK>)>
     ;"what is on scenery supporters (Inform 7 mentions these too)"
     <MAP-CONTENTS (O ,HERE)
         <COND (<AND <FSET? .O ,SCENERYBIT> <FSET? .O ,SUPPORTERBIT>
@@ -79,7 +82,7 @@
                <PARA-ABSORB> <CRLF> <TELL "On "> <SAY-THE .O> <TELL " ">
                <COND (<EQUAL? <COUNT-LISTED .O ,VISIBLE-THING?> 1> <TELL "is ">)
                      (ELSE <TELL "are ">)>
-               <SAY-LIST .O ,VISIBLE-THING?> <TELL "." CR>)>>
+               <SAY-LIST .O ,VISIBLE-THING?> <TELL "."> <SENTENCE-BREAK>)>>
     <RFALSE>>
 
 <ROUTINE LOOK-NEW-ARRIVAL ()           ;"the check new arrival rule"
@@ -91,7 +94,7 @@
 <ROUTINE EXAMINE-STANDARD ()           ;"the standard examining rule"
     <SETG EXAMINE-SAID 0>
     <COND (<GETP ,PRSO ,P?DESCRIPTION>
-           <PARA-FLUSH> <SAY-TEXT ,PRSO ,P?DESCRIPTION> <CRLF> <SETG EXAMINE-SAID 1>)>
+           <PARA-FLUSH> <SAY-TEXT ,PRSO ,P?DESCRIPTION> <PARA-END> <SETG EXAMINE-SAID 1>)>
     <RFALSE>>
 <ROUTINE EXAMINE-UNDESCRIBED ()        ;"the examine undescribed things rule"
     <COND (<NOT ,EXAMINE-SAID> <EXAMINE-UNDESCRIBED-A>)>
@@ -156,7 +159,11 @@
 ;"Inform 7's move player and vehicle rule."
 <ROUTINE GO-MOVE () <MOVE-PLAYER-TO ,GOING-TO> <RFALSE>>
 ;"Inform 7's describe room gone into rule."
-<ROUTINE GO-DESCRIBE () <DESCRIBE-ROOM> <RFALSE>>
+<GLOBAL GOING-LOOK 0>   ;"is the room being described because the player went there?"
+<ROUTINE GO-DESCRIBE ()   ;"the describe room gone into rule"
+    ;"Inform 7 describes it 'with going spacing conventions': the heading is
+      set off by a blank line (looking does not do that)"
+    <SETG GOING-LOOK 1> <DESCRIBE-ROOM> <SETG GOING-LOOK 0> <RFALSE>>
 
 ;"---------------------------------------------------- taking inventory"
 <ROUTINE INVENTORY-EMPTY ()

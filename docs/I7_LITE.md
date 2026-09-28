@@ -357,6 +357,7 @@ Also (from Advent's cave):
 | `[name of a To say phrase]` | 7a |
 | `'` is printed as `"` unless inside a word (`don't`), as in Inform 7 | 7a |
 | a `[paragraph break]` that ends a say leaves a blank line owed: printed before whatever is printed next, but not before the prompt (ADR-047) | 7c |
+| blank lines as Inform 7 prints them (ADR-048): the output of two rules is set apart by a blank line; after going (not looking) the room's name is set off by one; a description that already ended its line (a say inside it did) gets no extra line break | 7c |
 | **adaptive text** (7c): `[We] [we] [us] [our] [Our] [ourselves] [are] ['re] [have] [here] [now] [There] [there] [regarding X]`, and custom verbs `To flow is a verb.` then `[flow]` | 7c |
 | `[It]` `[it]` `[There]` `[there]`: printed as written; the next verb then agrees as a singular (`[There] [are] a light` -> "There is a light") | Advent |
 | modal verbs: `[can catch]` `[cannot carry]` `[can't go]` `[might try]` (printed as written) | Advent |

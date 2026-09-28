@@ -22,6 +22,11 @@
 <ROUTINE SENTENCE-BREAK ()      ;"the line break after 'say \"Taken.\"'"
     <CRLF> <SETG SAY-P 1>>
 
+<ROUTINE PARA-END ()            ;"after a description: end its paragraph"
+    ;"a line break - unless the text already ended with one (a say inside
+      it, such as a say phrase's, ended a sentence), as in Inform 7"
+    <COND (<ZERO? ,SAY-P> <SENTENCE-BREAK>)>>
+
 <GLOBAL SAID-COUNT 0>    ;"one more for every say: 'did that activity print anything?'"
 
 <ROUTINE PARA-FLUSH ()          ;"before printing: the blank line owed, if any"

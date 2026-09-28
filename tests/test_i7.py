@@ -294,9 +294,18 @@ def test_differential_responses_are_split_at_each_command():
     ours = "Hello.\n\nTitle\nBy Y\n\n>look\nLab\n\n>wait\nNothing.\n\n>"
     banner = ["Title", "By .*"]
     r, o = responses(real, ["look", "wait"], banner), responses(ours, ["look", "wait"], banner)
-    assert r[0] == o[0] == ["Hello."] and r[1] == o[1] == ["Lab"]
+    assert r[0] == o[0] == ["Hello.", ""] and r[1] == o[1] == ["Lab", ""]
     assert differences(["look", "wait"], r, o) == [
         "'>wait': Inform 7 printed 'Time passes.', we printed 'Nothing.'"]
+
+
+def test_differential_catches_a_blank_line_too_many_before_the_prompt():
+    from eval.differential import differences, responses
+    real = ">wait\nTime passes.\n\n>"
+    ours = ">wait\nTime passes.\n\n\n>"
+    r, o = responses(real, ["wait"], []), responses(ours, ["wait"], [])
+    assert differences(["wait"], r, o) == [
+        "'>wait': Inform 7 printed nothing more, we printed a blank line"]
 
 
 def test_every_library_rule_is_listed_in_the_docs():

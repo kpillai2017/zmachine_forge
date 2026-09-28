@@ -968,3 +968,40 @@ its invented "nothing under that name" messages (the original gives the
 standard reply). The original also cuts "the" out of look-up commands
 ("After reading a command"), which I7-lite cannot do; the port's topics
 start with an optional "the/--" instead. Tests: tests/test_i7_topics.py.
+
+## ADR-048: Blank lines, checked against the real Bronze
+
+**Context.** Comparing the Bronze port with the real game (built by
+Inform 7), response by response over the 589-command walkthrough, showed
+that I7-lite's blank lines were often wrong where its words were right:
+only 187 of the 347 responses with the same words matched exactly.
+
+**Decision.** Three rules of Inform 7's spacing, each checked against the
+real game:
+* **Printing a description leaves "something was said"** (SAY-P), as any
+  printing does in Inform: the room's description, a thing's paragraph,
+  "You can see ... here." and an examined thing's description end with a
+  sentence break, so the next rule's text is set apart by a blank line
+  (before, "You read: ..." came straight after the sign's description).
+* **Going spacing.** After going, the room's name is set off by a blank
+  line (the describe room gone into rule sets GOING-LOOK); after LOOK it
+  is not. The real game does this after 262 of 302 moves (the others were
+  blocked or printed something first); Advent's rooms have no names, so
+  the Advent case never saw it.
+* **A description that already ended its line gets no extra line break**
+  (PARA-END): when a say inside it, such as a say phrase's, ended a
+  sentence and nothing followed on the line. The compiler clears SAY-P
+  when text follows a say phrase in the same text, so SAY-P can be trusted.
+
+The Advent case now compares the blank lines at the start and end of each
+response too (eval/differential.py): before, it could not see a blank line
+too many before the prompt, and it passed with the paragraph-break bug of
+ADR-047 (it now fails on that version).
+
+**Consequences.** 346 of the 347 responses match the real game exactly;
+the one left is the real game printing two blank lines after one room
+description (a quirk of the original's own rules). Every I7-lite story
+gains blank lines where Inform prints them (Glasshouse: 29, no other
+change). The Bronze port's Beast thoughts now come from an After going
+rule that tries looking, as in the original. Tests:
+tests/test_i7_paragraphs.py.
