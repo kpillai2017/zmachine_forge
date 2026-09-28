@@ -144,6 +144,7 @@ class Analyser:
             add_property(d, self.p.objects[0] if self.p.objects else self.p.routines[0])
         for pd in self.p.propdefs:
             add_property(pd.name, pd)
+        overflow: dict[str, object] = {}              # flags beyond the 48 attributes
         for o in self.p.objects:
             if o.synonyms:
                 add_property("SYNONYM", o)
@@ -152,9 +153,9 @@ class Analyser:
             for name, value in o.properties:
                 add_property(name, value)
             for flag, loc in o.flags:
-                if flag not in self.s.flags:
+                if flag not in self.s.flags and flag not in overflow:
                     if len(self.s.flags) >= MAX_ATTRIBUTES:
-                        self.diag.error(loc, "too many FLAGS (48 attributes maximum, §12.3.1)")
+                        overflow[flag] = loc          # reported once, below
                         continue
                     self.s.flags[flag] = len(self.s.flags)
             for w in o.synonyms + o.adjectives:
@@ -162,6 +163,14 @@ class Analyser:
             if o.parent and o.parent not in {x.name for x in self.p.objects}:
                 self.error(o, f"(IN {o.parent}): {o.parent} is not a defined object or room")
 
+        if overflow:
+            # One message, not one per object: how many attributes the program
+            # needs, and which ones did not fit.
+            first = next(iter(overflow.values()))
+            self.diag.error(first, f"too many FLAGS: this program uses "
+                            f"{len(self.s.flags) + len(overflow)} attributes, but the "
+                            f"Z-machine has {MAX_ATTRIBUTES} (§12.3.1). Not allocated: "
+                            f"{', '.join(overflow)}")
         if ENTRY_ROUTINE not in self.s.routines:
             loc = self.p.routines[0] if self.p.routines else None
             if loc:

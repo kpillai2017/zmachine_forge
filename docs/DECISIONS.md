@@ -761,3 +761,47 @@ it leaves out of a released game.
 the library's own activity rules. The wording of the on/off messages
 follows Inform's as we remember it, and hasn't been checked against a
 real game (release builds leave the commands out).
+
+## ADR-039: Five sentence-reading fixes found by rewriting Bronze
+
+**Context.** Rewriting Emily Short's *Bronze* in I7-lite (a local study
+copy, not in the repository) was the largest I7-lite source so far, and
+it found five places where the compiler misread a sentence, silently or
+with an unhelpful message.
+
+**Decision.**
+1. *An object moved by a short name.* `The inkpot is in the Black
+   Gallery.`, written after "the history of the inkpot" existed, took the
+   inkpot to be that history (a short name, as Inform allows) and quietly
+   moved it, so no inkpot was ever made. Short names stay as they are,
+   because many stories rely on them; instead, putting something in a
+   second, different place is now a problem, as it is in Inform 7, and
+   the message explains the short-name trap when the sentence didn't use
+   the full name.
+2. *A keyword inside a quoted text.* `The description of the small key
+   is "...intended to unlock more than one thing".` was read as a lock
+   and key sentence. The sentence patterns now look at a copy in which
+   quoted texts are blanked out, so no keyword inside a quote can match.
+3. *Map sentences.* `It is south of the Lower Bulb.` after a room made a
+   room called "It"; now `It` and `They` mean the last room (or door),
+   and anything else is a problem. A list of exits separated by commas
+   (`south of A, southwest of B and southeast of C`) made one room named
+   after the whole list; commas now separate exits, like "and". (A
+   plural door, `They are above X and below Y.`, was suspected too, but
+   it already worked; a test now says so.)
+4. *Too many either/or properties.* More than the Z-machine's 48
+   attributes gave 162 ZIL errors reported as "a bug in zforge". The ZIL
+   compiler now reports it once, with the total and the attributes that
+   didn't fit; for an Inform 7 source it becomes a problem at the first
+   either/or property that didn't fit, with the list and a suggestion.
+5. *A full stop after a bare text.* A room description ending in
+   `[end if]".` was printed with its quote marks and full stop. A text
+   ending in `]` can't end a sentence by itself, so authors add the
+   full stop after the quote; it is now dropped, as Inform does.
+
+Each fix has a test in `tests/test_i7_sentence_fixes.py`, and every I7
+example (and Bronze) builds byte-for-byte as before.
+
+**Not done.** Falling back to properties when the attributes run out,
+which would let such a story compile as it is.
+

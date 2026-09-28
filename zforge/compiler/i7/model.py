@@ -160,6 +160,7 @@ class WorldModel:
     rules: list[Rule] = field(default_factory=list)
     phrases: list[PhraseDef] = field(default_factory=list)
     either_or: dict[str, tuple[str, bool]] = field(default_factory=dict)  # adj -> (flag, value)
+    either_or_where: dict[str, tuple] = field(default_factory=dict)  # flag -> (where, sentence)
     value_properties: dict[str, str] = field(default_factory=dict)        # name -> kind
     direction_words: dict[str, list[str]] = field(default_factory=dict)  # 'north' -> ['plugh']
     verbs: dict[str, tuple[str, str]] = field(default_factory=dict)      # 'flow': (flow, flows)
@@ -230,6 +231,33 @@ def strip_article(phrase: str) -> str:
         if p.lower().startswith(a):
             return p[len(a):].strip()
     return p
+
+
+def blank_quotes(text: str) -> str:
+    """TEXT with everything inside double quotes replaced by NUL characters,
+    keeping the quote marks and the length, so that positions still line up."""
+    return re.sub(r'"[^"]*"', lambda q: '"' + "\0" * (len(q.group()) - 2) + '"', text)
+
+
+class QuoteBlindMatch:
+    """A regular-expression match made on a blank_quotes() copy, reporting
+    the real text at the same positions. It offers the parts of a match
+    object that the sentence handlers use."""
+
+    def __init__(self, match: re.Match, text: str):
+        self.match, self.string = match, text
+
+    def group(self, *numbers):
+        if len(numbers) > 1:
+            return tuple(self.group(n) for n in numbers)
+        start, end = self.match.span(numbers[0] if numbers else 0)
+        return None if start < 0 else self.string[start:end]
+
+    def start(self, n=0):
+        return self.match.start(n)
+
+    def end(self, n=0):
+        return self.match.end(n)
 
 
 def unquote(s: str) -> str:
@@ -321,12 +349,25 @@ class ModelBuilder:
                 self.m.author = unquote(m.group(2).rstrip("."))
             return
         if t.startswith('"'):                        # a bare quoted sentence
+            # '"...[end if]".' is the same text with the sentence's own full
+            # stop after it: a text ending in ']' can't end a sentence by
+            # itself, so authors add one. It is not part of the text.
+            if re.match(r'^"[^"]*"\.$', t):
+                t = t[:-1]
             self.bare_text(s, t)
             return
         # Try patterns in order (comma_placement must come first; order matters).
         body = t[:-1].strip() if t.endswith(".") else t
+        # The patterns look for keywords ('unlocks', 'is north of', 'in'), and
+        # a keyword inside a quoted text is just part of the text: 'The
+        # description of the key is "...intended to unlock more than one
+        # thing".' is not a sentence about unlocking. So each pattern is
+        # matched against a copy with the quoted texts blanked out, and the
+        # handler is given the real words at the same positions.
+        blind = blank_quotes(body)
         for pattern, handler in self.PATTERNS:
-            m = re.match(pattern, body, re.I)
+            found = re.match(pattern, blind, re.I)
+            m = QuoteBlindMatch(found, body) if found else None
             if m and handler(self, s, m) is not False:    # False: 'not mine after all'
                 return
         self.p.problem(s.where, s.text, "I7-lite does not understand this sentence "
@@ -400,9 +441,11 @@ class ModelBuilder:
         self.link(self.last_room, direction, there)
 
     def connect(self, s, subject: str, direction: str, other: str) -> None:
-        # 'It is north of A and south of B': two connections in one sentence
-        more = re.match(rf"^(.+?) and ({DIRECTION_WORDS}|above|below) (?:(?:of|from) )?(.+)$",
-                        other, re.I)
+        # 'It is north of A and south of B', or 'The Pit is south of A,
+        # southwest of B and southeast of C': several connections in one
+        # sentence, split one at a time
+        more = re.match(rf"^(.+?)(?:,? and|,) ({DIRECTION_WORDS}|above|below) "
+                        rf"(?:(?:of|from) )?(.+)$", other, re.I)
         if more:
             self.connect(s, subject, direction, more.group(1))
             direction2 = {"above": "up", "below": "down"}.get(more.group(2).lower(),
@@ -425,7 +468,16 @@ class ModelBuilder:
             door, room = self.subject(s, other), self.object_for(subject, s.where, "room")
             door.sides.append((room.name, OPPOSITE[direction]))
             return
-        here = self.object_for(subject, s.where, "room")
+        if subject.strip().lower() in ("it", "they"):
+            # 'The Library is north of the Hall. It is west of the Garden.':
+            # 'It' is the room the previous sentence was about
+            if self.last_object is None or not self.m.is_a(self.last_object.kind, "room"):
+                self.p.problem(s.where, s.text, f"it is not clear which room "
+                               f"'{subject.strip()}' means here; name the room instead.")
+                return
+            here = self.last_object
+        else:
+            here = self.object_for(subject, s.where, "room")
         there = self.object_for(other, s.where, "room")
         for room in (here, there):
             if not self.m.is_a(room.kind, "room"):
@@ -637,6 +689,7 @@ class ModelBuilder:
         adjs = [a.strip().lower() for a in re.split(r"\s+or\s+", m.group(2))]
         flag = re.sub(r"[^A-Z0-9]+", "-", adjs[0].upper()).strip("-") + "BIT"
         self.m.either_or[adjs[0]] = (flag, True)
+        self.m.either_or_where.setdefault(flag, (s.where, s.text))
         if len(adjs) > 1:
             self.m.either_or[adjs[1]] = (flag, False)
 
@@ -869,6 +922,20 @@ class ModelBuilder:
         if relation == "on" and not self.m.is_a(holder.kind, "supporter"):
             self.p.problem(s.where, s.text, f"'{holder.name}' is not a supporter, so "
                            "nothing can be put on it.")
+        if obj.parent is not None and (obj.parent, obj.relation) != (holder.name, relation):
+            # A thing can be in only one place. Inform 7 reports this as a
+            # contradiction; quietly moving the thing would hide a mistake.
+            # The usual cause is a short name: 'The inkpot is in the Black
+            # Gallery' means the existing 'history of the inkpot' if that is
+            # the only thing whose name contains 'inkpot'.
+            why = (f"'{obj.name}' is already {obj.relation} '{obj.parent}' (an earlier "
+                   "sentence put it there), and a thing can be in only one place.")
+            if obj.name.lower() not in " ".join(s.text.split()).lower():
+                why += (f" (A short name like this can mean the existing '{obj.name}': if "
+                        f"you meant a new thing, give it a name that is not part of "
+                        f"'{obj.name}'.)")
+            self.p.problem(s.where, s.text, why)
+            return
         obj.parent, obj.relation = holder.name, relation
 
     # ------------------------------------------------------------ rules

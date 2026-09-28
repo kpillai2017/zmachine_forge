@@ -10,6 +10,8 @@ If the ZIL compiler rejects the generated code, that is a bug in I7-lite
 
 from __future__ import annotations
 
+import re
+
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -66,7 +68,35 @@ def compile_i7(source: str, filename: str = "story.ni", target: int | None = Non
     try:
         compiled = compile_zil(zil, generated, target if target is not None else DEFAULT_TARGET)
     except ZForgeError as e:
+        if "too many FLAGS" in str(e):
+            report_too_many_attributes(model, filename, str(e))
         raise ZForgeError("internal error: I7-lite generated ZIL that does not compile "
                           "(a bug in zforge, not in your source; see it with --emit-zil):"
                           f"\n{e}") from e
     return I7Result(model, zil, compiled, notes)
+
+
+def report_too_many_attributes(model: WorldModel, filename: str, message: str) -> None:
+    """Every either/or property ('A thing can be shiny') becomes a Z-machine
+    attribute, and there are only 48 of them, shared with the library. That is
+    a limit of the story, not a zforge bug, so say so as an Inform-style
+    problem, pointing at the first of the story's own properties that did not
+    fit."""
+    used = re.search(r"uses (\d+) attributes", message)
+    unplaced = re.search(r"Not allocated: (.*)", message)
+    flags = [f.strip() for f in unplaced.group(1).split(",")] if unplaced else []
+    names = {flag: adj for adj, (flag, value) in model.either_or.items() if value}
+    mine = [f for f in flags if f in model.either_or_where]
+    problems = Problems(Path(filename).name)
+    where, sentence = (model.either_or_where[mine[0]] if mine
+                       else next(iter(model.either_or_where.values())))
+    problems.problem(where, sentence, (
+        f"that makes {used.group(1) if used else 'more than 48'} either/or properties "
+        "in all, counting the ones the library uses itself, and the Z-machine has room "
+        "for only 48 (§12.3.1). "
+        + (f"The ones that did not fit: {', '.join(names.get(f, f) for f in flags)}. "
+           if flags else "")
+        + "Try turning a group of them into one number property (a room can have a "
+        "number called its wing, say, instead of being central, ancient or "
+        "residential), or removing ones that no rule ever tests."))
+    problems.raise_if_any()

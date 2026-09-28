@@ -72,10 +72,20 @@ listed in room descriptions (not yet checked against real Inform 7).
 | `In the Bird Chamber is a scenery thing called walls.` | a thing named with "called", with its kind and adjectives | Advent |
 | `Outside is nowhere.` (inside a room's paragraph) | no exit that way, cancelling the automatic reverse connection | Advent |
 | `A, B, and C are lighted.` | a list (with "are"); a part not yet defined is made now, and becomes a room when a later sentence needs one | Advent |
+| `The Pit is south of the Crypt, southwest of the Fen and southeast of the Moor.` | several exits in one sentence, separated by commas or "and" | ADR-039 |
+| `The Library is north of the Hall. It is west of the Garden.` | `It` (or `They`) after a room means that room | ADR-039 |
 
 **Names.** A thing is called by its whole name (`velvet cloak`); every word
 of the name also works alone in commands, in any order (`velvet`,
 `cloak`). Articles `a an the some` are not part of names.
+
+A short form of a name works in the source too (`the cloak` for the
+velvet cloak), and that can catch you out: if the history of the inkpot
+already exists, `The inkpot is in the Black Gallery.` means *that*
+history, not a new inkpot. A thing can be in only one place, so when a
+sentence would move something an earlier sentence put elsewhere, you get
+a problem message saying so. If you meant a new thing, give it a name
+that isn't part of the other one's.
 
 ## 3. Properties and values
 
@@ -91,6 +101,13 @@ of the name also works alone in commands, in any order (`velvet`,
 | `Every room has a number called the visit count.` | every room gets it (starting at 0) | Advent |
 | `Every room has a text called the short description.` `The short description is "[We]['re] here again."` | a text property; the short form means the last thing named | Advent |
 | `The Lab, the Hall and the Yard are lighted.` | several subjects at once | Advent |
+
+**Either/or properties are limited.** Each one becomes a Z-machine
+attribute, and there are only 48 (§12.3.1), shared with the library,
+which uses about 20. A story that needs more gets a problem message
+listing the ones that didn't fit. One number property can often replace
+several of them: `A room has a number called the wing.` instead of
+`A room can be central.`, `A room can be ancient.` and so on.
 
 ## 4. Understanding the player
 
