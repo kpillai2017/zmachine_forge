@@ -235,3 +235,31 @@ def test_a_paragraph_break_at_the_end_owes_no_extra_line_before_the_prompt():
 
 def test_a_paragraph_break_still_divides_what_follows():
     assert replies(PARAGRAPHS, ["wait"]) == ["One.\n\nTwo."]
+
+
+# ------------------------------------------------- (with nouns reversed)
+REVERSED_STORY = ('A post is in the Study. The player carries a rope.\n'
+                  'Tying it to is an action applying to two things.\n'
+                  'Understand "tie [something] to [something]" as tying it to.\n'
+                  'Understand "fasten [something] with [something]" as tying it to '
+                  '(with nouns reversed).\n'
+                  'Carry out tying something to something: '
+                  'say "You tie [the noun] to [the second noun]."\n')
+
+
+def test_nouns_reversed_swaps_the_two_things():
+    assert replies(REVERSED_STORY, ["tie rope to post", "fasten post with rope"]) == \
+        ["You tie the rope to the post.", "You tie the rope to the post."]
+
+
+def test_a_topic_line_may_say_with_nouns_reversed():
+    source = ('Understand "research [text] in [something]" as consulting it about '
+              '(with nouns reversed).\n'
+              'Instead of consulting the notes about "djinn", say "A djinn."\n')
+    assert replies(source, ["research djinn in notes"]) == ["A djinn."]
+
+
+def test_only_two_noun_actions_can_be_reversed():
+    with pytest.raises(I7Problem, match="cannot be reversed"):
+        compile_i7(STORY + 'Understand "peer at [something]" as examining '
+                   '(with nouns reversed).\n', "t.ni", 8)

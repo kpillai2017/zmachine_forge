@@ -151,6 +151,7 @@
 <GLOBAL P-TOPIC-FIRST 0>
 <GLOBAL P-TOPIC-LAST 0>
 <GLOBAL P-BAD-WORD 0>           ;"the command's first unknown word, or 0"
+<GLOBAL P-SWAP 0>               ;"for swapping the nouns of a line with nouns reversed"
 
 <ROUTINE TOPIC-SLOT? (ROW SLOT)
     <BAND <GET .ROW <COND (<EQUAL? .SLOT 1> ,S-OPTS1) (ELSE ,S-OPTS2)>> ,SO-TOPIC>>
@@ -751,6 +752,9 @@
     <COND (,P-DEFAULT2 <TELL "(the " D ,PRSI ")" CR>)>
     ;"as in Inform, the thing is the noun whichever slot it was typed in"
     <IFFLAG (I7 <COND (<TOPIC-SLOT? ,P-SYNTAX 1> <SETG PRSO ,PRSI> <SETG PRSI 0>)>) (ELSE)>
+    ;"a line 'with nouns reversed': the thing typed first is the second noun"
+    <IFFLAG (I7 <COND (<BAND <GET ,P-SYNTAX ,S-OPTS1> ,SO-REVERSED>
+                       <SETG P-SWAP ,PRSO> <SETG PRSO ,PRSI> <SETG PRSI ,P-SWAP>)>) (ELSE)>
     <COND (,PRSO <SETG P-IT ,PRSO>)>
     <RTRUE>>
 

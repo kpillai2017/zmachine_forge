@@ -48,10 +48,13 @@ FIELDS = ["S-VERB", "S-NOBJ", "S-PREP1", "S-PREP2", "S-FIND1", "S-FIND2",
 # MANY (Infocom's): object 1 may be several things - TAKE ALL, DROP A AND B.
 # Only the I7 runtime's parser acts on it (ADR-035).
 # TOPIC (zforge's, for Inform's [text]): the slot takes any words, not a thing.
-BITS = {"SO-HELD": 1, "SO-ROOM": 2, "SO-INSIDE": 4, "SO-MANY": 8, "SO-TOPIC": 16}
+# REVERSED (zforge's, for Inform's "(with nouns reversed)"), on object 1: the
+# thing typed first is the second noun (GIVE BEAST ROSE = give the rose to him).
+BITS = {"SO-HELD": 1, "SO-ROOM": 2, "SO-INSIDE": 4, "SO-MANY": 8, "SO-TOPIC": 16,
+        "SO-REVERSED": 32}
 OPTION_BITS = {"HELD": "SO-HELD", "CARRIED": "SO-HELD", "HAVE": "SO-HELD",
                "ON-GROUND": "SO-ROOM", "IN-ROOM": "SO-ROOM", "INSIDE-PRSI": "SO-INSIDE",
-               "MANY": "SO-MANY", "TOPIC": "SO-TOPIC"}
+               "MANY": "SO-MANY", "TOPIC": "SO-TOPIC", "REVERSED": "SO-REVERSED"}
 TABLE_NAME = "SYNTAX-TABLE"
 NO_FIND = -1
 

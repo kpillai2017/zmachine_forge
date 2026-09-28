@@ -287,6 +287,9 @@ def unquote(s: str) -> str:
 
 
 # ====================================================================== build
+REVERSED = " (with nouns reversed)"   # the end of an Understand line
+
+
 class ModelBuilder:
     """Builds the world model from sentences, trying pattern patterns for each."""
     def __init__(self, problems: Problems, testing: bool = False):
@@ -791,10 +794,15 @@ class ModelBuilder:
                 self.m.direction_words.setdefault(direction, []).extend(w.lower().split("/"))
             return
         # Understand "hang [something] on [something]" as putting it on.
+        # '(with nouns reversed)': the first thing typed is the second noun;
+        # the line keeps the words, for the lowerer to mark its grammar row.
+        reversed_ = target.lower().endswith(REVERSED)
+        if reversed_:
+            target = target[:-len(REVERSED)].strip()
         action = self.m.actions.get(strip_article(target).lower())
         if action:
             for w in words:
-                action.grammar.append((w, s.where))
+                action.grammar.append((w + (REVERSED if reversed_ else ""), s.where))
             return
         # Understand "peg" as the brass hook: object synonyms or extra names.
         obj = self.m.find(target)

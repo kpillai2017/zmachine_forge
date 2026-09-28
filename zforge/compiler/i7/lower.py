@@ -10,7 +10,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 
-from zforge.compiler.i7.model import DICT_WORD, Obj, Rule, WorldModel
+from zforge.compiler.i7.model import DICT_WORD, REVERSED, Obj, Rule, WorldModel
 from zforge.compiler.i7.phrases import PhraseLowerer, entry_routine
 from zforge.compiler.i7.problems import Location, Problems
 from zforge.compiler.i7.standard import ACTIVITIES, DIRECTIONS, INTERNAL_RULES, LIBRARY_RULES, \
@@ -672,6 +672,9 @@ class Lowerer:
         (one per combination of slash alternatives)."""
         # Split the line into words and [tokens]. OPTIONS holds every way of reading
         # the line so far: a word with slashes (on/onto) doubles the options.
+        reversed_ = line.lower().endswith(REVERSED)
+        if reversed_:
+            line = line[:-len(REVERSED)]
         parts = re.findall(r"\[[^\]]+\]|[^\s\[\]]+", line.lower())
         options: list[list[str]] = [[]]
         for part in parts:
@@ -710,6 +713,15 @@ class Lowerer:
             if self.m.actions[action].topic and o.count("(TOPIC)") != 1:
                 self.p.problem(where, line, f"'{action}' applies to a topic, so each of "
                                "its grammar lines needs one [text].")
+                return []
+            if reversed_ and applying == 2 and not self.m.actions[action].topic:
+                # the parser swaps the nouns (a topic action needs no swap: its
+                # thing is always the noun, whichever slot it was typed in)
+                at = o.index("OBJECT")
+                o = o[:at + 1] + ["(REVERSED)"] + o[at + 1:]
+            elif reversed_ and applying != 2:
+                self.p.problem(where, line, f"'{action}' does not apply to two things, "
+                               "so its nouns cannot be reversed.")
                 return []
             out.append(Grammar(o[0], o[1:]))
         return out

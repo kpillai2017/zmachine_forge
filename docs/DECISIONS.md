@@ -1005,3 +1005,23 @@ gains blank lines where Inform prints them (Glasshouse: 29, no other
 change). The Bronze port's Beast thoughts now come from an After going
 rule that tries looking, as in the original. Tests:
 tests/test_i7_paragraphs.py.
+
+## ADR-049: Understand lines "with nouns reversed"
+
+**Context.** Real Inform 7 sources write grammar lines whose things come
+in the other order, `Understand "give [someone] [something]" as giving it
+to (with nouns reversed)`; Cold Iron and the original Bronze do. I7-lite
+read the suffix as part of the action's name and gave up.
+
+**Decision.** The suffix is taken off the action's name and kept with the
+line. For an action on two things the grammar row is marked (REVERSED, a
+zforge option like TOPIC), and the parser swaps the noun and second noun
+after matching - once disambiguation is done, before "it" is set; a global
+does the swap, as the parser is shared with ZIL games (a new local would
+change their bytes). For a topic action nothing is swapped: I7-lite always
+makes the thing the noun. An action on one thing cannot be reversed (a
+problem).
+
+**Consequences.** Cold Iron: 79 problems to 77; the original Bronze: 665
+to 657. A reversed line cannot take several things (`[things]`) in its
+first slot. Tests: tests/test_i7_topics.py.
