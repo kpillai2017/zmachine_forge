@@ -151,6 +151,17 @@ class PhraseDef:
 
 
 @dataclass
+class Table:
+    """A topic table ('Table of Notes'): a topic column and text columns,
+    for 'a topic listed in the Table of Notes' and '[reply entry]'."""
+    name: str                     # 'table of notes'
+    number: int                   # its TABLE-n-FIND routine
+    columns: list[str]            # 'topic', 'reply', ...
+    rows: list[tuple[list[str], Location]]
+    where: Location
+
+
+@dataclass
 class WorldModel:
     """The game's complete model: objects, map, rules, variables, actions, and metadata."""
     title: str = "Untitled"
@@ -168,6 +179,7 @@ class WorldModel:
     rules: list[Rule] = field(default_factory=list)
     phrases: list[PhraseDef] = field(default_factory=list)
     either_or: dict[str, tuple[str, bool]] = field(default_factory=dict)  # adj -> (flag, value)
+    tables: dict[str, Table] = field(default_factory=dict)   # 'table of notes' -> table
     either_or_where: dict[str, tuple] = field(default_factory=dict)  # flag -> (where, sentence)
     value_properties: dict[str, str] = field(default_factory=dict)        # name -> kind
     direction_words: dict[str, list[str]] = field(default_factory=dict)  # 'north' -> ['plugh']
@@ -291,16 +303,46 @@ class ModelBuilder:
 
     def build(self, sentences: list[Sentence]) -> WorldModel:
         """Parse all sentences into the world model in two passes (forward references work)."""
-        for s in sentences:                          # pass 1: names
-            if not s.is_rule:
+        for s in sentences:                          # pass 1: names (and tables)
+            if s.table:
+                self.table(s)
+            elif not s.is_rule:
                 self.declare_names(s)
         self.last_object = self.last_room = None
         for i, s in enumerate(sentences):            # pass 2: meaning
+            if s.table:
+                continue
             if s.is_rule:
                 self.rule(s)
             else:
                 self.assertion(s, first=(i == 0))
         return self.m
+
+    def table(self, s: Sentence) -> None:
+        """A table: I7-lite has topic tables - a 'topic' column, and columns of
+        texts - for looking topics up ('a topic listed in the Table of Notes')."""
+        name, columns = s.text.lower(), s.table.columns
+        if name in self.m.tables:
+            self.p.problem(s.where, s.text, "there is already a table with this name.")
+            return
+        if columns.count("topic") != 1:
+            self.p.unsupported(s.where, s.text, "a table without one 'topic' column "
+                               "(I7-lite has tables of topics only)")
+            return
+        rows = []
+        for entries, where in s.table.rows:
+            if len(entries) > len(columns):
+                self.p.problem(where, "\t".join(entries), f"this row has {len(entries)} "
+                               f"entries, but the table has {len(columns)} columns.")
+                continue
+            entries = entries + ["--"] * (len(columns) - len(entries))
+            for column, entry in zip(columns, entries, strict=True):
+                if column != "topic" and entry != "--" and not (
+                        len(entry) > 1 and entry.startswith('"') and entry.endswith('"')):
+                    self.p.unsupported(where, entry, "a table entry that is not a text "
+                                       "in quotation marks")
+            rows.append((entries, where))
+        self.m.tables[name] = Table(name, len(self.m.tables) + 1, columns, rows, s.where)
 
     # ------------------------------------------------------------ pass 1
     def declare_names(self, s: Sentence) -> None:

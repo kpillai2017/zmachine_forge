@@ -920,3 +920,51 @@ hidden objects whose names clashed with real things.
 **Consequences.** Found on the way: a quotation mark in a rule's preamble
 ended the ZIL comment the compiler writes above the rule; comments now use
 single quotes. Tests: tests/test_i7_topics.py.
+
+## ADR-046: Topic tables (step C of docs/TOPICS_PLAN.md)
+
+**Context.** Inform authors usually list topics in a table and look the
+player's topic up in it; Bronze's notes, papers and contract book do.
+
+**Decision.** Only topic tables: one `topic` column and columns of texts,
+written in Inform's layout (tab-separated). The reader keeps a table's rows
+with the sentence; the model checks them. Each table becomes TABLE-n-FIND,
+which tries the rows' topics in order (the same topic patterns as rules)
+and remembers the first that fits in CURRENT-TABLE and CURRENT-ROW; each
+column name becomes ENTRY-<COLUMN>, which prints that row's entry.
+`a topic listed in the Table of X` works in a rule's action and in `if the
+topic understood is ...`.
+
+**Consequences.** Anything else about tables (numbers, `choose a row`,
+`repeat through`) is not supported and is reported as such. Printing a
+blank entry (`--`) prints nothing, where Inform would stop with a run-time
+problem. Tests: tests/test_i7_topics.py, step C.
+
+## ADR-047: What porting Bronze to topic tables showed (step D)
+
+**Context.** Step D replaced the Bronze port's stand-in look-ups with the
+original's three topic tables, copied from `Bronze.txt` by I7-lite's own
+reader. Four things in I7-lite had to change for them to work as written.
+
+**Decision.**
+* **Quoted text over several lines.** Inform lets a quoted text go on over
+  line breaks and blank lines; the original's entries do. The reader now
+  joins such lines first (a line break is a space, a blank line a
+  `[paragraph break]`) and keeps each line's source line number, so
+  problems still name the right line. An unclosed quote is left alone.
+* **A paragraph break at the end of a say** is a line break and a blank
+  line *owed* (PARA-BREAK), as in Inform 7: printed before the next text,
+  absorbed by the prompt. Before, it was two line breaks, and a turn ending
+  with one showed an extra blank line before the prompt.
+* **Topic patterns are written inline**, as a table in the test itself.
+  One global each ran out of the Z-machine's 240 globals: the three tables
+  have over 100 topics.
+* **A rule may name a topic action without its topic** (`consulting the
+  great contract book`, as the original writes it): any topic.
+
+**Consequences.** Bronze's look-ups answer from anywhere the notes are,
+X TAMBOURINE in the Study no longer asks which you mean, and the port lost
+its invented "nothing under that name" messages (the original gives the
+standard reply). The original also cuts "the" out of look-up commands
+("After reading a command"), which I7-lite cannot do; the port's topics
+start with an optional "the/--" instead. Tests: tests/test_i7_topics.py.

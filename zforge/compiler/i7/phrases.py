@@ -79,11 +79,19 @@ class ParamPhrase:
     preamble: str
 
 
+def entry_routine(column: str) -> str:
+    """'reply' -> ENTRY-REPLY: prints the reply entry of the row a topic was found in."""
+    return "ENTRY-" + re.sub(r"[^A-Z0-9]+", "-", column.upper()).strip("-")
+
+
+TOPIC_LISTED = re.compile(r"^(?:a )?topic listed in (?:the )?(table .+)$", re.I)
+ENTRY = re.compile(r"^(?:the )?(.+) entry$", re.I)
+
+
 class PhraseLowerer:
     def __init__(self, lowerer: Lowerer):
         self.L = lowerer
         self.say_phrases: dict[str, str] = {}      # 'nokeys' -> routine
-        self.topic_tables: dict[str, str] = {}     # a topic's table entries -> its global
         self.decide_phrases: dict[str, str] = {}   # 'the cloak is hung' -> routine
         self.do_phrases: dict[str, str] = {}
         # phrases with parameters ('To pose the question (proposition - a text)
@@ -211,6 +219,10 @@ class PhraseLowerer:
                      r'(".*)$', t, re.I)
         if m:
             test = self.topic_test(m.group(3), m.group(2).lower().startswith("match"), where)
+            return f"<NOT {test}>" if m.group(1) else test
+        m = re.match(r"^the topic understood is (not )?(a topic listed in .+)$", t, re.I)
+        if m:
+            test = self.topic_test(m.group(2), True, where)
             return f"<NOT {test}>" if m.group(1) else test
         # Handle 'or': split and combine with <OR ...>
         if len(ors := split_outside_quotes(t, " or ")) > 1:
@@ -406,8 +418,10 @@ class PhraseLowerer:
                 m = re.match(rf"^{re.escape(verb)} (.+?) {re.escape(preposition)} (.+)$", low)
                 if m:
                     nouns = [text[m.start(1):m.end(1)], text[m.start(2):m.end(2)]]
-                elif self.L.m.actions[name].topic:   # 'asking the Beast about': any topic
-                    m = re.match(rf"^{re.escape(verb)} (.+?) {re.escape(preposition)}$", low)
+                elif self.L.m.actions[name].topic:
+                    # 'asking the Beast about', or just 'asking the Beast': any topic
+                    m = (re.match(rf"^{re.escape(verb)} (.+?) {re.escape(preposition)}$", low)
+                         or re.match(rf"^{re.escape(verb)} (.+)$", low))
                     if m:
                         nouns = [text[m.start(1):m.end(1)]]
             elif low == name:
@@ -422,6 +436,14 @@ class PhraseLowerer:
                          "applying to ...').")
         return best
 
+    def table_entry(self, words: str) -> str | None:
+        """'reply entry' -> ENTRY-REPLY, if some topic table has that column."""
+        m = ENTRY.match(words.strip())
+        if m and any(m.group(1).lower() in t.columns and m.group(1).lower() != "topic"
+                     for t in self.L.m.tables.values()):
+            return entry_routine(m.group(1).lower())
+        return None
+
     def topic_guard(self, topic: str, where: Location) -> str:
         """The test that the topic understood fits TOPIC, from a rule's preamble:
         'asking the Beast about "roses" or "rose garden"' - all of it, as in Inform."""
@@ -431,6 +453,13 @@ class PhraseLowerer:
         """'"roses/rose/garden" or "rose garden"' -> a test of the topic understood.
         Each quoted phrase becomes a table for the parser's TOPIC-FITS?: a slash
         separates the words that may stand in one place, and '--' means none."""
+        m = TOPIC_LISTED.match(text.strip())         # 'a topic listed in the Table of Notes'
+        if m:
+            table = self.L.m.tables.get(m.group(1).lower())
+            if table is None:
+                self.problem(where, text, f"there is no table called '{m.group(1)}'.")
+                return "<RFALSE>"
+            return f"<TABLE-{table.number}-FIND>"
         tests = []
         for phrase in split_outside_quotes(text, " or "):
             phrase = phrase.strip()
@@ -451,14 +480,10 @@ class PhraseLowerer:
             if not table:
                 self.problem(where, text, "a topic needs at least one word.")
                 return "<RFALSE>"
-            key = " ".join(table)
-            if key not in self.topic_tables:
-                name = self.L.names.new("TOPIC")
-                self.topic_tables[key] = name
-                self.L.routines.append(f'<GLOBAL {name} <TABLE {len(table)} {key}>>   '
-                                       f';"the topic {phrase[1:-1]}"')
+            # The table goes right into the test (not in a global: a story has
+            # only 240 of those, and Bronze alone has well over 100 topics).
             test = "TOPIC-MATCHES?" if whole else "TOPIC-INCLUDES?"
-            tests.append(f"<{test} ,{self.topic_tables[key]}>")
+            tests.append(f"<{test} <TABLE {len(table)} {' '.join(table)}>>")
         return tests[0] if len(tests) == 1 else "<OR " + " ".join(tests) + ">"
 
     def noun_guards(self, nouns: list[str], where: Location) -> list[str]:
@@ -862,12 +887,23 @@ class PhraseLowerer:
         low = what.lower()
         if low in self.say_phrases:
             return [f"<{self.say_phrases[low]}>"]
+        if self.table_entry(low):                         # say reply entry;
+            return [f"<{self.table_entry(low)}>"]
         if low in ("line break", "paragraph break"):     # say line break;
             return [self.tell(parse_text(f"[{low}]"), sentence_break=False, where=where)]
         return [self.print_value(what, where)]
 
     def tell(self, text: Text, sentence_break: bool, where: Location | None = None) -> str:
-        forms = self.parts(text.parts, where or Location(0))
+        parts, owed = text.parts, False
+        if sentence_break and parts and isinstance(parts[-1], Substitution) \
+                and parts[-1].words.strip().lower() == "paragraph break":
+            # A say that ends with a paragraph break, as Inform 7 prints it: a
+            # line break, and a blank line owed - printed if more text follows,
+            # but not before the prompt (which brings its own blank line).
+            parts, owed = parts[:-1], True
+        forms = self.parts(parts, where or Location(0))
+        if owed:
+            forms.append("<CRLF> <SETG SAY-P 0> <SETG PARA-BREAK 1>")
         if forms:                           # a blank line owed by an earlier rule
             forms.insert(0, "<PARA-FLUSH>")
         if sentence_break and ends_sentence(text):
@@ -939,6 +975,8 @@ class PhraseLowerer:
                   "the topic understood": "<PRINT-TOPIC>", "topic understood": "<PRINT-TOPIC>"}
         if low in simple:
             return simple[low]
+        if self.table_entry(low):                         # [reply entry]
+            return f"<{self.table_entry(low)}>"
         if low in self.say_phrases:
             return f"<{self.say_phrases[low]}>"
         call = self.use_of("say", w, where)

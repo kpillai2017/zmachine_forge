@@ -11,7 +11,7 @@ import re
 from dataclasses import dataclass
 
 from zforge.compiler.i7.model import DICT_WORD, Obj, Rule, WorldModel
-from zforge.compiler.i7.phrases import PhraseLowerer
+from zforge.compiler.i7.phrases import PhraseLowerer, entry_routine
 from zforge.compiler.i7.problems import Location, Problems
 from zforge.compiler.i7.standard import ACTIVITIES, DIRECTIONS, INTERNAL_RULES, LIBRARY_RULES, \
     STAGES, TESTING_ACTIONS, zil_name, zil_string
@@ -104,6 +104,7 @@ class Lowerer:
             self.emit("<GLOBAL ALL-OBJECTS <LTABLE "
                       + " ".join("," + a for a in self.atom.values()) + ">>", "")
         self.variables()
+        self.tables()
         self.rules()
         self.actions()
         self.activities()
@@ -610,6 +611,46 @@ class Lowerer:
                 "docs/I7_LITE.md; the author's own are named with '(this is the ... rule)'.)")
 
     # ------------------------------------------------------------ responses
+    def tables(self) -> None:
+        """Topic tables. 'A topic listed in the Table of Notes' is TABLE-n-FIND:
+        it tries each row's topic in turn and remembers the first that fits
+        (CURRENT-TABLE, CURRENT-ROW). '[reply entry]' is ENTRY-REPLY, which
+        prints that row's entry in the 'reply' column."""
+        if not self.m.tables:
+            return
+        self.emit('"--- topic tables: the row a topic was found in"',
+                  "<GLOBAL CURRENT-TABLE 0>", "<GLOBAL CURRENT-ROW 0>", "")
+        entries: dict[str, list[str]] = {}          # column -> its clauses, table by table
+        for table in self.m.tables.values():
+            topic = table.columns.index("topic")
+            finds = []
+            for k, (row, where) in enumerate(table.rows, 1):
+                if row[topic] != "--":
+                    test = self.phrases.topic_test(row[topic], True, where)
+                    finds.append(f"({test} <SETG CURRENT-TABLE {table.number}> "
+                                 f"<SETG CURRENT-ROW {k}> <RTRUE>)")
+            self.routines.append(f'<ROUTINE TABLE-{table.number}-FIND ()   ;"a topic listed '
+                                 f'in the {table.name} (line {table.where.line})"\n'
+                                 + (f"    <COND {' '.join(finds)}>\n" if finds else "")
+                                 + "    <RFALSE>>")
+            for c, column in enumerate(table.columns):
+                if column == "topic":
+                    continue
+                rows = []
+                for k, (row, where) in enumerate(table.rows, 1):
+                    if row[c] != "--":
+                        tell = self.phrases.tell(parse_text(row[c]), sentence_break=False,
+                                                 where=where)
+                        rows.append(f"(<EQUAL? ,CURRENT-ROW {k}> {tell})")
+                if rows:
+                    entries.setdefault(column, []).append(
+                        f"(<EQUAL? ,CURRENT-TABLE {table.number}> <COND {' '.join(rows)}>)")
+        for column, clauses in entries.items():
+            clause_text = " ".join(clauses)
+            self.routines.append(f'<ROUTINE {entry_routine(column)} ()   '
+                                 f';"[{column} entry]: the entry in the row found"\n'
+                                 f"    <COND {clause_text}>>")
+
     def responses(self) -> None:
         """One routine per library response, e.g. TAKE-REPORT-A, which the
         library rule calls to print it: Inform 7's text, or the author's."""

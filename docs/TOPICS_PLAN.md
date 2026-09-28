@@ -8,8 +8,8 @@ have to name anything in the game, or even be words the game knows.
 This plan says what Inform does, what I7-lite supports, how it works inside
 zforge, and in what order it is built.
 
-**Status:** steps A and B are done (ADR-045; `docs/I7_LITE.md`, section 5).
-Steps C and D are next. Step E is parked (see the end).
+**Status:** steps A to D are done (ADR-045 to ADR-047; `docs/I7_LITE.md`,
+section 5). Step E is parked (see the end).
 
 ## Why it matters
 

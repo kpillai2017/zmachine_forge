@@ -38,11 +38,20 @@ class BodyLine:
 
 
 @dataclass
+class TableSource:
+    """A table as written: 'Table of Notes', a line of column names, then one
+    row per line, with the entries separated by tabs (Inform's layout)."""
+    columns: list[str]
+    rows: list[tuple[list[str], Location]]
+
+
+@dataclass
 class Sentence:
     """One sentence or rule from the source, with optional indented rule body lines."""
     text: str
     where: Location
     body: list[BodyLine] = field(default_factory=list)   # rules only
+    table: TableSource | None = None                     # 'Table of ...' only
 
     @property
     def is_rule(self) -> bool:
@@ -105,8 +114,48 @@ def comma_outside_quotes(text: str) -> int:
     return -1
 
 
-def split_sentences(text: str, where: Location) -> list[Sentence]:
-    """Split one run of assertion text into sentences."""
+# Each line read_sentences works on, after join_quoted_lines, remembers the
+# line of the source it began on, so problems still name the right line.
+_ORIGIN: list[int] = []
+
+
+def line_no(i: int) -> int:
+    """The source line (from 1) on which working line I began."""
+    return _ORIGIN[i] if i < len(_ORIGIN) else i + 1
+
+
+def join_quoted_lines(lines: list[str]) -> tuple[list[str], list[int]]:
+    """A quoted text may go on over several lines, as in Inform 7: a line
+    break inside it is a space, and a blank line a paragraph break:
+        The Hall is a room. "First part.
+
+        Second part."
+    Such lines are joined into one, so the rest of the reader sees whole
+    texts. Returns the lines and, for each, the source line it began on. A
+    quote that is never closed is left alone, so it is reported as before."""
+    out: list[str] = []
+    origin: list[int] = []
+    i = 0
+    while i < len(lines):
+        line, start = lines[i], i
+        i += 1
+        while line.count('"') % 2 == 1:
+            j, blank = i, False               # find the next line with text
+            while j < len(lines) and not lines[j].strip():
+                j, blank = j + 1, True
+            if j == len(lines):               # never closed: keep the lines as they were
+                line, i = lines[start], start + 1
+                break
+            line = line.rstrip() + ("[paragraph break]" if blank else " ") + lines[j].strip()
+            i = j + 1
+        out.append(line)
+        origin.append(start + 1)
+    return out, origin
+
+
+def split_sentences(text: str, where: Location, first: int | None = None) -> list[Sentence]:
+    """Split one run of assertion text into sentences. FIRST, if given, is
+    the working line the text began on (to find each line's source line)."""
     # BUF collects the current sentence; START remembers where it began so
     # problem messages can name the right line and column.
     out, buf, start, in_quote = [], "", None, False
@@ -128,7 +177,9 @@ def split_sentences(text: str, where: Location) -> list[Sentence]:
             buf, start = "", None
         # Keep track of line and column as we go.
         if ch == "\n":
-            line, col = line + 1, 1
+            if first is not None:
+                first += 1
+            line, col = (line_no(first) if first is not None else line + 1), 1
         else:
             col += 1
     # Whatever is left at the end (a last sentence without a full stop).
@@ -154,9 +205,32 @@ def join_continuations(lines: list[str], i: int, text: str) -> tuple[str, int]:
     return text, j
 
 
+TABLE_START = re.compile(r"^table (of \S|\d)", re.I)
+
+
+def read_table(lines: list[str], i: int, title: str, where: Location,
+               out: list[Sentence]) -> int:
+    """'Table of X', its column names, and its rows, up to a blank line:
+    one Sentence carrying the table. Entries are separated by tabs."""
+    title = re.sub(r"\s+-\s+.*$", "", title).strip()   # 'Table 3 - Notes' -> 'Table 3'
+    i += 1
+    columns: list[str] = []
+    rows: list[tuple[list[str], Location]] = []
+    while i < len(lines) and lines[i].strip():
+        entries = [e.strip() for e in re.split(r"\t+", lines[i].strip())]
+        if not columns:
+            columns = [c.lower() for c in entries]
+        else:
+            rows.append((entries, Location(line_no(i), 1)))
+        i += 1
+    out.append(Sentence(title, where, table=TableSource(columns, rows)))
+    return i
+
+
 def read_sentences(source: str) -> list[Sentence]:
     """The whole source as sentences, in order; rules carry their bodies."""
     lines = strip_comments(source).replace("\r\n", "\n").split("\n")
+    lines, _ORIGIN[:] = join_quoted_lines(lines)
     out: list[Sentence] = []
     i = 0
     # The first line, if it is quoted ("Title" by Author), is the titling
@@ -164,7 +238,7 @@ def read_sentences(source: str) -> list[Sentence]:
     while i < len(lines) and not lines[i].strip():
         i += 1
     if i < len(lines) and TITLE.match(lines[i].strip()):
-        out.append(Sentence(lines[i].strip().rstrip("."), Location(i + 1, 1)))
+        out.append(Sentence(lines[i].strip().rstrip("."), Location(line_no(i), 1)))
         i += 1
     # Every other line starts one of three things: a rule written with a colon,
     # a one-line rule written with a comma, or a paragraph of assertions.
@@ -174,7 +248,10 @@ def read_sentences(source: str) -> list[Sentence]:
         if not text or HEADING.match(text):
             i += 1
             continue
-        where = Location(i + 1, len(raw) - len(raw.lstrip()) + 1)
+        where = Location(line_no(i), len(raw) - len(raw.lstrip()) + 1)
+        if TABLE_START.match(text):
+            i = read_table(lines, i, text, where, out)
+            continue
         colon = colon_outside_quotes(text)
         comma = comma_outside_quotes(text)
         body_from = i + 1
@@ -199,7 +276,7 @@ def read_sentences(source: str) -> list[Sentence]:
         while i < len(lines) and lines[i].strip() and not RULE_START.match(lines[i].strip()):
             chunk.append(lines[i])
             i += 1
-        for s in split_sentences("\n".join(chunk), Location(first + 1, 1)):
+        for s in split_sentences("\n".join(chunk), Location(line_no(first), 1), first):
             # A one-line rule can follow another sentence on the same line, as
             # in Inform: 'The count is a number that varies. Every turn:
             # increase the count by 1.' It is read as a rule on a line of its own.
@@ -231,7 +308,8 @@ def read_rule(lines: list[str], i: int, text: str, colon: int,
     # a blank line or a line back at the rule's own indent ends it.
     while i < len(lines) and lines[i].strip() and indent_of(lines[i]) > base:
         raw = lines[i]
-        rule.body.append(BodyLine(raw.strip(), Location(i + 1, len(raw) - len(raw.lstrip()) + 1),
+        at = Location(line_no(i), len(raw) - len(raw.lstrip()) + 1)
+        rule.body.append(BodyLine(raw.strip(), at,
                                   indent_of(raw)))
         i += 1
     out.append(rule)

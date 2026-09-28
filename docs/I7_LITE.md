@@ -34,6 +34,8 @@ listed in room descriptions (not yet checked against real Inform 7).
   same line: `The count is a number that varies. Every turn: increase the
   count by 1.`
 * Words are case-insensitive except inside quoted text.
+* A quoted text may go on over several lines: a line break inside it is a
+  space, and a blank line inside it a paragraph break (ADR-047).
 
 ## 1. The story (7a)
 
@@ -201,6 +203,27 @@ words anywhere in it (`does not include` too). `[the topic understood]`
 prints the words as typed. A command that stops where the topic should be
 (CONSULT THE NOTES) is not understood, as in Inform 7.
 
+**Topic tables** (ADR-046) list many topics at once, the way Inform authors
+usually do. A table is a "Table of ..." line, a line of column names, and
+one row per line, with the entries separated by tabs; a blank line ends it.
+It needs one column called `topic`; the other columns hold texts (`--` for
+none). A rule or condition looks a topic up, and `[reply entry]` (any
+column's name, then "entry") prints that column of the row found:
+
+    Instead of consulting the notes about a topic listed in the Table of Notes:
+        say "[reply entry][paragraph break]".
+
+    Table of Notes
+    topic	reply
+    "rose/roses/garden" or "rose garden"	"The roses are of Lucrezia's own breeding."
+    "the/-- djinn"	"A djinn, bound in brass."
+
+`if the topic understood is a topic listed in the Table of Notes` does the
+same in a condition. A rule may also leave the topic out altogether
+(`Instead of consulting the notes: ...`): any topic will do. I7-lite has only these topic tables: not Inform's
+tables of numbers or things, and not `choose a row`, `repeat through` and
+the rest.
+
 New actions (7a):
 
     Casting xyzzy is an action applying to nothing.
@@ -333,6 +356,7 @@ Also (from Advent's cave):
 | `[one of]...[or]...[at random / cycling / stopping / purely at random]` | 7a |
 | `[name of a To say phrase]` | 7a |
 | `'` is printed as `"` unless inside a word (`don't`), as in Inform 7 | 7a |
+| a `[paragraph break]` that ends a say leaves a blank line owed: printed before whatever is printed next, but not before the prompt (ADR-047) | 7c |
 | **adaptive text** (7c): `[We] [we] [us] [our] [Our] [ourselves] [are] ['re] [have] [here] [now] [There] [there] [regarding X]`, and custom verbs `To flow is a verb.` then `[flow]` | 7c |
 | `[It]` `[it]` `[There]` `[there]`: printed as written; the next verb then agrees as a singular (`[There] [are] a light` -> "There is a light") | Advent |
 | modal verbs: `[can catch]` `[cannot carry]` `[can't go]` `[might try]` (printed as written) | Advent |

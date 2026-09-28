@@ -125,3 +125,113 @@ def test_a_topic_condition_can_be_negated():
 def test_a_topic_must_be_in_quotation_marks():
     with pytest.raises(I7Problem, match="quotation marks"):
         compile_i7(STORY + "Instead of asking the Beast about roses, say \"No.\"", "t.ni", 8)
+
+
+# ------------------------------------------------ step C: topic tables
+TABLES = ('Instead of consulting the notes about a topic listed in the Table of Notes:\n'
+          '\tsay "[reply entry]".\n'
+          'Instead of asking the Beast about a topic listed in the Table of Talk:\n'
+          '\tsay "[The Beast] says, [answer entry]"\n'
+          'Pondering is an action applying to one topic. Understand "ponder [text]" as pondering.\n'
+          'Carry out pondering:\n'
+          '\tif the topic understood is a topic listed in the Table of Notes:\n'
+          '\t\tsay "You recall: [reply entry]";\n'
+          '\totherwise:\n'
+          '\t\tsay "Nothing about [the topic understood]."\n'
+          '\n'
+          'Table of Notes\n'
+          'topic\treply\n'
+          '"rose/roses/garden" or "rose garden"\t"Roses of her own breeding."\n'
+          '"the/-- djinn"\t"A djinn, [italic type]bound[roman type] in brass."\n'
+          '\n'
+          'Table of Talk\n'
+          'topic\tanswer\n'
+          '"roses"\t"they were hers."\n')
+
+
+def test_a_topic_listed_in_a_table_finds_its_row():
+    got = replies(TABLES, ["look up rose garden in notes", "look up the djinn in notes",
+                           "look up zanzibar in notes"])
+    assert got == ["Roses of her own breeding.", "A djinn, bound in brass.",
+                   "You discover nothing of interest in the notes."]
+
+
+def test_each_table_has_its_own_columns():
+    assert replies(TABLES, ["ask beast about roses"]) == ["The Beast says, they were hers."]
+
+
+def test_a_table_can_be_looked_up_in_a_condition():
+    assert replies(TABLES, ["ponder roses", "ponder zanzibar"]) == \
+        ["You recall: Roses of her own breeding.", "Nothing about zanzibar."]
+
+
+def test_a_table_needs_one_topic_column():
+    with pytest.raises(I7Problem, match="topic"):
+        compile_i7(STORY + '\nTable of Scores\nname\tvalue\n"a"\t"b"\n', "t.ni", 8)
+
+
+def test_a_rule_must_name_a_table_that_exists():
+    with pytest.raises(I7Problem, match="no table called"):
+        compile_i7(STORY + 'Instead of consulting the notes about a topic listed in the '
+                   'Table of Nothing:\n\tsay "x".', "t.ni", 8)
+
+
+# ------------------------------------------- quoted text over several lines
+def test_a_blank_line_inside_a_quote_is_a_paragraph_break():
+    from zforge.compiler.i7.source import join_quoted_lines
+    lines, origin = join_quoted_lines(['The Hall is a room. "One', 'two.', '', 'Three."', 'X.'])
+    assert lines == ['The Hall is a room. "One two.[paragraph break]Three."', 'X.']
+    assert origin == [1, 5]
+
+
+def test_an_unclosed_quote_is_left_alone():
+    from zforge.compiler.i7.source import join_quoted_lines
+    lines, origin = join_quoted_lines(['The Hall is a room. "Oops.', 'X.'])
+    assert lines == ['The Hall is a room. "Oops.', 'X.'] and origin == [1, 2]
+
+
+def test_problems_after_a_long_quote_name_the_right_line():
+    source = STORY + 'The Hall is a room. "One.\n\nTwo."\n\nThe notes are xyzzy.\n'
+    line = STORY.count("\n") + 5
+    with pytest.raises(I7Problem, match=f"t.ni:{line}:"):
+        compile_i7(source, "t.ni", 8)
+
+
+def test_a_table_entry_may_go_on_over_several_lines():
+    source = (STORY
+              + 'Instead of consulting the notes about a topic listed in the Table of Notes:\n'
+              '\tsay "[reply entry][paragraph break]".\n\n'
+              'Table of Notes\ntopic\treply\n'
+              '"djinn"\t"A djinn.\n\nBound in brass."\n'
+              '"roses"\t"Roses."\n')
+    assert replies(source, ["look up djinn in notes", "look up roses in notes"]) == \
+        ["A djinn.\n\nBound in brass.", "Roses."]
+
+
+# ------------------------------------------------------ found in step D
+def test_a_rule_may_leave_out_the_topic():
+    source = 'Instead of consulting the notes, say "The notes are in code."'
+    assert replies(source, ["look up djinn in notes"]) == ["The notes are in code."]
+
+
+def test_a_story_may_have_more_topics_than_globals():
+    # letters only: a digit takes two of a dictionary word's nine letter-codes
+    names = [f"w{a}{b}" for a in "abcdefghijklmnopqrstuvwxyz" for b in "abcdefghijklm"][:300]
+    rows = "".join(f'"{name}"\t"Entry {name}."\n' for name in names)
+    source = ('Instead of consulting the notes about a topic listed in the Table of Words:\n'
+              '\tsay "[reply entry]".\n\nTable of Words\ntopic\treply\n' + rows)
+    assert replies(source, ["look up wwf in notes"]) == ["Entry wwf."]
+
+
+PARAGRAPHS = ('Humming is an action applying to nothing. Understand "hum" as humming.\n'
+              'Instead of humming, say "Up.[paragraph break]".\n'
+              'Instead of waiting:\n\tsay "One.[paragraph break]";\n\tsay "Two."\n')
+
+
+def test_a_paragraph_break_at_the_end_owes_no_extra_line_before_the_prompt():
+    out = play(compile_i7(STORY + PARAGRAPHS, "t.ni", 8).story, ["hum"]).transcript
+    assert "Up.\n\n>" in out and "Up.\n\n\n>" not in out
+
+
+def test_a_paragraph_break_still_divides_what_follows():
+    assert replies(PARAGRAPHS, ["wait"]) == ["One.\n\nTwo."]
