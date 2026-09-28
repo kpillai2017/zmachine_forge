@@ -104,6 +104,12 @@
 <ROUTINE TAKE-YOURSELF ()
     <COND (<EQUAL? ,PRSO ,PLAYER> <TAKE-YOURSELF-A> <RTRUE>)> <RFALSE>>
 ;"Inform 7's can't take other people rule."
+<IFFLAG (PARTS
+<ROUTINE TAKE-PART ()                ;"can't take component parts rule"
+    <COND (<FSET? ,PRSO ,PARTBIT> <TAKE-PART-A> <RTRUE>)>
+    <RFALSE>>
+) (ELSE)>
+
 <ROUTINE TAKE-PEOPLE ()
     <COND (<FSET? ,PRSO ,PERSONBIT> <TAKE-PEOPLE-A> <RTRUE>)> <RFALSE>>
 ;"Inform 7's can't take what's already taken rule."

@@ -160,6 +160,16 @@
 
 ;"------------------------------------------------------------- numbers"
 
+<IFFLAG (TIMES
+;"[a time]: minutes since midnight as Inform prints them, '9:37 am'"
+<ROUTINE SAY-TIME (T "AUX" H M)
+    <SET H </ .T 60>>
+    <SET M <MOD .T 60>>
+    <TELL N <COND (<ZERO? <MOD .H 12>> 12) (ELSE <MOD .H 12>)> ":">
+    <COND (<L? .M 10> <TELL "0">)>
+    <TELL N .M <COND (<L? .H 12> " am") (ELSE " pm")>>>
+) (ELSE)>
+
 <ROUTINE SAY-IN-WORDS (N "AUX" TENS)
     ;"[N in words], for 0 to 999"
     <COND (<L? .N 0> <TELL "minus "> <SET N <- 0 .N>>)>

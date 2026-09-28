@@ -50,6 +50,7 @@
 
 ;"Would a room description mention O at all? Not scenery or the player."
 <ROUTINE VISIBLE-THING? (O)
+    <IFFLAG (PARTS <COND (<FSET? .O ,PARTBIT> <RFALSE>)>) (ELSE)>   ;"parts: not listed"
     <NOT <OR <FSET? .O ,SCENERYBIT> <EQUAL? .O ,PLAYER>>>>
 
 ;"Does O go in the room's you-can-also-see list? Not if it has already

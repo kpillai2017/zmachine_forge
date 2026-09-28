@@ -1158,3 +1158,46 @@ Forest3:` rules), two mistake lines with descriptions as tokens (`go
 **Consequences.** Cold Iron: 22 problems to 14 (first stage). The original
 Bronze: 465, as before. Glasshouse and Bronze play their walkthroughs with
 identical transcripts.
+
+
+## ADR-054: Parts; times of day
+
+**Context.** Cold Iron's next gaps (docs/I7_SURVEY.md): parts (`The shadow is
+part of the knife.`, and in play `now the CabbageTale is part of the book`)
+and a watch with a time (`The watch has a time.`, `five minutes after T`,
+`set [something] to [time]`).
+
+**Decisions.**
+
+- *Only in stories that use them.* Bronze uses 46 of the 48 attributes, so
+  a part flag for every game would leave one. The library's code for parts
+  and times is inside `<IFFLAG (PARTS ...)>` / `<IFFLAG (TIMES ...)>`, and the
+  compiler sets those flags only for a story that uses them: `part of`
+  outside quoted text and comments, or a time (`9:37`, `has a time`, `[time]`).
+  Stories without them build byte for byte as before (Glasshouse and Bronze
+  checked), and so does every library rule list: a library rule can say it
+  `needs` parts, and is left out otherwise.
+- *A part* is a child of its whole with PARTBIT. So it moves with the whole
+  and is in reach with it; the parser also searches the parts of what it
+  finds, however deep. Listing (VISIBLE-THING?) and TAKE ALL leave parts
+  out; the can't take component parts rule, after can't take other people
+  as in Inform, refuses taking one, with Inform's text ("That seems to be a
+  part of [the holder of the noun]." - not checked against a game: none of
+  the real games here has a part in reach early). `now X is part of Y` moves
+  it and sets the flag; any other move of a thing clears it. `the holder of
+  X` is new (its location).
+- *A time* is minutes since midnight, as in Inform: literals are turned into
+  numbers when compiled; `N minutes/hours after/before T` is arithmetic
+  modulo 1440; SAY-TIME prints "9:37 am" (Inform's form as I understand it;
+  not checked against a game). Number words (`five`) are new.
+- *The [time] token* is a topic slot with the TIME option (bit 128): once
+  the topic's words are found, READ-TIME reads them from the input buffer
+  (the lexer leaves "9:37" as one word: ':' is no separator), and a slot
+  that is not a time makes the row fail. `h:mm`, `h:mm am/pm`, `h am/pm`,
+  24-hour `h:mm`. An action "applying to one thing and one time" has such a
+  slot. A rule can name an `X it Y` action by its verb alone
+  (`Report timesetting:`) when only one action begins so.
+
+**Consequences.** Cold Iron: 14 problems to 10 (first stage). The original
+Bronze: 465, as before. Glasshouse and Bronze build byte-identical story
+files and play their walkthroughs with the same transcripts.

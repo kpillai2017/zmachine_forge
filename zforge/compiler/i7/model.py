@@ -181,6 +181,8 @@ class Table:
 class WorldModel:
     """The game's complete model: objects, map, rules, variables, actions, and metadata."""
     title: str = "Untitled"
+    uses_times: bool = False     # times of day: the library's time code is in
+    uses_parts: bool = False     # 'part of' outside quotes: the library's parts code is in
     author: str = "Anonymous"
     headline: str = "An Interactive Fiction"
     release: int = 1
@@ -426,10 +428,11 @@ class ModelBuilder:
             name, parent = m.group(1).lower(), strip_article(m.group(2)).lower()
             self.m.kinds[name] = Kind(name, parent, where=s.where)
             return
-        m = re.match(r"^(?:an?|every) .+? (?:has|have) an? (number|text|truth state) called (.+)$",
-                     t, re.I)
+        m = re.match(r"^(?:an?|every) .+? (?:has|have) an? (number|text|truth state|time)"
+                     r"(?: called (.+))?$", t, re.I)
         if m:                                        # properties, so later is fine too
-            self.m.value_properties[strip_article(m.group(2)).lower()] = m.group(1).lower()
+            self.m.value_properties[strip_article(m.group(2) or m.group(1)).lower()] = \
+                m.group(1).lower()
 
     def new_object(self, phrase: str, kind: str, where: Location) -> Obj:
         """Create or retrieve an object of the given kind."""
@@ -681,6 +684,14 @@ class ModelBuilder:
         if back not in self.m.nowhere:               # 'Outside is nowhere.' wins
             self.m.map.setdefault(back, frm.name)    # both ways, unless set already
 
+    def part_of(self, s, m):
+        """'The shadow is part of the knife.': a part goes where its whole goes."""
+        verb = m.string[m.end(1):].split(None, 1)[0].lower()      # 'is' or 'are'
+        for obj in self.subjects(s, m.group(1), verb):
+            self.place(s, obj, "part", m.group(2))
+            self.last_object = obj
+        self.m.uses_parts = True
+
     def placed(self, s, m):
         """X is [descriptor] in/on Y: 'a supporter', 'scenery', 'a scenery supporter'."""
         subject, descriptor, relation, place = m.group(1), m.group(2), m.group(3), m.group(4)
@@ -819,7 +830,7 @@ class ModelBuilder:
 
     def value_property(self, s, m):
         """A thing has a number called weight.  /  Every room has a text called ..."""
-        prop = strip_article(m.group(3)).lower()
+        prop = strip_article(m.group(3) or m.group(2)).lower()   # 'has a time': 'time'
         self.m.value_properties[prop] = m.group(2).lower()
         owner = re.sub(r"^(?:an?|every)\s+", "", m.group(1).strip(), flags=re.I).lower()
         if owner in self.m.kinds:
@@ -831,9 +842,9 @@ class ModelBuilder:
         obj = self.m.find(m.group(1).strip()) or self.m.find(strip_article(m.group(1)))
         if obj is None:
             return False                                # not a thing: let others try
-        prop, kind = strip_article(m.group(3)).lower(), m.group(2).lower()
+        prop, kind = strip_article(m.group(3) or m.group(2)).lower(), m.group(2).lower()
         self.m.value_properties.setdefault(prop, kind)
-        obj.values.setdefault(prop, {"number": "0", "text": '""'}.get(kind, "false"))
+        obj.values.setdefault(prop, {"number": "0", "text": '""', "time": "0"}.get(kind, "false"))
         self.last_own_property = (obj, prop)
 
     def variable(self, s, m):
@@ -933,7 +944,7 @@ class ModelBuilder:
         spec = m.group(2).lower()
         # 'applying to one topic' / 'to one thing and one topic': the topic is
         # typed as [text] and has a grammar slot of its own
-        topic = "topic" in spec
+        topic = "topic" in spec or bool(re.search(r"\bone time\b", spec))   # [text] / [time]
         applying = (0 if "nothing" in spec else
                     2 if "two" in spec or (topic and " and " in spec) else 1)
         self.m.actions[name] = Action(name, applying, None, "out of world" in spec, topic=topic)
@@ -1001,6 +1012,7 @@ class ModelBuilder:
         self.assertion(Sentence(f"{subject} {verb} {where_}", s.where), False)
 
     PATTERNS = [
+        (r"^(.+?) (?:is|are) (?:a )?part of (.+)$", part_of),   # a component
         (rf"^(.+?) (?:is|are) ((?:an?|some) [^,]+), ((?:above|below|in|on|inside from|outside from"
          rf"|(?:{DIRECTION_WORDS}) (?:of|from)) .+)$", comma_placement),
         (r"^(.+? rule) response \(([a-z])\) is (\".*\")$", response_edit),
@@ -1036,9 +1048,9 @@ class ModelBuilder:
         (r"^(.+?) (?:is|are) an? (number|text|truth state|room|thing|object) that varies$",
          variable),
         (r"^(an? .+?|.+?) can be (.+)$", either_or),
-        (r"^((?:an?|every) .+?) (?:has|have) an? (number|text|truth state) called (.+)$",
+        (r"^((?:an?|every) .+?) (?:has|have) an? (number|text|truth state|time)(?: called (.+))?$",
          value_property),
-        (r"^(.+?) (?:has|have) an? (number|text|truth state) called (.+)$",
+        (r"^(.+?) (?:has|have) an? (number|text|truth state|time)(?: called (.+))?$",
          thing_value_property),
         (r"^understand (.+?) as (.+)$", understand),
         (r"^the player (carries|wears) (.+)$", possession),

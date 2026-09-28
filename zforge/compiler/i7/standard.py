@@ -27,6 +27,7 @@ class LibraryRule:
     name: str                                   # "can't take what's already taken rule"
     routine: str                                # its routine in lib/i7/standard.zil
     responses: tuple[tuple[str, str], ...] = () # (letter, Inform 7 text) - the defaults
+    needs: str = ""                             # "parts": only in a story that has parts
 
 
 @dataclass(frozen=True)
@@ -66,6 +67,9 @@ ACTIONS: tuple[StandardAction, ...] = (
               (("A", "You are always self-possessed."),)),
             R("can't take other people rule", "TAKE-PEOPLE",
               (("A", "I don't suppose [the noun] would care for that."),)),
+            R("can't take component parts rule", "TAKE-PART",
+              (("A", "[if the noun is plural-named]Those seem[otherwise]That seems[end if]"
+                     " to be a part of [the holder of the noun]."),), needs="parts"),
             R("can't take what's already taken rule", "TAKE-ALREADY-TAKEN",
               (("A", "You already have that."),)),
             R("can't take scenery rule", "TAKE-SCENERY", (("A", "That's hardly portable."),)),

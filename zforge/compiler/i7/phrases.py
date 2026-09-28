@@ -37,6 +37,13 @@ COMPARISONS = [(" is less than ", "<L? {a} {b}>"), (" is greater than ", "<G? {a
                (" <= ", "<NOT <G? {a} {b}>>")]
 
 
+# Numbers written as words, as Inform allows: 'five minutes after T'.
+NUMBER_WORDS = {w: i for i, w in enumerate(
+    "zero one two three four five six seven eight nine ten eleven twelve thirteen "
+    "fourteen fifteen sixteen seventeen eighteen nineteen twenty".split())}
+NUMBER_WORDS.update({"thirty": 30, "forty": 40, "fifty": 50, "sixty": 60})
+
+
 @dataclass
 class ActionPattern:
     actions: list[str]                       # rulebooks to join ([] = every action)
@@ -162,7 +169,7 @@ class PhraseLowerer:
         if kind is None:
             return "object"
         return "number" if kind in ("number", "truth state") else \
-            "text" if kind == "text" else "object"
+            "text" if kind == "text" else "time" if kind == "time" else "object"
 
     # ------------------------------------------------------------ values
     def value(self, text: str, where: Location) -> str:
@@ -177,6 +184,28 @@ class PhraseLowerer:
             return "1" if t.lower() == "true" else "0"
         if t.lower() == "the item described":        # the object an activity is about
             return ",ACT-OBJ"
+        low = t.lower()
+        if low in NUMBER_WORDS:                            # 'five minutes after T'
+            return str(NUMBER_WORDS[low])
+        m = re.fullmatch(r"(\d{1,2}):(\d\d) ?([ap])\.?m\.?", low)   # a time of day: minutes
+        if m and int(m.group(1)) in range(1, 13) and int(m.group(2)) < 60:  # since midnight
+            hours = int(m.group(1)) % 12 + (12 if m.group(3) == "p" else 0)
+            return str(hours * 60 + int(m.group(2)))
+        if low in ("midnight", "midday", "noon"):
+            return "0" if low == "midnight" else "720"
+        if low == "the time understood":                   # a [time] token's value
+            return ",P-TIME"
+        m = re.match(r"^(.+?) (minutes?|hours?) (after|before) (.+)$", t, re.I)
+        if m:                                              # round the clock (1440 minutes)
+            n = self.value(m.group(1), where)
+            step = n if m.group(2).lower().startswith("minute") else f"<* {n} 60>"
+            base = self.value(m.group(4), where)
+            if m.group(3).lower() == "after":
+                return f"<MOD <+ {base} {step}> 1440>"
+            return f"<MOD <+ <- {base} <MOD {step} 1440>> 1440> 1440>"
+        m = re.match(r"^(?:the )?holder of (.+)$", t, re.I)   # what it is in, on, part of
+        if m:
+            return f"<LOC {self.value(m.group(1), where)}>"
         if t.lower() == "the latest parser error":
             return ",LATEST-PARSER-ERROR"
         m = re.fullmatch(r"(?:the )?(.+) error", t, re.I)
@@ -327,6 +356,11 @@ class PhraseLowerer:
             if word in t:
                 a, b = t.split(word, 1)
                 return form.format(a=self.value(a, where), b=self.value(b, where))
+        m = re.match(r"^(.+?) (is|are) (not )?part of (.+)$", t, re.I)
+        if m:                                         # a part: in its whole, as a part
+            obj = self.value(m.group(1), where)
+            test = f"<AND <IN? {obj} {self.value(m.group(4), where)}> <FSET? {obj} ,PARTBIT>>"
+            return f"<NOT {test}>" if m.group(3) else test
         m = re.match(r"^(.+?) (is|are) (not )?(in|on) (.+)$", t, re.I)
         if m:
             test = f"<IN? {self.value(m.group(1), where)} {self.value(m.group(5), where)}>"
@@ -470,6 +504,10 @@ class PhraseLowerer:
                 nouns = [text[len(name):].strip()]
             if nouns is not None and (best is None or len(name) > len(best[0])):
                 best = (name, nouns)
+        if best is None:              # 'Report timesetting:' - the verb of one 'X it Y' action
+            named = [n for n in self.L.m.actions if " it " in n and n.split(" it ")[0] == low]
+            if len(named) == 1:
+                best = (named[0], [])
         if best is None:
             self.problem(where, text, "this is not an action I know (see docs/I7_LITE.md "
                          "for the standard actions, or define it with '... is an action "
@@ -899,7 +937,7 @@ class PhraseLowerer:
                 if m.group(3):
                     return [f"<MOVE-PLAYER-TO {dest}>"]
                 return [f"<MOVE-PLAYER-TO {dest}>", "<DESCRIBE-ROOM>"]
-            return [f"<MOVE {obj} {dest}>"]
+            return [f"<MOVE {obj} {dest}>" + self.unpart(obj)]
         m = re.match(r"^remove (.+?) from play$", t, re.I)
         if m:
             return [f"<REMOVE {self.value(m.group(1), where)}>"]
@@ -949,17 +987,26 @@ class PhraseLowerer:
             return f"<TRY ,V?GOING ,V-GOING {args[0]} 0{' 1' if silently else ''}>"
         return f"<TRY ,V?{atom} ,V-{atom} {args[0]} {args[1]}{' 1' if silently else ''}>"
 
+    def unpart(self, obj: str) -> str:
+        """A part moved anywhere else is no longer a part (only if the story has parts)."""
+        return f" <FCLEAR {obj} ,PARTBIT>" if self.L.m.uses_parts else ""
+
     def now(self, text: str, where: Location) -> str:
         t = " ".join(text.split())
         m = re.match(r"^the player (carries|wears) (.+)$", t, re.I)
         if m:
             obj = self.value(m.group(2), where)
             if m.group(1).lower() == "wears":
-                return f"<MOVE {obj} ,PLAYER> <FSET {obj} ,WORNBIT>"
-            return f"<MOVE {obj} ,PLAYER>"
+                return f"<MOVE {obj} ,PLAYER> <FSET {obj} ,WORNBIT>" + self.unpart(obj)
+            return f"<MOVE {obj} ,PLAYER>" + self.unpart(obj)
+        m = re.match(r"^(.+?) (?:is|are) part of (.+)$", t, re.I)
+        if m:                                         # a part: it goes with its whole
+            obj = self.value(m.group(1), where)
+            return f"<MOVE {obj} {self.value(m.group(2), where)}> <FSET {obj} ,PARTBIT>"
         m = re.match(r"^(.+?) (?:is|are) (in|on) (.+)$", t, re.I)
         if m:
-            return f"<MOVE {self.value(m.group(1), where)} {self.value(m.group(3), where)}>"
+            obj = self.value(m.group(1), where)
+            return f"<MOVE {obj} {self.value(m.group(3), where)}>" + self.unpart(obj)
         m = re.match(r"^(.+?) (?:is|are) (not )?(.+)$", t, re.I)
         if m:
             subject, negated, what = m.group(1), bool(m.group(2)), m.group(3).strip().lower()
@@ -1126,7 +1173,8 @@ class PhraseLowerer:
         if m:
             return f"<SAY-IN-WORDS {self.value(m.group(1), where)}>"
         m = re.match(r"^(the|The|a|A|an|An) (.+)$", w)
-        if m and self.kind_of_value(m.group(2)) == "object" and self.atom_of(m.group(2)):
+        named = m and self.kind_of_value(m.group(2)) == "object" and self.atom_of(m.group(2))
+        if named or (m and m.group(2).lower().startswith("holder of ")):   # an object too
             article, target = m.group(1), self.value(m.group(2), where)
             routine = {"the": "SAY-THE", "The": "SAY-CAP-THE", "a": "SAY-A", "an": "SAY-A",
                        "A": "SAY-CAP-A", "An": "SAY-CAP-A"}[article]
@@ -1192,4 +1240,6 @@ class PhraseLowerer:
             return f"<TELL N {value}>"
         if kind == "text":
             return f"<PRINT {value}>"
+        if kind == "time":
+            return f"<SAY-TIME {value}>"
         return f"<SAY-NAME {value}>"

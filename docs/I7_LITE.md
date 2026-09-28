@@ -61,6 +61,7 @@ listed in room descriptions (not yet checked against real Inform 7).
 | `A brass hook is in the Cloakroom.` | a thing, placed | 7a |
 | `The hook is a supporter in the Cloakroom.` | with a kind. A supporter is fixed in place unless you say it is portable, as in Inform 7 (checked against *Cold Iron*, ADR-037) | 7a |
 | `The cloak is on the hook.` / `in the box` | placement on a supporter / in a container | 7a |
+| `The shadow is part of the knife.` | a part (ADR-054): it goes wherever its whole goes and is in reach whenever the whole is; it can't be taken on its own ("That seems to be a part of the knife."), and room descriptions and TAKE ALL leave it out. `now X is part of Y` and the condition `X is part of Y` work too, and `[the holder of X]` names the whole | Cold Iron |
 | `The player wears a velvet cloak.` / `carries` | the player's possessions; a list makes several (`The player carries a lamp and some coins.`) | 7a |
 | `A red ball and a blue ball are in the Hall.` | a list (with "are"): one thing for each name, as in Inform (a name containing "and" needs `called`). A name with "some" (`some beads`) is plural-named | |
 | `It is scenery.` / `It is fixed in place.` | `It` = the last thing named | 7a |
@@ -104,6 +105,7 @@ that isn't part of the other one's.
 | `A treasure is a kind of thing.` | new kind | 7a |
 | `A room is usually dark.` / `The printed name of a forest is usually "Forest".` | kind defaults | 7b |
 | `Every room has a number called the visit count.` | every room gets it (starting at 0) | Advent |
+| `The watch has a time. The time of the watch is 12:00 AM.` | a time of day (ADR-054), kept as minutes since midnight as in Inform: written `9:37 AM`, `midnight` or `midday`; printed "9:37 am" (as Inform prints times - not checked against a game); `five minutes after T` and `two hours before T` go round the clock; compared with `is`. Numbers can be written as words (`zero` to `twenty`, `thirty` to `sixty`) | Cold Iron |
 | `Forest1 has a number called the counter. The counter is 1.` | a property of one thing; "The counter is 1." next gives its value (ADR-052) | Cold Iron |
 | `The oak can be worded. The oak is not worded.` | "not" before an adjective: the thing is not so | Cold Iron |
 | `Every room has a text called the short description.` `The short description is "[We]['re] here again."` | a text property; the short form means the last thing named | Advent |
@@ -157,7 +159,12 @@ compared with `""` (no text).
 | `... when the location is the Bar` (on an Understand line) | only there | after Cloak (decision in I7_SURVEY) |
 
 Tokens: `[something]`, `[someone]`, `[things]` and `[things preferably
-held]` (several objects, below), and `[text]` (a topic, section 5).
+held]` (several objects, below), `[text]` (a topic, section 5), and
+`[time]` (ADR-054): a time of day as the player types it - `9:37`,
+`9:37 pm`, `9 pm`, or 24-hour `21:05` - which a rule reads as
+`the time understood`. Anything else is not a time, and the line does not
+fit (for an unknown word such as "banana", "You can't see any such thing.",
+as for any unknown word).
 
 A token can also be a **description** (ADR-053): adjectives - either/or
 properties or the author's definitions, each maybe after `not` - and a
@@ -244,6 +251,15 @@ Understand lines:
     Pondering is an action applying to one topic.
     Understand "ponder [text]" as pondering.
     Carry out pondering: say "You ponder [the topic understood]."
+
+An action can also apply to one thing and one time (ADR-054), with `[time]`:
+
+    Timesetting it to is an action applying to one thing and one time.
+    Understand "set [something] to [time]" as timesetting it to.
+    Report timesetting: say "The watch reads [time of the watch]."
+
+As in Inform, a rule can name an action by its first word alone -
+`Report timesetting:` for timesetting it to - when only one action begins so.
 
 A rule names a topic in quotation marks. A slash separates the words that
 may stand in one place, `--` means that place may be left out, and `or`
@@ -463,6 +479,7 @@ the order they run. Response letters and default texts follow Inform 7.
 |---|---|---|
 | check | can't take yourself rule | (A) "You are always self-possessed." |
 | check | can't take other people rule | (A) "I don't suppose [the noun] would care for that." |
+| check | can't take component parts rule | (A) "[if the noun is plural-named]Those seem[otherwise]That seems[end if] to be a part of [the holder of the noun]." (only in a story with parts; Inform's text, not checked against a game) |
 | check | can't take what's already taken rule | (A) "You already have that." |
 | check | can't take scenery rule | (A) "That's hardly portable." |
 | check | can't take what's fixed in place rule | (A) "That's fixed in place." |

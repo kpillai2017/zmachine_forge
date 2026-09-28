@@ -51,10 +51,11 @@ FIELDS = ["S-VERB", "S-NOBJ", "S-PREP1", "S-PREP2", "S-FIND1", "S-FIND2",
 # REVERSED (zforge's, for Inform's "(with nouns reversed)"), on object 1: the
 # thing typed first is the second noun (GIVE BEAST ROSE = give the rose to him).
 BITS = {"SO-HELD": 1, "SO-ROOM": 2, "SO-INSIDE": 4, "SO-MANY": 8, "SO-TOPIC": 16,
-        "SO-REVERSED": 32, "SO-TEST": 64}
+        "SO-REVERSED": 32, "SO-TEST": 64, "SO-TIME": 128}
 OPTION_BITS = {"HELD": "SO-HELD", "CARRIED": "SO-HELD", "HAVE": "SO-HELD",
                "ON-GROUND": "SO-ROOM", "IN-ROOM": "SO-ROOM", "INSIDE-PRSI": "SO-INSIDE",
-               "MANY": "SO-MANY", "TOPIC": "SO-TOPIC", "REVERSED": "SO-REVERSED", "TEST": "SO-TEST"}
+               "MANY": "SO-MANY", "TOPIC": "SO-TOPIC", "REVERSED": "SO-REVERSED", "TEST": "SO-TEST",
+               "TIME": "SO-TIME"}
 TABLE_NAME = "SYNTAX-TABLE"
 NO_FIND = -1
 

@@ -50,6 +50,10 @@ def generate_zil(source: str, filename: str = "story.ni",
     Inform's testing commands (RULES, ACTIONS, TREE)."""
     problems = Problems(Path(filename).name)
     model = build_model(read_sentences(source), problems, testing)
+    bare = re.sub(r'"[^"]*"|\[[^\]]*\]', "", source)      # no quoted texts, no comments
+    model.uses_parts = model.uses_parts or bool(re.search(r"\bpart of\b", bare, re.I))
+    model.uses_times = bool(re.search(r"\b\d{1,2}:\d\d\b|\bhas an? time\b", bare, re.I)
+                            or "[time]" in source)
     problems.raise_if_any()                        # no point lowering a broken model
     zil = lower_model(model, problems, Path(filename).with_suffix(".zil").name)
     problems.raise_if_any()

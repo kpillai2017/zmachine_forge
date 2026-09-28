@@ -127,3 +127,74 @@ Every turn: if the noun is a tale, say "(tale)".
 
 def test_a_kind_of_the_authors_with_several_members_can_be_tested():
     assert replies(["x blue tale"], KINDS) == ["A tale. (tale)"]
+
+
+# --- ADR-054: parts; times of day
+
+PARTS = '''"T" by T
+
+The Hall is a room. A table is a supporter in the Hall. A leg is part of the table.
+The player carries a knife. The shadow is part of the knife.
+A book is on the table. A tale is in the Hall.
+Telling is an action applying to nothing. Understand "tell" as telling.
+Carry out telling: now the tale is part of the book; say "The tale joins the book."
+Checking is an action applying to nothing. Understand "check" as checking.
+Carry out checking:
+\tif the tale is part of the book:
+\t\tsay "Part.";
+\totherwise:
+\t\tsay "Not part."
+'''
+
+
+def test_a_part_goes_with_its_whole_and_cannot_be_taken():
+    r = replies(["take shadow", "x shadow", "take leg", "take all", "check", "tell", "check",
+                 "take tale", "drop knife", "look"], PARTS)
+    assert r[0] == "That seems to be a part of the knife."
+    assert r[1] == "You see nothing special about the shadow."
+    assert r[2] == "That seems to be a part of the table."
+    assert r[3] == "book: Taken. tale: Taken."                   # not the leg
+    assert (r[4], r[5], r[6]) == ("Not part.", "The tale joins the book.", "Part.")
+    assert r[7] == "That seems to be a part of the book."
+    assert "You can see a knife and a table here." in r[9]       # its shadow goes with it
+
+
+def test_a_story_without_parts_or_times_gets_none_of_their_code():
+    zil = compile_i7(ACTIVITY, "t.ni", 8).zil
+    assert "PARTBIT" not in zil and "COMPILATION-FLAG PARTS" not in zil
+    assert "COMPILATION-FLAG TIMES" not in zil
+
+
+TIMES = '''"T" by T
+
+The Hall is a room. The watch is in the Hall.
+The watch has a time. The time of the watch is 12:00 AM.
+Winding is an action applying to one thing. Understand "wind [something]" as winding.
+Carry out winding:
+\tlet T be the time of the watch;
+\tnow the time of the watch is five minutes after T;
+\tsay "It reads [time of the watch]."
+Rewinding is an action applying to one thing. Understand "rewind [something]" as rewinding.
+Carry out rewinding:
+\tnow the time of the watch is two hours before the time of the watch;
+\tsay "It reads [time of the watch][if the time of the watch is 10:05 PM] (ten past)[end if]."
+Timesetting it to is an action applying to one thing and one time.
+Understand "set [something] to [time]" as timesetting it to.
+Carry out timesetting: now the time of the watch is the time understood.
+Report timesetting: say "The watch reads [time of the watch]."
+'''
+
+
+def test_times_of_day_count_print_and_wrap_round():
+    assert replies(["wind watch", "rewind watch"], TIMES) == [
+        "It reads 12:05 am.", "It reads 10:05 pm (ten past)."]
+
+
+def test_a_time_token_reads_the_times_players_type():
+    r = replies(["set watch to 9:37", "set watch to 9:37 pm", "set watch to 12:00 am",
+                 "set watch to 9 pm", "set watch to 21:05", "set watch to 9:7",
+                 "set watch to 13:00 pm"], TIMES)
+    assert r[:5] == ["The watch reads 9:37 am.", "The watch reads 9:37 pm.",
+                     "The watch reads 12:00 am.", "The watch reads 9:00 pm.",
+                     "The watch reads 9:05 pm."]
+    assert r[5] == r[6] == "You can't see any such thing."   # not times

@@ -72,6 +72,12 @@
   I7-PARSER-ERROR, which runs Inform 7's 'printing a parser error' activity.
   ZIL games compile exactly as before."
 <COMPILATION-FLAG-DEFAULT I7 <>>
+;"PARTS: the story has parts ('The shadow is part of the knife.'): each is
+  a child of its whole with PARTBIT. Set by the Inform 7 compiler only then."
+<COMPILATION-FLAG-DEFAULT PARTS <>>
+;"TIMES: the story has times of day (minutes since midnight, as in Inform)"
+<COMPILATION-FLAG-DEFAULT TIMES <>>
+<IFFLAG (TIMES <GLOBAL P-TIME 0>) (ELSE)>   ;"the time understood: a [time] slot's"
 
 ;"Inform 7 lets the first object be several: TAKE ALL, DROP ALL BUT THE
   LAMP, TAKE THE LAMP AND THE KEYS, DROP LAMP, KEYS AND FOOD - where the
@@ -169,6 +175,46 @@
     <SETG P-TOPIC-FIRST .FIRST>
     <SETG P-TOPIC-LAST <- ,P-WORD 1>>
     <RTRUE>>
+
+<IFFLAG (TIMES
+;"A [time] slot: a topic slot whose words must be a time of day - '9:37',
+  '9:37 pm', '9 pm' (hours 0-23, or 1-12 with am/pm) - put in P-TIME as
+  minutes since midnight. If they are not a time, the row does not fit."
+<ROUTINE TOPIC-OR-TIME (ROW SLOT STOP)
+    <COND (<NOT <TOPIC-PHRASE .STOP>> <RFALSE>)
+          (<NOT <BAND <GET .ROW <COND (<EQUAL? .SLOT 1> ,S-OPTS1) (ELSE ,S-OPTS2)>> ,SO-TIME>>
+           <RTRUE>)
+          (ELSE <READ-TIME>)>>
+
+<ROUTINE READ-TIME ("AUX" (I ,P-TOPIC-FIRST) LEN START C (H -1) (N 0) (DIGITS 0) (HALF 0))
+    <SET LEN <GETB ,PARSEBUF <* 4 .I>>>
+    <SET START <GETB ,PARSEBUF <+ <* 4 .I> 1>>>
+    <DO (J .START <- <+ .START .LEN> 1>)          ;"digits, maybe ':' and two more"
+        <SET C <GETB ,READBUF .J>>
+        <COND (<AND <G? .C 47> <L? .C 58>>
+               <SET N <+ <* .N 10> <- .C 48>>> <SET DIGITS <+ .DIGITS 1>>)
+              (<AND <EQUAL? .C 58> <L? .H 0> <G? .DIGITS 0>>
+               <SET H .N> <SET N 0> <SET DIGITS 0>)
+              (ELSE <RFALSE>)>>
+    <COND (<ZERO? .DIGITS> <RFALSE>)
+          (<L? .H 0> <SET H .N> <SET N 0>)            ;"'9 pm': the hour alone"
+          (<NOT <EQUAL? .DIGITS 2>> <RFALSE>)>
+    <SET I <+ .I 1>>
+    <COND (<NOT <G? .I ,P-TOPIC-LAST>>                ;"am or pm"
+           <SET START <GETB ,PARSEBUF <+ <* 4 .I> 1>>>
+           <COND (<OR <NOT <EQUAL? <GETB ,PARSEBUF <* 4 .I>> 2>>
+                      <NOT <EQUAL? <GETB ,READBUF <+ .START 1>> 109>>> <RFALSE>)>   ;"'m'"
+           <SET C <GETB ,READBUF .START>>
+           <COND (<EQUAL? .C 97> <SET HALF 1>) (<EQUAL? .C 112> <SET HALF 2>) (ELSE <RFALSE>)>
+           <COND (<L? .I ,P-TOPIC-LAST> <RFALSE>)>)>
+    <COND (<G? .N 59> <RFALSE>)
+          (.HALF <COND (<OR <L? .H 1> <G? .H 12>> <RFALSE>)>
+                 <SET H <+ <MOD .H 12> <COND (<EQUAL? .HALF 2> 12) (ELSE 0)>>>)
+          (<AND <EQUAL? .DIGITS 0> <ZERO? .HALF>> <RFALSE>)
+          (<G? .H 23> <RFALSE>)>
+    <SETG P-TIME <+ <* .H 60> .N>>
+    <RTRUE>>
+) (ELSE)>
 
 <ROUTINE FIRST-UNKNOWN-WORD ("AUX" FOUND)
     ;"the first word not in the dictionary (a comma is no word), or 0"
@@ -337,7 +383,9 @@
     <SET N <GET .ROW ,S-NOBJ>>
     <COND (<NOT <MATCH-PREP <GET .ROW ,S-PREP1>>> <MISSING-IF-ENDED 1 .N> <RFALSE>)>
     <COND (<G? .N 0>
-           <IFFLAG (I7 <SET O <COND (<TOPIC-SLOT? .ROW 1> <TOPIC-PHRASE <GET .ROW ,S-PREP2>>)
+           <IFFLAG (I7 <SET O <COND (<TOPIC-SLOT? .ROW 1>
+                                     <IFFLAG (TIMES <TOPIC-OR-TIME .ROW 1 <GET .ROW ,S-PREP2>>)
+                                             (ELSE <TOPIC-PHRASE <GET .ROW ,S-PREP2>>)>)
                                     (<TEST-SLOT? .ROW 1>
                                      <OBJECTS-PHRASE <GET .ROW ,S-PREP2> -1 <GET .ROW ,S-OPTS1> .ROW>
                                      <ONLY-FITTING ,P-MATCHES1 <GET .ROW ,S-FIND1>>)
@@ -353,7 +401,8 @@
     <COND (<NOT <MATCH-PREP <GET .ROW ,S-PREP2>>> <MISSING-IF-ENDED 2 .N> <RFALSE>)>
     <COND (<G? .N 1>
            <IFFLAG (I7                  ;"as in Inform 7: object 2 is always one thing"
-                    <COND (<TOPIC-SLOT? .ROW 2> <SET O <TOPIC-PHRASE 0>>)
+                    <COND (<TOPIC-SLOT? .ROW 2>
+                           <SET O <IFFLAG (TIMES <TOPIC-OR-TIME .ROW 2 0>) (ELSE <TOPIC-PHRASE 0>)>>)
                           (<MULTI-WORDS? ,P-WORD ,P-LEN> <MULTI-REFUSED .ROW 2> <RFALSE>)
                           (<TEST-SLOT? .ROW 2>
                            <NOUN-PHRASE 0 -1 ,P-MATCHES2>
@@ -578,6 +627,7 @@
 
 ;"For ALL: add O to the list unless it is scenery, fixed or a person."
 <ROUTINE ADD-IF-TAKEABLE (O)
+    <IFFLAG (PARTS <COND (<FSET? .O ,PARTBIT> <RFALSE>)>) (ELSE)>   ;"a part: never"
     <COND (<NOT <OR <FSET? .O ,SCENERYBIT> <FSET? .O ,FIXEDBIT> <FSET? .O ,PERSONBIT>>>
            <MULTI-ADD .O>)>>
 
@@ -657,7 +707,18 @@
     <MAP-CONTENTS (O .CONTAINER)
         <COND (<MATCHES? .O .FIRST .LAST> <ADD-MATCH .TBL .O>)>
         <MAP-CONTENTS (C .O)
-            <COND (<MATCHES? .C .FIRST .LAST> <ADD-MATCH .TBL .C>)>>>>
+            <COND (<MATCHES? .C .FIRST .LAST> <ADD-MATCH .TBL .C>)>
+            <IFFLAG (PARTS <SEARCH-PARTS .C .FIRST .LAST .TBL>) (ELSE)>>>>
+
+<IFFLAG (PARTS
+;"The parts of O, and their parts: in reach wherever O is (a tale that is
+  part of the book on the table)."
+<ROUTINE SEARCH-PARTS (O FIRST LAST TBL)
+    <MAP-CONTENTS (P .O)
+        <COND (<FSET? .P ,PARTBIT>
+               <COND (<MATCHES? .P .FIRST .LAST> <ADD-MATCH .TBL .P>)>
+               <SEARCH-PARTS .P .FIRST .LAST .TBL>)>>>
+) (ELSE)>
 
 <ROUTINE ADD-MATCH (TBL O "AUX" N)
     ;"once only: when the player is IN the room (as in Inform 7), a thing
@@ -678,6 +739,7 @@
     ;"the same places SEARCH-SCOPE looks"
     <SET L <LOC .O>>
     <COND (<HELD? .O> <RTRUE>)
+          <IFFLAG (PARTS (<FSET? .O ,PARTBIT> <IN-SCOPE? .L>)) (ELSE)>  ;"with its whole"
           (<ZERO? ,LIT> <RFALSE>)
           (<EQUAL? .L ,HERE> <RTRUE>)
           (ELSE <AND .L <IN? .L ,HERE>>)>>
