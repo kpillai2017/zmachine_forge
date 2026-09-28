@@ -200,3 +200,39 @@ def test_a_phrase_word_that_cannot_be_typed_is_a_problem():
         compile_i7('"T" by T\n\nThe Hall is a room. The lamp is in the Hall.\n'
                    'Understand "old lamp\'s light" as the lamp.\n', "t.ni", 8)
     assert "can't be a word the player types" in str(e.value)
+
+
+# ------------------------------------ 9. a list of things with 'are', or carried
+LISTS = ("The Hall is a room. A red ball and a blue ball are in the Hall.\n"
+         "The Loft is east of the Hall. A top and some beads are in the Loft.\n"
+         "The player carries a lamp and some coins.\n")
+
+
+def test_a_list_with_are_makes_one_thing_for_each_name():
+    # Once one thing, called 'red ball and a blue ball' (and plural).
+    m, problems = model_of(LISTS)
+    assert problems == []
+    assert {"red ball", "blue ball", "top", "beads", "lamp", "coins"} <= set(m.objects)
+    assert "PLURALBIT" not in m.objects["red ball"].flags
+    assert "PLURALBIT" in m.objects["beads"].flags and m.objects["beads"].article == "some"
+    assert "PLURALBIT" not in m.objects["top"].flags
+    assert m.objects["coins"].article == "some" and m.objects["coins"].parent == "yourself"
+
+
+def test_the_listed_things_can_be_told_apart():
+    out = played(LISTS, ["look", "take ball", "red", "inventory", "east"])
+    assert "You can see a red ball and a blue ball here." in out
+    assert "Which do you mean, the red ball or the blue ball?" in out
+    assert "a lamp" in out and "some coins" in out
+    assert "You can see a top and some beads here." in out
+
+
+# ------------------------------------ 10. a one-line rule after another sentence
+def test_a_one_line_rule_can_follow_another_sentence_on_its_line():
+    out = played("The Hall is a room. The count is a number that varies. Every turn: "
+                 "increase the count by 1.\n"
+                 'The lamp is in the Hall. Instead of taking the lamp, say "Too hot."\n'
+                 "Counting is an action applying to nothing. Understand \"count\" as counting. "
+                 'Carry out counting: say "Turns: [count]."',
+                 ["wait", "take lamp", "count"])
+    assert "Too hot." in out and "Turns: 2." in out

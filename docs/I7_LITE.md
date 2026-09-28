@@ -30,7 +30,9 @@ listed in room descriptions (not yet checked against real Inform 7).
 * A **rule** or **phrase definition** is a *preamble* ending in `:`
   followed by phrases, either on one line separated by `;` or on indented
   lines (tabs or 4 spaces; `if` / `otherwise` / `repeat` nest by
-  indentation).
+  indentation). A one-line rule may also follow another sentence on the
+  same line: `The count is a number that varies. Every turn: increase the
+  count by 1.`
 * Words are case-insensitive except inside quoted text.
 
 ## 1. The story (7a)
@@ -57,7 +59,8 @@ listed in room descriptions (not yet checked against real Inform 7).
 | `A brass hook is in the Cloakroom.` | a thing, placed | 7a |
 | `The hook is a supporter in the Cloakroom.` | with a kind. A supporter is fixed in place unless you say it is portable, as in Inform 7 (checked against *Cold Iron*, ADR-037) | 7a |
 | `The cloak is on the hook.` / `in the box` | placement on a supporter / in a container | 7a |
-| `The player wears a velvet cloak.` / `carries` | the player's possessions | 7a |
+| `The player wears a velvet cloak.` / `carries` | the player's possessions; a list makes several (`The player carries a lamp and some coins.`) | 7a |
+| `A red ball and a blue ball are in the Hall.` | a list (with "are"): one thing for each name, as in Inform (a name containing "and" needs `called`). A name with "some" (`some beads`) is plural-named | |
 | `It is scenery.` / `It is fixed in place.` | `It` = the last thing named | 7a |
 | `The hook is scenery.` `The box is open/closed/openable/locked/lockable.` | either/or properties | 7a |
 | `The lamp is a device.` / `switched on` | a device (switching on/off) | 7b |

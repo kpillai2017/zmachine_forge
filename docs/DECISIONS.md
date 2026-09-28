@@ -855,3 +855,24 @@ never repeats itself, and with nothing to repeat it says "You can hardly
 repeat that." and takes no turn. An answer to "Which do you mean" is not kept,
 so AGAIN repeats the whole command (and asks again). The code is inside
 `<IFFLAG (I7 ...)>` in `lib/parser.zil`, so ZIL games are unchanged.
+
+## ADR-043: Lists of things, and one-line rules after another sentence
+
+**Context.** `A red ball and a blue ball are in the Hall.` made one plural
+thing called "red ball and a blue ball" (so TAKE BALL could not ask which),
+and `The player carries a lamp and a key.` one called "lamp and a key".
+Separately, a one-line rule after another sentence on the same line
+(`The count is a number that varies. Every turn: increase the count by 1.`)
+was read as an assertion and reported as not understood.
+
+**Decision.** As in Inform 7, a subject list with "are" (placing, and the
+adjective sentences that already did this), and the object of carries /
+wears, names one thing per name (split at commas and "and"). A new thing
+named with "some" gets "some" as its article, and in an "are" sentence is
+plural-named. The source reader turns any complete one-line rule found
+inside an assertion paragraph into a rule, with the same tests as a rule at
+the start of a line.
+
+**Consequences.** A name containing "and" in such a sentence must use
+`called`, as in Inform. The five I7 examples build byte-identical.
+Tests: tests/test_i7_sentence_fixes.py sections 9-10.

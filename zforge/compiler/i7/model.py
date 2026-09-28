@@ -26,6 +26,8 @@ DIRECTION_NAMES = {name for name, _, _ in DIRECTIONS}
 # A word the player can type for a thing: letters, digits and hyphens (the
 # Z-machine dictionary holds other characters, but I7-lite keeps to these).
 DICT_WORD = re.compile(r"^[a-z0-9][a-z0-9-]*$")
+# The separators of a list of names: 'A, B, and C' or 'A and B'.
+LIST_SPLIT = re.compile(r",\s*(?:and\s+)?|\s+and\s+")
 
 # either/or properties the library understands: adjective -> (flag, value)
 ADJECTIVES = {
@@ -571,11 +573,12 @@ class ModelBuilder:
         tail = m.string[m.end(1):].split(None, 1)[1]            # after 'is' / 'are'
         if self.only_adjectives(tail):          # 'The desk is fixed in place.' - not a place
             return False
-        obj = self.subject(s, subject)
-        if descriptor:
-            self.describe(s, obj, descriptor)
-        self.place(s, obj, relation.lower(), place)
-        self.last_object = obj
+        verb = m.string[m.end(1):].split(None, 1)[0].lower()      # 'is' or 'are'
+        for obj in self.subjects(s, subject, verb):
+            if descriptor:
+                self.describe(s, obj, descriptor)
+            self.place(s, obj, relation.lower(), place)
+            self.last_object = obj
 
     def describe(self, s: Sentence, obj: Obj, descriptor: str) -> None:
         """'[a] [adjectives...] [kind]': any adjectives, then optionally a kind."""
@@ -604,26 +607,22 @@ class ModelBuilder:
         self.last_object = obj
 
     def possession(self, s, m):
-        """The player carries/wears X."""
-        obj = self.object_for(m.group(2), s.where)
-        obj.parent, obj.relation = "yourself", m.group(1).lower().rstrip("s")
-        if obj.relation == "wear":
-            obj.relation = "worn"
-            obj.flags |= {"WEARABLEBIT", "WORNBIT"}
-        else:
-            obj.relation = "carried"
-        self.last_object = obj
+        """The player carries/wears X (or a list: 'a lamp and some coins')."""
+        for obj in self.listed_objects(s, m.group(2), plural_some=False):
+            obj.parent, obj.relation = "yourself", m.group(1).lower().rstrip("s")
+            if obj.relation == "wear":
+                obj.relation = "worn"
+                obj.flags |= {"WEARABLEBIT", "WORNBIT"}
+            else:
+                obj.relation = "carried"
+            self.last_object = obj
 
     def adjectives(self, s, m):
         """X is scenery. / It is fixed in place and lit. / The Bar is dark.
         Also 'A, B, and C are lighted.': with 'are', as in Inform 7, a subject
         with commas or 'and' is a list (a part not yet defined is made now)."""
-        parts = [p for p in re.split(r",\s*(?:and\s+)?|\s+and\s+", m.group(1)) if p.strip()]
         verb = m.string[m.end(1):m.start(2)].strip().lower()
-        if len(parts) > 1 and verb == "are":
-            objs = [self.subject(s, part) for part in parts]
-        else:
-            objs = [self.subject(s, m.group(1))]
+        objs = self.subjects(s, m.group(1), verb)
         for adj in re.split(r",\s*|\s+and\s+", m.group(2)):
             for obj in objs:
                 if not self.apply_adjective(obj, adj.strip().lower()):
@@ -904,6 +903,31 @@ class ModelBuilder:
         self.adjectives(s, m)
 
     # ------------------------------------------------------------ helpers
+    def subjects(self, s: Sentence, phrase: str, verb: str) -> list[Obj]:
+        """The things a sentence's subject names. As in Inform 7, with 'are' a
+        subject with commas or 'and' is a list: 'A red ball and a blue ball are
+        in the Hall.' is two balls (a name with 'and' in it needs 'called')."""
+        if verb == "are" and len([p for p in LIST_SPLIT.split(phrase) if p.strip()]) > 1:
+            return self.listed_objects(s, phrase)
+        return [self.subject(s, phrase)]
+
+    def listed_objects(self, s: Sentence, phrase: str, plural_some: bool = True) -> list[Obj]:
+        """One thing for each name in a list ('a top and some beads'). A new
+        thing named with 'some' has 'some' as its article; in an 'are'
+        sentence (plural_some) it is plural-named too, as 'Some beads are ...'
+        makes it."""
+        things = []
+        for part in [p.strip() for p in LIST_SPLIT.split(phrase) if p.strip()]:
+            new = self.m.find(part) is None
+            obj = self.object_for(part, s.where)
+            if new and part.lower().startswith("some "):
+                if plural_some:
+                    obj.flags.add("PLURALBIT")
+                if obj.article is None:
+                    obj.article = "some"
+            things.append(obj)
+        return things
+
     def subject(self, s: Sentence, phrase: str) -> Obj:
         if phrase.strip().lower() in ("it", "they"):
             if self.last_object is None:

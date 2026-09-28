@@ -199,7 +199,17 @@ def read_sentences(source: str) -> list[Sentence]:
         while i < len(lines) and lines[i].strip() and not RULE_START.match(lines[i].strip()):
             chunk.append(lines[i])
             i += 1
-        out.extend(split_sentences("\n".join(chunk), Location(first + 1, 1)))
+        for s in split_sentences("\n".join(chunk), Location(first + 1, 1)):
+            # A one-line rule can follow another sentence on the same line, as
+            # in Inform: 'The count is a number that varies. Every turn:
+            # increase the count by 1.' It is read as a rule on a line of its own.
+            colon, comma = colon_outside_quotes(s.text), comma_outside_quotes(s.text)
+            if RULE_START.match(s.text) and colon >= 0:
+                read_rule([s.text], 0, s.text, colon, s.where, out, 1)
+            elif RULE_START.match(s.text) and comma >= 0 and not s.text.lower().startswith("to "):
+                read_rule([s.text], 0, s.text, comma, s.where, out, 1)
+            else:
+                out.append(s)
     return out
 
 
