@@ -142,3 +142,27 @@ def test_a_room_description_ending_in_a_bracket_can_have_a_full_stop():
                  ["look", "down"])
     assert "A hall, brightly lit" in out and '"A hall' not in out and 'lit".' not in out
     assert "Damp and cold." in out
+
+
+# ------------------------------------ 6. trying an action no command asks for
+def test_an_action_with_no_understand_line_can_be_tried():
+    # It once had no action number, and the build stopped with an internal error.
+    out = played("The Hall is a room. The Kitchen is north of the Hall.\n"
+                 "Looking toward is an action applying to one thing.\n"
+                 'Carry out looking toward: say "You make out [the noun] that way."\n'
+                 "Waving about is an action applying to nothing.\n"
+                 'Carry out waving about: say "You wave."\n'
+                 "Instead of waiting: try looking toward the Kitchen; try waving about.",
+                 ["wait"])
+    assert "You make out the Kitchen that way." in out and "You wave." in out
+
+
+# ------------------------------------ 7. "silently try", in either order
+def test_silently_try_works_in_both_orders():
+    out = played("The Hall is a room. The lamp is in the Hall.\n"
+                 "Instead of waiting: silently try taking the lamp; say \"Have it: "
+                 "[if the player carries the lamp]yes[otherwise]no[end if].\"\n"
+                 'Instead of looking: try silently dropping the lamp; say "Put down."',
+                 ["wait", "look", "inventory"])
+    assert "Have it: yes." in out and "Put down." in out and "carrying nothing" in out
+    assert "Taken." not in out and "Dropped." not in out      # silently: no reports

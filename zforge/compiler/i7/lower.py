@@ -10,7 +10,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 
-from zforge.compiler.i7.model import Obj, Rule, WorldModel
+from zforge.compiler.i7.model import DICT_WORD, Obj, Rule, WorldModel
 from zforge.compiler.i7.phrases import PhraseLowerer
 from zforge.compiler.i7.problems import Location, Problems
 from zforge.compiler.i7.standard import ACTIVITIES, DIRECTIONS, INTERNAL_RULES, LIBRARY_RULES, \
@@ -26,7 +26,6 @@ RESERVED = {"PLAYER", "HERE", "LIT", "PRSA", "PRSO", "PRSI", "GO", "SCORE", "TUR
 RESERVED |= {r.routine for r in LIBRARY_RULES.values()}
 RESERVED |= {f"{r.routine}-{letter}" for r in LIBRARY_RULES.values() for letter, _ in r.responses}
 DIRECTION_PROPS = {name: name.upper() for name, _, _ in DIRECTIONS}   # inside -> INSIDE
-DICT_WORD = re.compile(r"^[a-z0-9][a-z0-9-]*$")
 
 
 class Names:
@@ -466,6 +465,14 @@ class Lowerer:
         doors = [self.atom[o.name] for o in self.m.objects.values() if o.sides]
         self.emit(f"<GLOBAL DOORS <LTABLE {' '.join(',' + d for d in doors)}>>")
         self.emit("<SYNTAX UNDO = V-UNDO>", "<ROUTINE V-UNDO () <RTRUE>>", "")
+        # An action no command asks for (only 'try' starts it) has no SYNTAX line,
+        # so ZIL gives it no action number: give it one here, from 1000 up, clear
+        # of the numbers ZIL gives the others (1, 2, 3, ...).
+        typed = set(re.findall(r"= (V-[A-Z0-9?-]+)>", "\n".join(self.out)))
+        untyped = [n for n in self.m.actions if f"V-{self.action_atom[n]}" not in typed]
+        for number, name in enumerate(untyped, start=1000):
+            self.emit(f'<CONSTANT V?{self.action_atom[name]} {number}>   '
+                      f';"the {name} action: no command asks for it, only try"')
 
     def forgotten(self, line: str, action: str, where) -> bool:
         """'Understand the command "open" as something new.' / 'Understand

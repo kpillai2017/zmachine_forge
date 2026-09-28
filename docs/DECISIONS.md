@@ -805,3 +805,17 @@ example (and Bronze) builds byte-for-byte as before.
 **Not done.** Falling back to properties when the attributes run out,
 which would let such a story compile as it is.
 
+
+## ADR-040: Numbers for actions no command asks for
+
+**Context.** ZIL gives an action its number (`V?LOOKING-TOWARD`) from the SYNTAX
+lines that use it. An I7 action with no Understand line - one that only `try`
+starts, like Bronze's "looking toward" - had no SYNTAX line and so no number, and
+the build stopped with an internal error.
+
+**Decision.** After writing every SYNTAX line, the I7 lowering gives each action
+that none of them mentions a number of its own, from 1000 up, clear of the numbers
+ZIL gives the typed actions (1, 2, 3, ...). The runtime only ever compares action
+numbers, never uses them as indexes, so any unused number serves. ZIL games are
+untouched. Also: `silently try ...` (Inform's order) is accepted as well as
+`try silently ...`.

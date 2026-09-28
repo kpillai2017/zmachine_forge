@@ -738,9 +738,10 @@ class PhraseLowerer:
             if verb == "end":
                 return [f"<END-ACTIVITY ,{atom}>"]
             return [f"<CARRY-OUT ,{atom} {obj} 0>"]
-        m = re.match(r"^try (silently )?(.+)$", t, re.I)
+        # 'silently try taking the lamp' (Inform's order) or 'try silently taking the lamp'
+        m = re.match(r"^(silently )?try (silently )?(.+)$", t, re.I)
         if m:
-            return [self.try_action(m.group(2), bool(m.group(1)), where)]
+            return [self.try_action(m.group(3), bool(m.group(1) or m.group(2)), where)]
         return None
 
     def try_action(self, text: str, silently: bool, where: Location) -> str:

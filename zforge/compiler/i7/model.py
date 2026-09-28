@@ -22,6 +22,9 @@ from zforge.compiler.i7.text import Text, TextError, parse_text
 
 ARTICLES = ("the ", "a ", "an ", "some ")
 DIRECTION_NAMES = {name for name, _, _ in DIRECTIONS}
+# A word the player can type for a thing: letters, digits and hyphens (the
+# Z-machine dictionary holds other characters, but I7-lite keeps to these).
+DICT_WORD = re.compile(r"^[a-z0-9][a-z0-9-]*$")
 
 # either/or properties the library understands: adjective -> (flag, value)
 ADJECTIVES = {

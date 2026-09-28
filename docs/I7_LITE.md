@@ -249,7 +249,7 @@ stands in its own paragraph).
 | `repeat with I running from 1 to 10: ...` / `while <cond>: ...` | Advent |
 | `end the story` / `end the story finally` / `end the story saying "..."` | 7a |
 | `stop the action` / `continue the action` / `rule succeeds` / `rule fails` | 7a |
-| `try <action>` / `silently try <action>` | 7b |
+| `try <action>` / `silently try <action>` (or `try silently <action>`) | 7b |
 | `<phrase> instead` (do it, then stop) | 7b |
 | `To <phrase>: ...` / `To say <name>: ...` user phrases | 7a |
 | `To decide whether ...: ...` with `decide yes` / `decide no` | Advent |
