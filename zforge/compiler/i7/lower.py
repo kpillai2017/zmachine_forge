@@ -540,8 +540,10 @@ class Lowerer:
         self.emit("<SYNTAX GO OBJECT = V-GOING>")
         for dname, abbrev, _ in DIRECTIONS:
             up = dname.upper()
-            self.emit(f"<SYNTAX {up} = V-GO-{up}>  <SYNTAX {abbrev.upper()} = V-GO-{up}>  "
-                      f"<SYNTAX GO {up} = V-GO-{up}>")
+            # 'out' alone is exiting, as in Inform (ADR-058); 'go n' and 'go out' work
+            short = "" if abbrev == "out" else f"<SYNTAX {abbrev.upper()} = V-GO-{up}>  "
+            self.emit(f"<SYNTAX {up} = V-GO-{up}>  {short}"
+                      f"<SYNTAX GO {up} = V-GO-{up}>  <SYNTAX GO {abbrev.upper()} = V-GO-{up}>")
             self.routines.append(f"<ROUTINE V-GO-{up} ()\n    <SETG PRSO ,DIR-{up}> "
                                  f"<SETG PRSA ,V?GOING> <V-GOING>>")
         for direction, words in self.m.direction_words.items():   # Understand "plugh" as north

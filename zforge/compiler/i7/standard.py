@@ -247,6 +247,90 @@ ACTIONS: tuple[StandardAction, ...] = (
           (("A", "That's not something you can enter."),
            ("B", "That's not something you can sit down on."),
            ("C", "That's not something you can stand on."))),)}),
+    # ADR-058: twelve more of Inform's standard actions. Replies as the real *The
+    # Ambassador's Daughter* (Inform 6G60) prints them, where it could be checked.
+    StandardAction("searching", 1, ("search [something]", "look in/inside/into [something]"), {
+        "check": (
+            R("can't search unless container or supporter rule", "SEARCH-NOT-CS",
+              (("A", "You find nothing of interest."),)),
+            R("can't search closed opaque containers rule", "SEARCH-CLOSED",
+              (("A", "You can't see inside, since [the noun] [if the noun is "
+                     "plural-named]are[otherwise]is[end if] closed."),))),
+        "report": (
+            R("standard search containers rule", "SEARCH-CONTAINER",
+              (("A", "In [the noun] "),
+               ("B", "[The noun] [if the noun is plural-named]are[otherwise]is[end if] empty."))),
+            R("standard search supporters rule", "SEARCH-SUPPORTER",
+              (("A", "On [the noun] "), ("B", "There is nothing on [the noun]."))))}),
+    StandardAction("touching", 1, ("touch [something]", "feel [something]",
+                                   "fondle [something]", "grope [something]"), {"report": (
+        R("report touching yourself rule", "TOUCH-SELF", (("A", "If you think that'll help."),)),
+        R("report touching other people rule", "TOUCH-PEOPLE",
+          (("A", "[The noun] might not like that."),)),
+        R("report touching things rule", "TOUCH-THINGS",
+          (("A", "You feel nothing unexpected."),)))}),
+    StandardAction("climbing", 1, ("climb [something]", "scale [something]",
+                                   "climb up/over [something]"), {"check": (
+        R("block climbing rule", "CLIMB-BLOCK",
+          (("A", "I don't think much is to be achieved by that."),)),)}),
+    StandardAction("giving it to", 2, ("give [something] to [someone]",
+                                       "pay [something] to [someone]",
+                                       "offer [something] to [someone]",
+                                       "feed [something] to [someone]"), {"check": (
+        R("carrying requirements rule", "IMPLICITLY-TAKE"),
+        R("can't give to yourself rule", "GIVE-SELF",
+          (("A", "You can't give [the noun] to yourself."),)),
+        R("can't give to a non-person rule", "GIVE-NONPERSON",
+          (("A", "[The second noun] [if the second noun is "
+                 "plural-named]aren't[otherwise]isn't[end if] able to receive things."),)),
+        R("block giving rule", "GIVE-BLOCK",
+          (("A", "[The second noun] [if the second noun is "
+                 "plural-named]don't[otherwise]doesn't[end if] seem interested."),)))}),
+    StandardAction("showing it to", 2, ("show [something] to [someone]",
+                                        "present [something] to [someone]",
+                                        "display [something] to [someone]"), {"check": (
+        R("carrying requirements rule", "IMPLICITLY-TAKE"),
+        R("block showing rule", "SHOW-BLOCK",
+          (("A", "[The second noun] [if the second noun is "
+                 "plural-named]are[otherwise]is[end if] unimpressed."),)))}),
+    StandardAction("exiting", 0, ("exit", "out", "get out", "stand up"), {"check": (
+        R("convert exit into go out rule", "EXIT-GO-OUT"),
+        R("can't exit when not inside anything rule", "EXIT-NOT-INSIDE",
+          (("A", "But you aren't in anything at the moment."),)))}),
+    StandardAction("drinking", 1, ("drink [something]", "swallow [something]",
+                                   "sip [something]"), {"check": (
+        R("block drinking rule", "DRINK-BLOCK",
+          (("A", "There's nothing suitable to drink here."),)),)}),
+    StandardAction("sleeping", 0, ("sleep", "nap"), {"check": (
+        R("block sleeping rule", "SLEEP-BLOCK",
+          (("A", "You aren't feeling especially drowsy."),)),)}),
+    StandardAction("tasting", 1, ("taste [something]",), {"check": (
+        R("block tasting rule", "TASTE-BLOCK", (("A", "You taste nothing unexpected."),)),)}),
+    StandardAction("rubbing", 1, ("rub [something]", "shine [something]", "polish [something]",
+                                  "sweep [something]", "clean [something]", "dust [something]",
+                                  "wipe [something]", "scrub [something]"), {"check": (
+        R("can't rub another person rule", "RUB-PEOPLE",
+          (("A", "[The noun] might not like that."),)),
+        R("block rubbing rule", "RUB-BLOCK", (("A", "You achieve nothing by this."),)))}),
+    StandardAction("pushing", 1, ("push [something]", "press [something]", "shift [something]"), {
+        "check": (
+            R("can't push what's fixed in place rule", "PUSH-FIXED",
+              (("A", "[if the noun is plural-named]Those are[otherwise]It is[end if] fixed "
+                     "in place."),)),
+            R("can't push people rule", "PUSH-PEOPLE",
+              (("A", "[The noun] might not like that."),))),
+        "report": (R("report pushing rule", "PUSH-REPORT", (("A", "Nothing obvious "
+                                                                  "happens."),)),)}),
+    StandardAction("turning", 1, ("turn [something]", "rotate [something]", "twist [something]",
+                                  "unscrew [something]", "screw [something]"), {
+        "check": (
+            R("can't turn what's fixed in place rule", "TURN-FIXED",
+              (("A", "[if the noun is plural-named]Those are[otherwise]It is[end if] fixed "
+                     "in place."),)),
+            R("can't turn people rule", "TURN-PEOPLE",
+              (("A", "[The noun] might not like that."),))),
+        "report": (R("report turning rule", "TURN-REPORT", (("A", "Nothing obvious "
+                                                                  "happens."),)),)}),
     StandardAction("waiting", 0, ("wait", "z"), {"report": (
         R("standard report waiting rule", "WAIT-REPORT", (("A", "Time passes."),)),)}),
     StandardAction("requesting the score", 0, ("score",),

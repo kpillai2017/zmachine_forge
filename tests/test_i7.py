@@ -319,8 +319,9 @@ def test_every_library_rule_is_listed_in_the_docs():
     # the four actions on a topic have five; attacking and entering one each;
     # taking two more, can't take component parts (ADR-054) and can't take
     # people's possessions (ADR-055); opening one, reveal any newly visible
-    # interior (ADR-057)
-    assert len(set(names)) == 86
+    # interior (ADR-057); twelve more actions, 25 new rules - giving and
+    # showing share the carrying requirements rule (ADR-058)
+    assert len(set(names)) == 86 + 25
     assert [n for n in LIBRARY_RULES if f"| {n} |" not in doc] == []   # internal ones too
 
 

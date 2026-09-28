@@ -243,3 +243,53 @@ def test_orders_go_to_the_persuasion_rules():
 def test_a_command_with_a_list_is_not_an_order():
     assert replies(["take key, coin"], PEOPLE) == [
         "key: Taken. coin: That seems to belong to the man."]
+
+
+# --- ADR-058: twelve more standard actions
+
+ACTIONS = '''"T" by T
+
+The Hall is a room. The Garden is outside from the Hall. The Cellar is below the Hall.
+A table is a supporter in the Hall. A book is on the table.
+A box is an open container in the Hall. A crate is an openable closed container in the Hall.
+A rock is in the Hall. The tables are scenery in the Hall. The guy is a man in the Hall.
+A lamp is in the Hall.
+'''
+
+
+def test_searching_says_what_is_in_or_on_things():
+    assert replies(["search table", "search box", "look in crate", "search rock"], ACTIONS) == [
+        "On the table is a book.", "The box is empty.",
+        "You can't see inside, since the crate is closed.", "You find nothing of interest."]
+
+
+def test_the_blocked_actions_reply_as_inform_does():
+    assert replies(["touch rock", "touch me", "touch guy", "climb rock", "drink rock",
+                    "sleep", "taste rock", "rub rock", "rub guy"], ACTIONS) == [
+        "You feel nothing unexpected.", "If you think that'll help.",
+        "The guy might not like that.", "I don't think much is to be achieved by that.",
+        "There's nothing suitable to drink here.", "You aren't feeling especially drowsy.",
+        "You taste nothing unexpected.", "You achieve nothing by this.",
+        "The guy might not like that."]
+
+
+def test_pushing_and_turning():
+    assert replies(["push rock", "push tables", "push guy", "turn rock", "turn tables",
+                    "turn on lamp"], ACTIONS)[:5] == [
+        "Nothing obvious happens.", "Those are fixed in place.", "The guy might not like that.",
+        "Nothing obvious happens.", "Those are fixed in place."]
+
+
+def test_giving_and_showing():
+    assert replies(["give rock to guy", "give book to me", "show rock to guy"], ACTIONS) == [
+        "(first taking the rock) The guy doesn't seem interested.",
+        "(first taking the book) You can't give the book to yourself.",
+        "The guy is unimpressed."]
+
+
+def test_exiting_goes_out_where_it_can_and_go_takes_abbreviations():
+    r = replies(["exit", "out", "go in", "d", "go u", "out"], ACTIONS)
+    assert r[0].startswith("Garden")
+    assert r[1] == "But you aren't in anything at the moment."
+    assert r[2].startswith("Hall") and r[3].startswith("Cellar") and r[4].startswith("Hall")
+    assert r[5].startswith("Garden")

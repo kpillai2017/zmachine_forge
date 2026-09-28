@@ -1292,3 +1292,37 @@ transparency, so a closed container never shows its contents.
 something is on a supporter or in a container (`zbuilder compare`: Glasshouse
 1 line, Bronze 38 - all listings or "revealing"). Checked against the real
 Bronze: the bentwood table, and the iron cage's "revealing" (see the report).
+
+
+## ADR-058: Twelve more standard actions; OUT is exiting; GO N
+
+**Context.** Cold Iron's second stage (docs/I7_SURVEY.md) had about 40
+problems from standard actions I7-lite lacked. Every game uses them.
+
+**Decision.** Searching, touching, climbing, giving it to, showing it to,
+exiting, drinking, sleeping, tasting, rubbing, pushing and turning, with
+Inform's grammar (search / look in, touch / feel, give / pay / offer / feed
+... to, push / press / shift, turn / rotate / twist ...) and Inform's rule
+names. Their replies are the real *The Ambassador's Daughter*'s (Inform 6G60)
+where it shows them - searching a container or supporter ("In the large
+cauldron are some simmering water.") or anything else ("You find nothing of
+interest."), touching things and yourself, climbing, drinking, sleeping,
+tasting, rubbing, pushing and turning ("Nothing obvious happens.", and for
+scenery or fixed things "Those are fixed in place.") and exiting ("But you
+aren't in anything at the moment."). Giving and showing to people, anything
+done to a person, and searching an empty or closed container use Inform's
+library texts (not checked). Newer Informs may word three of them differently
+(climbing, touching yourself, rubbing); the checked 6G60 words are used.
+As in Inform, `out` alone is exiting, which goes outside where the room has a
+way out (the convert exit into go out rule); `go n`, `go out` and the other
+abbreviations now work after "go".
+
+**Limits.** No reversed forms (`give the troll the sword`): the library's own
+grammar lines cannot be "(with nouns reversed)" yet. `[someone]` accepts
+things, so `give rock to box` reaches the can't give to a non-person rule,
+where Inform stops at a parser error.
+
+**Consequences.** Cold Iron's second stage: 265 to 226 problems ("not an
+action I know" 44 to 4, all "doing anything except examining"). `zbuilder
+compare HEAD`: every example's story grows about 3 KB; both walkthroughs play
+identically.

@@ -681,6 +681,95 @@ the order they run. Response letters and default texts follow Inform 7.
 |---|---|---|
 | check | block attacking rule | (A) "Violence isn't the answer to this one." |
 
+**searching** (`search [something]`, `look in/inside/into [something]`)
+
+| Stage | Rule | Responses |
+|---|---|---|
+| check | can't search unless container or supporter rule | (A) "You find nothing of interest." |
+| check | can't search closed opaque containers rule | (A) "You can't see inside, since [the noun] [if the noun is plural-named]are[otherwise]is[end if] closed." |
+| report | standard search containers rule | (A) "In [the noun] "; (B) "[The noun] [if the noun is plural-named]are[otherwise]is[end if] empty." |
+| report | standard search supporters rule | (A) "On [the noun] "; (B) "There is nothing on [the noun]." |
+
+**touching** (`touch [something]`, `feel [something]`, `fondle [something]`, `grope [something]`)
+
+| Stage | Rule | Responses |
+|---|---|---|
+| report | report touching yourself rule | (A) "If you think that'll help." |
+| report | report touching other people rule | (A) "[The noun] might not like that." |
+| report | report touching things rule | (A) "You feel nothing unexpected." |
+
+**climbing** (`climb [something]`, `scale [something]`, `climb up/over [something]`)
+
+| Stage | Rule | Responses |
+|---|---|---|
+| check | block climbing rule | (A) "I don't think much is to be achieved by that." |
+
+**giving it to** (`give [something] to [someone]`, `pay [something] to [someone]`, `offer [something] to [someone]`, `feed [something] to [someone]`)
+
+| Stage | Rule | Responses |
+|---|---|---|
+| check | carrying requirements rule | - |
+| check | can't give to yourself rule | (A) "You can't give [the noun] to yourself." |
+| check | can't give to a non-person rule | (A) "[The second noun] [if the second noun is plural-named]aren't[otherwise]isn't[end if] able to receive things." |
+| check | block giving rule | (A) "[The second noun] [if the second noun is plural-named]don't[otherwise]doesn't[end if] seem interested." |
+
+**showing it to** (`show [something] to [someone]`, `present [something] to [someone]`, `display [something] to [someone]`)
+
+| Stage | Rule | Responses |
+|---|---|---|
+| check | carrying requirements rule | - |
+| check | block showing rule | (A) "[The second noun] [if the second noun is plural-named]are[otherwise]is[end if] unimpressed." |
+
+**exiting** (`exit`, `out`, `get out`, `stand up`)
+
+| Stage | Rule | Responses |
+|---|---|---|
+| check | convert exit into go out rule | - |
+| check | can't exit when not inside anything rule | (A) "But you aren't in anything at the moment." |
+
+**drinking** (`drink [something]`, `swallow [something]`, `sip [something]`)
+
+| Stage | Rule | Responses |
+|---|---|---|
+| check | block drinking rule | (A) "There's nothing suitable to drink here." |
+
+**sleeping** (`sleep`, `nap`)
+
+| Stage | Rule | Responses |
+|---|---|---|
+| check | block sleeping rule | (A) "You aren't feeling especially drowsy." |
+
+**tasting** (`taste [something]`)
+
+| Stage | Rule | Responses |
+|---|---|---|
+| check | block tasting rule | (A) "You taste nothing unexpected." |
+
+**rubbing** (`rub [something]`, `shine [something]`, `polish [something]`, `sweep [something]`, `clean [something]`, `dust [something]`, `wipe [something]`, `scrub [something]`)
+
+| Stage | Rule | Responses |
+|---|---|---|
+| check | can't rub another person rule | (A) "[The noun] might not like that." |
+| check | block rubbing rule | (A) "You achieve nothing by this." |
+
+**pushing** (`push [something]`, `press [something]`, `shift [something]`)
+
+| Stage | Rule | Responses |
+|---|---|---|
+| check | can't push what's fixed in place rule | (A) "[if the noun is plural-named]Those are[otherwise]It is[end if] fixed in place." |
+| check | can't push people rule | (A) "[The noun] might not like that." |
+| report | report pushing rule | (A) "Nothing obvious happens." |
+
+**turning** (`turn [something]`, `rotate [something]`, `twist [something]`, `unscrew [something]`, `screw [something]`)
+
+| Stage | Rule | Responses |
+|---|---|---|
+| check | can't turn what's fixed in place rule | (A) "[if the noun is plural-named]Those are[otherwise]It is[end if] fixed in place." |
+| check | can't turn people rule | (A) "[The noun] might not like that." |
+| report | report turning rule | (A) "Nothing obvious happens." |
+
+These twelve (ADR-058) reply as the real *The Ambassador's Daughter* (Inform 6G60) does, where it could be checked: searching, touching things and yourself, climbing, drinking, sleeping, tasting, rubbing, pushing and turning (and their fixed-in-place refusal), and exiting. Giving and showing to people, touching, rubbing or pushing a person, and searching an empty or closed container are Inform's library texts, not checked against a game. Newer Informs may word climbing, touching yourself and rubbing differently. `[someone]` also accepts things in I7-lite, so `give rock to box` reaches the can't give to a non-person rule (Inform refuses it earlier, with a parser error). There are no reversed forms yet (`give troll the sword`). `out` alone is exiting, as in Inform; `go n` and `go out` work.
+
 **entering** (I7-lite has no enterable things: entering is always refused.
 Inform's one response adapts to the verb; here it is three.)
 

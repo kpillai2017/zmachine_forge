@@ -224,7 +224,7 @@ be reached yet. Most come from a few causes:
 | Cause | Problems | Size |
 |---|---|---|
 | Phrases written in Inform 6 (`To say em: (- style underline; -)`, `KeyPause`, `say__p` ...) and the text substitutions built on them (`[para]`, `[em]`, `[/em]`, `[dot]`) | about 110 | not planned: a port would rewrite them |
-| Standard actions I7-lite lacks: searching, touching, climbing, giving, showing, exiting, drinking, sleeping, tasting, rubbing, pushing, turning | about 35 | small each |
+| ~~Standard actions I7-lite lacks: searching, touching, climbing, giving, showing, exiting, drinking, sleeping, tasting, rubbing, pushing, turning~~ done (ADR-058): second stage 265 to 226 | about 35 | small each |
 | `[first time]...[only]` (text shown only once) | 18 | small |
 | `off-stage`; the `[other things]` token | 8 each | small |
 | Sections marked `(not for release)` (the ZAP testing command) | about 6 | small: skip them |
