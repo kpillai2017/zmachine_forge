@@ -1460,3 +1460,31 @@ is emitted once, the first time the constant is used, and each use is that
 table's address, so a table constant costs no global. ZIL games are unchanged
 (their golden builds are byte-identical); I7 story files change, but play the
 same. Tests: a ZIL constant table read with GET, and a story with 250 actions.
+
+## ADR-063 — Smelling and listening, and actions "applying to nothing or one thing"
+
+**Context.** SMELL and LISTEN were not verbs I7-lite knew: "That's not a verb I
+recognise." Inform has both, as actions applying to *nothing or one thing*, and
+I7-lite had no such actions: a grammar line had to have exactly as many nouns
+as the action applied to.
+
+**Decision.** Smelling and listening to are added from Inform's Standard Rules:
+the same grammar (SMELL, SMELL [something], SNIFF as SMELL; LISTEN, HEAR
+[something], LISTEN TO [something]), rule names and replies ("You smell nothing
+unexpected." (A), "You hear nothing unexpected." (A)). With no noun, Inform's
+ambient odour and ambient sound rules supply one: I7-lite does the same, before
+any rule runs (AMBIENT-NOUN), using the room. Inform uses the touchability
+ceiling, which is the room unless the player is shut inside something; I7-lite
+has no such enclosures that matter here. An author's own action may say
+"applying to nothing or one thing": its lines may have a noun or not, and with
+none the noun is `nothing`. (Before, "nothing" anywhere in the phrase made it
+an action applying to nothing.)
+
+**Checked against a real game.** Cold Iron, built with the official Inform 7,
+replies to SMELL, SNIFF, LISTEN, SMELL ME, LISTEN TO ME and HEAR ME exactly as
+I7-lite now does. (Adventure removes these words, to match the original game's
+vocabulary; The Ambassador's Daughter replaces the replies with its own, room by
+room, which is what the room-as-noun design is for.) Tests: the replies, the
+room as the noun (also right after another command), and an author's action
+applying to nothing or one thing.
+

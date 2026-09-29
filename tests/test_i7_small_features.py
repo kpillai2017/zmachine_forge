@@ -377,3 +377,46 @@ def test_a_kind_of_an_unknown_kind_is_a_problem():
     with pytest.raises(I7Problem, match="'backdrop' is not a kind I know"):
         compile_i7('"T" by T\n\nThe Hall is a room. A view is a kind of backdrop. '
                    'The hills are a view in the Hall.\n')
+
+
+# ------------------------------------------- smelling and listening (ADR-063)
+def test_smelling_and_listening_reply_as_inform_does():
+    # the replies a real Inform 7 game (Cold Iron) gives to the same commands
+    assert replies(["smell", "sniff", "listen", "smell me", "listen to me", "hear me",
+                    "smell rock", "listen to rock"], ACTIONS) == [
+        "You smell nothing unexpected.", "You smell nothing unexpected.",
+        "You hear nothing unexpected.", "You smell nothing unexpected.",
+        "You hear nothing unexpected.", "You hear nothing unexpected.",
+        "You smell nothing unexpected.", "You hear nothing unexpected."]
+
+
+SENSES = '''"T" by T
+
+The Garden is a room. A rose is in the Garden. A lamp is in the Garden.
+The Shed is north of the Garden.
+Instead of smelling the rose: say "Sweet as summer."
+Instead of smelling the Garden: say "The air is heavy with roses."
+Instead of listening to the Shed: say "Something scratches in the walls."
+Zapping is an action applying to nothing or one thing.
+Understand "zap" and "zap [something]" as zapping.
+Carry out zapping:
+\tif the noun is nothing:
+\t\tsay "Sparks fly.";
+\totherwise:
+\t\tsay "You zap [the noun]."
+'''
+
+
+def test_smelling_or_listening_with_no_noun_is_about_the_room():
+    # Inform's ambient odour and ambient sound rules: the room is the noun, so
+    # a rule for smelling a room applies, even just after another command
+    assert replies(["smell", "smell rose", "take lamp", "sniff", "n", "listen", "smell"],
+                   SENSES) == [
+        "The air is heavy with roses.", "Sweet as summer.", "Taken.",
+        "The air is heavy with roses.", "Shed", "Something scratches in the walls.",
+        "You smell nothing unexpected."]
+
+
+def test_an_action_applying_to_nothing_or_one_thing():
+    assert replies(["zap", "zap rose", "zap"], SENSES) == [
+        "Sparks fly.", "You zap the rose.", "Sparks fly."]

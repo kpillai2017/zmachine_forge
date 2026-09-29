@@ -446,6 +446,14 @@
 <ROUTINE TOUCH-SELF () <COND (<EQUAL? ,PRSO ,PLAYER> <TOUCH-SELF-A> <RTRUE>)> <RFALSE>>
 <ROUTINE TOUCH-PEOPLE () <COND (<FSET? ,PRSO ,PERSONBIT> <TOUCH-PEOPLE-A> <RTRUE>)> <RFALSE>>
 <ROUTINE TOUCH-THINGS () <TOUCH-THINGS-A> <RTRUE>>
+;"Inform 7's ambient odour and ambient sound rules: SMELL or LISTEN with no
+  noun is about the room itself, so the location becomes the noun, before
+  any rule runs (Inform uses the touchability ceiling, which is the room
+  unless you are shut inside something)."
+<ROUTINE AMBIENT-NOUN () <COND (<ZERO? ,PRSO> <SETG PRSO ,HERE>)>>
+;"Inform 7's report smelling rule and report listening rule."
+<ROUTINE SMELL-REPORT () <SMELL-REPORT-A> <RTRUE>>
+<ROUTINE LISTEN-REPORT () <LISTEN-REPORT-A> <RTRUE>>
 <ROUTINE CLIMB-BLOCK () <CLIMB-BLOCK-A> <RTRUE>>
 <ROUTINE GIVE-SELF () <COND (<EQUAL? ,PRSI ,PLAYER> <GIVE-SELF-A> <RTRUE>)> <RFALSE>>
 <ROUTINE GIVE-NONPERSON ()

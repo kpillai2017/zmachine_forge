@@ -6,6 +6,11 @@ behind each change are in [docs/DECISIONS.md](docs/DECISIONS.md), by number
 
 ## Unreleased
 
+- **SMELL and LISTEN.** Inform's smelling and listening actions, with its
+  grammar and replies. SMELL or LISTEN alone is about the room, so an author can
+  write `Instead of smelling the Garden`. Your own actions can now apply to
+  "nothing or one thing".
+
 - **The Island of Despair: the fire on your own side, and gentler hints.** A new
   day from the novel, between the footprint and Friday: savages land on your
   own shore. Put out your fire, keep away, don't fire a gun, and watch them from

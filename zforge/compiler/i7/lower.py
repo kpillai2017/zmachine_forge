@@ -536,7 +536,8 @@ class Lowerer:
             grammar += action.grammar
             grammar = [(g, w) for g, w in grammar if not self.forgotten(g, name, w)]
             for line, where in grammar:
-                for g in self.expand_grammar(line, action.applying, name, where):
+                for g in self.expand_grammar(line, action.applying, name, where,
+                                             optional=action.optional):
                     words = " ".join([g.verb, *g.tokens])
                     self.emit(f"<SYNTAX {words} = V-{atom}>")
         # going: one grammar line (and a tiny routine) per direction
@@ -833,7 +834,8 @@ class Lowerer:
         self.token_tests[token] = name
         return name
 
-    def expand_grammar(self, line: str, applying: int, action: str, where) -> list[Grammar]:
+    def expand_grammar(self, line: str, applying: int, action: str, where,
+                       optional: bool = False) -> list[Grammar]:
         """'put [something] on/onto [something]' -> SYNTAX token lists
         (one per combination of slash alternatives)."""
         # Split the line into words and [tokens]. OPTIONS holds every way of reading
@@ -887,7 +889,7 @@ class Lowerer:
             if not o or o[0] == "OBJECT":
                 self.p.problem(where, line, "a grammar line must start with a verb word.")
                 return []
-            if o.count("OBJECT") != applying:
+            if o.count("OBJECT") != applying and not (optional and o.count("OBJECT") == 0):
                 self.p.problem(where, line, f"'{action}' applies to {applying} "
                                f"thing(s), but this line has {o.count('OBJECT')}.")
                 return []

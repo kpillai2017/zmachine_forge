@@ -119,6 +119,7 @@ class Action:
     out_of_world: bool = False
     grammar: list[tuple[str, Location]] = field(default_factory=list)
     topic: bool = False           # it applies to a topic: its grammar has one [text]
+    optional: bool = False        # 'nothing or one thing': a line may have no noun
 
 
 @dataclass
@@ -326,7 +327,7 @@ class ModelBuilder:
             self.m.kinds[name] = Kind(name, parent, set(flags))
         for a in ACTIONS + (TESTING_ACTIONS if testing else ()):
             self.m.actions[a.name] = Action(a.name, a.applying, a, a.out_of_world,
-                                            topic=a.topic)
+                                            topic=a.topic, optional=a.optional)
         self.m.objects["yourself"] = Obj("yourself", "person", Location(0), proper=True)
         self.last_object: Obj | None = None          # what 'It' means
         self.last_room: Obj | None = None            # whose paragraph we are in
@@ -973,9 +974,11 @@ class ModelBuilder:
         # 'applying to one topic' / 'to one thing and one topic': the topic is
         # typed as [text] and has a grammar slot of its own
         topic = "topic" in spec or bool(re.search(r"\bone time\b", spec))   # [text] / [time]
-        applying = (0 if "nothing" in spec else
+        optional = bool(re.search(r"\bnothing or one\b", spec))   # 'nothing or one thing'
+        applying = (0 if "nothing" in spec and not optional else
                     2 if "two" in spec or (topic and " and " in spec) else 1)
-        self.m.actions[name] = Action(name, applying, None, "out of world" in spec, topic=topic)
+        self.m.actions[name] = Action(name, applying, None, "out of world" in spec, topic=topic,
+                                      optional=optional)
 
     # -- rules by name: listing sentences and response edits
     @staticmethod

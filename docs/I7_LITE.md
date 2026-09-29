@@ -358,6 +358,17 @@ New actions (7a):
     Polishing is an action applying to one thing.
     Carry out polishing: say "It gleams."
 
+An action can also apply to *nothing or one thing*, so that its grammar may
+have a noun or not. With no noun, the noun is `nothing` (ADR-063):
+
+    Zapping is an action applying to nothing or one thing.
+    Understand "zap" and "zap [something]" as zapping.
+    Carry out zapping:
+        if the noun is nothing:
+            say "Sparks fly.";
+        otherwise:
+            say "You zap [the noun]."
+
 ## 6. Rules
 
     When play begins: ...
@@ -725,6 +736,19 @@ the order they run. Response letters and default texts follow Inform 7.
 | report | report touching yourself rule | (A) "If you think that'll help." |
 | report | report touching other people rule | (A) "[The noun] might not like that." |
 | report | report touching things rule | (A) "You feel nothing unexpected." |
+
+**smelling** (`smell`, `smell [something]`, `sniff`, `sniff [something]`) and
+**listening to** (`listen`, `hear [something]`, `listen to [something]`) apply
+to nothing or one thing. SMELL or LISTEN with no noun is about the room: as
+in Inform's ambient odour and ambient sound rules, the room becomes the noun,
+so `Instead of smelling the Garden: ...` answers a plain SMELL there (ADR-063).
+To use one of these words for an action of your own, forget the library's
+grammar first, as in Inform: `Understand the command "sniff" as something new.`
+
+| Stage | Rule | Responses |
+|---|---|---|
+| report | report smelling rule | (A) "You smell nothing unexpected." |
+| report | report listening rule | (A) "You hear nothing unexpected." |
 
 **climbing** (`climb [something]`, `scale [something]`, `climb up/over [something]`)
 

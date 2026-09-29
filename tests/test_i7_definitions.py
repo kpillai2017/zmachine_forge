@@ -33,6 +33,7 @@ Carry out testing:
 \tif the noun is mentionable, say "mentionable. ";
 \tif the location is high, say "high. ";
 \tsay "(done)".
+Understand the command "sniff" as something new.
 Sniffing is an action applying to one thing. Understand "sniff [something]" as sniffing.
 Instead of sniffing something scented: say "[The noun] smells [scent of the noun]."
 Instead of sniffing something: say "[The noun] smells of nothing."

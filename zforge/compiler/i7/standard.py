@@ -40,6 +40,7 @@ class StandardAction:
     out_of_world: bool = False                  # takes no time (saving, quitting)
     variables: str = ""                         # routine setting its action variables
     topic: bool = False                         # its last slot is a topic ([text])
+    optional: bool = False                      # 'nothing or one thing': may have no noun
 
 
 # How to read an entry below:
@@ -269,6 +270,17 @@ ACTIONS: tuple[StandardAction, ...] = (
           (("A", "[The noun] might not like that."),)),
         R("report touching things rule", "TOUCH-THINGS",
           (("A", "You feel nothing unexpected."),)))}),
+    # Smelling and listening apply to "nothing or one thing": SMELL alone smells
+    # the room, as Inform's ambient odour and ambient sound rules supply the
+    # location as the missing noun (AMBIENT-NOUN, before any rule runs).
+    StandardAction("smelling", 1, ("smell", "smell [something]", "sniff", "sniff [something]"),
+                   {"report": (R("report smelling rule", "SMELL-REPORT",
+                                 (("A", "You smell nothing unexpected."),)),)},
+                   variables="AMBIENT-NOUN", optional=True),
+    StandardAction("listening to", 1, ("listen", "hear [something]", "listen to [something]"),
+                   {"report": (R("report listening rule", "LISTEN-REPORT",
+                                 (("A", "You hear nothing unexpected."),)),)},
+                   variables="AMBIENT-NOUN", optional=True),
     StandardAction("climbing", 1, ("climb [something]", "scale [something]",
                                    "climb up/over [something]"), {"check": (
         R("block climbing rule", "CLIMB-BLOCK",
