@@ -38,7 +38,11 @@ shown as "(closed)" only - I7-lite has no transparency.
   text ending in `.` `!` or `?`). Paragraphs are separated by blank lines.
 * `[Square brackets]` outside quoted text are comments.
 * Headings (`Volume`, `Book`, `Part`, `Chapter`, `Section` + title) are
-  allowed anywhere and only organise the source.
+  allowed anywhere and only organise the source - except that a heading
+  saying **not for release** (`Chapter 3 - Tests (not for release)`, or
+  Cold Iron's `Chapter -- not for release`) leaves its part out, up to the
+  next heading at the same level or above, as Inform does for a release
+  (ADR-059). I7-lite only makes releases.
 * A **rule** or **phrase definition** is a *preamble* ending in `:`
   followed by phrases, either on one line separated by `;` or on indented
   lines (tabs or 4 spaces; `if` / `otherwise` / `repeat` nest by
@@ -79,6 +83,7 @@ shown as "(closed)" only - I7-lite has no transparency.
 | `A red ball and a blue ball are in the Hall.` | a list (with "are"): one thing for each name, as in Inform (a name containing "and" needs `called`). A name with "some" (`some beads`) is plural-named | |
 | `It is scenery.` / `It is fixed in place.` | `It` = the last thing named | 7a |
 | `The hook is scenery.` `The box is open/closed/openable/locked/lockable.` | either/or properties | 7a |
+| `if the coin is off-stage` / `on-stage`, `now the gem is off-stage`, `... when the branches are off-stage` | off-stage: in no room and held by no one (ADR-059). `now ... is on-stage` is a problem, as it says nowhere | 7f |
 | `The lamp is a device.` / `switched on` | a device (switching on/off) | 7b |
 | `The grate is a door. It is north of X and south of Y.` | a two-sided door | 7b |
 | `The grate is locked. The keys unlock the grate.` | lock and key | 7b |
@@ -471,6 +476,7 @@ Also (from Advent's cave):
 | `[line break]` `[paragraph break]` `[bold type]` `[italic type]` `[roman type]` | 7a |
 | `[if <cond>]...[otherwise if <cond>]...[otherwise]...[end if]` | 7a |
 | `[one of]...[or]...[at random / cycling / stopping / purely at random]` | 7a |
+| `[first time]...[only]`: printed only the first time that text is said (ADR-059) | 7f |
 | `[name of a To say phrase]` | 7a |
 | `'` is printed as `"` unless inside a word (`don't`), as in Inform 7 | 7a |
 | a `[paragraph break]` that ends a say leaves a blank line owed: printed before whatever is printed next, but not before the prompt (ADR-047) | 7c |

@@ -44,6 +44,16 @@ NUMBER_WORDS = {w: i for i, w in enumerate(
 NUMBER_WORDS.update({"thirty": 30, "forty": 40, "fifty": 50, "sixty": 60})
 
 
+# Off-stage (ADR-059): a thing is off-stage when it is nowhere - in no room,
+# carried by no one, in or on nothing. On-stage is the opposite.
+STAGE = ("off-stage", "on-stage")
+
+
+def stage_test(obj: str, adjective: str) -> str:
+    """The test that OBJ is ADJECTIVE (off-stage or on-stage)."""
+    return f"<NOT <LOC {obj}>>" if adjective == "off-stage" else f"<LOC {obj}>"
+
+
 @dataclass
 class ActionPattern:
     actions: list[str]                       # rulebooks to join ([] = every action)
@@ -238,7 +248,7 @@ class PhraseLowerer:
         for n in range(1, len(words)):
             adjective, noun = " ".join(words[:n]).lower(), " ".join(words[n:])
             known = (adjective in ADJECTIVES or adjective in self.L.m.either_or
-                     or adjective in self.L.m.definitions)
+                     or adjective in self.L.m.definitions or adjective in STAGE)
             if known and self.L.m.find(noun):
                 article = m.group(1) or ""
                 return (f"{article}{noun} {m.group(3)} {adjective} and "
@@ -385,6 +395,8 @@ class PhraseLowerer:
         adj = what.lower().strip()
         if adj in self.L.m.definitions:                 # defined by 'Definition:'
             return f"<{definition_routine(adj)} {self.value(subject, where)}>"
+        if adj in STAGE:                                # 'the branches are off-stage'
+            return stage_test(self.value(subject, where), adj)
         table = {**ADJECTIVES, **self.L.m.either_or}
         if adj in table:
             flag, value = table[adj]
@@ -598,6 +610,8 @@ class PhraseLowerer:
         """The test that the object in GLOBAL_NAME is ADJECTIVE, or None."""
         if adjective in self.L.m.definitions:
             return f"<{definition_routine(adjective)} {global_name}>"
+        if adjective in STAGE:
+            return stage_test(global_name, adjective)
         table = {**ADJECTIVES, **self.L.m.either_or}
         if adjective in table:
             flag, value = table[adjective]
@@ -1020,6 +1034,13 @@ class PhraseLowerer:
         if m:                                         # a part: it goes with its whole
             obj = self.value(m.group(1), where)
             return f"<MOVE {obj} {self.value(m.group(2), where)}> <FSET {obj} ,PARTBIT>"
+        m = re.match(r"^(.+?) (?:is|are) (off-stage|on-stage)$", t, re.I)
+        if m:                                         # ADR-059
+            if m.group(2).lower() == "on-stage":
+                return self.problem(where, text, "'now ... is on-stage' does not say "
+                                    "where it should be - use 'now ... is in ...'.")
+            obj = self.value(m.group(1), where)
+            return f"<REMOVE {obj}>" + self.unpart(obj)
         m = re.match(r"^(.+?) (?:is|are) (in|on) (.+)$", t, re.I)
         if m:
             obj = self.value(m.group(1), where)
@@ -1133,7 +1154,9 @@ class PhraseLowerer:
                 clauses = []
                 for cond, body in part.branches:
                     test = self.condition(cond, where) if cond else "ELSE"
-                    clauses.append(f"({test} {' '.join(self.parts(body, where)) or '<RFALSE>'})")
+                    # An empty branch does nothing: T, not <RFALSE>, which would
+                    # leave the whole routine (ADR-059)
+                    clauses.append(f"({test} {' '.join(self.parts(body, where)) or 'T'})")
                 out.append("<COND " + " ".join(clauses) + ">")
             elif isinstance(part, OneOf):
                 out.append(self.one_of(part, where))
@@ -1160,7 +1183,9 @@ class PhraseLowerer:
 
     def one_of_branches(self, index: str, options: list, first: int, where: Location) -> str:
         """(<EQUAL? index first> option-1) (<EQUAL? index first+1> option-2) ..."""
-        return " ".join(f"(<EQUAL? {index} {i}> {' '.join(self.parts(o, where)) or '<RFALSE>'})"
+        # An empty option prints nothing: T, not <RFALSE>, which would leave the
+        # whole routine - the rest of the text and the rule's result (ADR-059).
+        return " ".join(f"(<EQUAL? {index} {i}> {' '.join(self.parts(o, where)) or 'T'})"
                         for i, o in enumerate(options, start=first))
 
     def substitution(self, words: str, where: Location) -> str:

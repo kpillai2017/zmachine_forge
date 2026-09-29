@@ -225,12 +225,17 @@ be reached yet. Most come from a few causes:
 |---|---|---|
 | Phrases written in Inform 6 (`To say em: (- style underline; -)`, `KeyPause`, `say__p` ...) and the text substitutions built on them (`[para]`, `[em]`, `[/em]`, `[dot]`) | about 110 | not planned: a port would rewrite them |
 | ~~Standard actions I7-lite lacks: searching, touching, climbing, giving, showing, exiting, drinking, sleeping, tasting, rubbing, pushing, turning~~ done (ADR-058): second stage 265 to 226 | about 35 | small each |
-| `[first time]...[only]` (text shown only once) | 18 | small |
-| `off-stage`; the `[other things]` token | 8 each | small |
-| Sections marked `(not for release)` (the ZAP testing command) | about 6 | small: skip them |
+| ~~`[first time]...[only]` (text shown only once)~~ done (ADR-059) | 18 | small |
+| ~~`off-stage`~~ done (ADR-059); the `[other things]` token | 8 each | small |
+| ~~Sections marked `(not for release)` (the ZAP testing command)~~ done (ADR-059): second stage now 189 | about 6 | small: skip them |
 | One or two each: To decide which/what phrases, lists (`a list of things in the watch`, `the number of things carried by the player`), backdrops, regions (`all WoodsRooms`), actions as values (`the weaving action`), stored actions, the status line | about 20 | medium to large |
 
 So Cold Iron will not compile unchanged (the Inform 6 code), and a lightly
 edited copy is some 15-20 features away. The standard actions, `[first
 time]`, `off-stage` and `(not for release)` are the most useful to other
 games too.
+
+**Also found (2026-09-29):** with its later stages forced on, the original
+Bronze (`examples/bronze.txt`) makes the lowerer crash with `KeyError:
+'backdrop'`. Nobody sees it yet - the second stage only runs once the first
+is clean - but it must become a problem message before backdrops matter.

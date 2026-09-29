@@ -136,6 +136,15 @@ def _parse_parts(pieces, pos, stop):
                 else:
                     cond = ""
             parts.append(IfText(branches))
+        elif low == "first time":
+            # [first time] ... [only]: printed only the first time this text is
+            # said (ADR-059). That is [one of] ... [or] [stopping] with an empty
+            # second option, so it shares one-of's once-per-text memory.
+            body, pos = _parse_parts(pieces, pos, ("only",))
+            if pos >= len(pieces):
+                raise TextError("[first time] has no [only]")
+            pos += 1
+            parts.append(OneOf([body, []], "stopping"))
         elif low == "one of":
             # Read options up to each [or]; the word after the last option (e.g.
             # [at random]) says how to choose between them.

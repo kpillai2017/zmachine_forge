@@ -2,7 +2,10 @@
 <adjective>', the attacking and entering actions, Understand ... as a mistake
 (ADR-052); the author's activities, descriptions as grammar tokens, Does the
 player mean (ADR-053)."""
+import pytest
+
 from zforge.compiler.i7.driver import compile_i7
+from zforge.compiler.i7.problems import I7Problem
 from zforge.vm.headless import play
 
 STORY = '''"Small" by Test
@@ -293,3 +296,48 @@ def test_exiting_goes_out_where_it_can_and_go_takes_abbreviations():
     assert r[1] == "But you aren't in anything at the moment."
     assert r[2].startswith("Hall") and r[3].startswith("Cellar") and r[4].startswith("Hall")
     assert r[5].startswith("Garden")
+
+
+# --- ADR-059: [first time] ... [only]; off-stage; not for release; empty branches
+
+def test_first_time_text_is_shown_once():
+    src = ('"T" by T\n\nThe Hall is a room. "A plain hall[first time]. You have never '
+           'been here before[only]."\nInstead of waiting, say "Boing![first time] That was '
+           'fun.[only]"\n')
+    # the first time was the opening description, before any command
+    opening = play(compile_i7(src, "small.ni", 8).story, []).transcript
+    assert "A plain hall. You have never been here before." in opening
+    assert replies(["look", "wait", "wait", "wait"], src) == [
+        "Hall A plain hall.", "Boing! That was fun.", "Boing!", "Boing!"]
+
+
+def test_an_empty_branch_does_not_end_the_rule():
+    """An empty [otherwise] or [or] used to leave the routine: the rest of the
+    text was lost and the rule did not stop the action."""
+    src = ('"T" by T\n\nThe Hall is a room. The Hall is dark.\n'
+           'Instead of waiting, say "Here[if the Hall is dark][otherwise], in the light[end if]!"\n'
+           'Instead of sleeping, say "Zz[one of] once[or][stopping]."\n')
+    assert replies(["wait", "sleep", "sleep"], src) == ["Here!", "Zz once.", "Zz."]
+
+
+def test_off_stage_things():
+    src = ('"T" by T\n\nThe Hall is a room. A gem is in the Hall. The coin is a thing.\n'
+           'Instead of waiting:\n\tif the coin is off-stage, say "No coin.";\n'
+           '\tnow the gem is off-stage;\n\tif the gem is not on-stage, say "No gem.".\n')
+    assert replies(["wait", "look"], src) == ["No coin. No gem.", "Hall"]
+
+
+def test_now_on_stage_is_a_problem():
+    with pytest.raises(I7Problem, match="on-stage"):
+        compile_i7('"T" by T\n\nThe Hall is a room. The coin is a thing.\n'
+                   'Instead of waiting, now the coin is on-stage.\n')
+
+
+def test_not_for_release_parts_are_left_out():
+    src = ('"T" by T\n\nThe Hall is a room.\n\nChapter 1 - Testing (not for release)\n\n'
+           'Zapping is an action applying to nothing. Understand "zap" as zapping.\n'
+           'Carry out zapping: say "Zap!"\n\nSection - still testing\n\n'
+           'The widget is in the Hall.\n\nChapter -- not for release\n\nThe cog is in the Hall.\n\n'
+           'Chapter 2 - The rest\n\nThe gadget is in the Hall.\n')
+    assert replies(["zap", "look"], src) == [
+        "That's not a verb I recognise.", "Hall You can see a gadget here."]

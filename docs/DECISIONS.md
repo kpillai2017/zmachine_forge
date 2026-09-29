@@ -1326,3 +1326,35 @@ where Inform stops at a parser error.
 action I know" 44 to 4, all "doing anything except examining"). `zbuilder
 compare HEAD`: every example's story grows about 3 KB; both walkthroughs play
 identically.
+
+
+## ADR-059: [first time]...[only]; off-stage; not for release; empty branches
+
+**Context.** Cold Iron's second stage (docs/I7_SURVEY.md) had three cheap
+groups: `[first time]...[only]` (18 problems), `off-stage` (10) and its testing
+chapter, `Chapter -- not for release`.
+
+**Decision.**
+* `[first time] X [only]` is read as `[one of] X [or] [stopping]` with an
+  empty second option: X the first time that text is said, nothing after.
+  It shares one-of's once-per-text memory (a global per text).
+* `off-stage` / `on-stage` are built-in adjectives: in no room and held by
+  no one (`<LOC X>` is 0), in conditions, descriptions and `Understand ...
+  when`; `now X is off-stage` removes X. `now X is on-stage` is a problem, as
+  in Inform, because it does not say where X goes.
+* A heading saying "not for release" - in brackets or not - leaves its part
+  out, up to the next heading at the same level or above (the lines are
+  blanked, so line numbers stay right). The real Cold Iron shows the
+  bracket-less form counts: its ZAP command is not in the game.
+
+**A bug found and fixed.** An empty `[if]` branch or `[one of]` option was
+written as `<RFALSE>`, which in ZIL leaves the whole routine: the rest of the
+text was lost, and a rule ending with such a text did not stop the action.
+It is now `T`, which does nothing. The only example it touched is Bronze's far
+inscription ("...from here[if in the gloom][otherwise], though..."): in the
+gloom, its sentence stopped short and the action went on. Its walkthrough
+never looks at it in the gloom, so the walkthrough is unchanged.
+
+**Consequences.** Cold Iron's second stage: 226 to 189 problems. `zbuilder
+compare HEAD`: only Bronze's story changes (the fix); every walkthrough
+plays identically. The original Bronze's first stage: 465 to 458.

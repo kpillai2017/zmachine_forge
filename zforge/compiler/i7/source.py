@@ -234,10 +234,38 @@ def read_table(lines: list[str], i: int, title: str, where: Location,
     return i
 
 
+# Headings nest: a Chapter is inside a Part, a Section inside a Chapter.
+HEADING_LEVEL = {"volume": 1, "book": 2, "part": 3, "chapter": 4, "section": 5}
+
+
+def drop_not_for_release(lines: list[str]) -> list[str]:
+    """Blank out every part of the source headed "not for release" (ADR-059).
+
+    Inform leaves such parts - usually testing commands - out of the story it
+    releases, and I7-lite only makes releases. The heading's part runs on to
+    the next heading at the same level or above ('Chapter -- not for release'
+    ends at the next Chapter, Part, Book or Volume). The real Cold Iron shows
+    that the bracket-less form counts: its ZAP command is not in the game.
+    Lines are blanked rather than removed, so line numbers stay right."""
+    out, skip_to = [], 0
+    for line in lines:
+        text = line.strip()
+        m = HEADING.match(text)
+        if m:
+            level = HEADING_LEVEL[m.group(1).lower()]
+            if skip_to and level <= skip_to:
+                skip_to = 0
+            if not skip_to and "not for release" in text.lower():
+                skip_to = level
+        out.append("" if skip_to else line)
+    return out
+
+
 def read_sentences(source: str) -> list[Sentence]:
     """The whole source as sentences, in order; rules carry their bodies."""
     lines = strip_comments(source).replace("\r\n", "\n").split("\n")
     lines, _ORIGIN[:] = join_quoted_lines(lines)
+    lines = drop_not_for_release(lines)
     out: list[Sentence] = []
     i = 0
     # The first line, if it is quoted ("Title" by Author), is the titling
