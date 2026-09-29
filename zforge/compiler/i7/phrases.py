@@ -479,7 +479,7 @@ class PhraseLowerer:
             spec[0] = 1
             return ActionPattern(["going"], self.all_of(["<ZERO? ,GOING-TO>"] + guards),
                                  tuple(spec))
-        actions, noun_guards = [], []
+        actions, noun_guards, kind_guards = [], [], []
         alternatives = []
         for alt in split_outside_quotes(text, " or "):
             if alt.strip().startswith('"') and alternatives:   # 'about "roses" or "rose garden"':
@@ -497,10 +497,12 @@ class PhraseLowerer:
                 topic = nouns.pop()                 # the last slot is the topic, not a thing
             if nouns and alt is alternatives[-1]:
                 noun_guards = self.noun_guards(nouns, where)
+                kind_guards = self.broad_guards(nouns)
             if topic is not None and alt is alternatives[-1]:
                 noun_guards.append(self.topic_guard(topic, where))
-        spec[0] = len(noun_guards)
-        return ActionPattern(actions, self.all_of(noun_guards + guards), tuple(spec))
+        spec[0] = len(noun_guards)                  # 'something' adds no specificity
+        return ActionPattern(actions, self.all_of(noun_guards + kind_guards + guards),
+                             tuple(spec))
 
     def excluded_actions(self, text: str, where: Location):
         """'examining or touching the ClearingLight' / 'examining or reading to
@@ -614,6 +616,21 @@ class PhraseLowerer:
         guards = [self.object_guard(global_name, noun, where) for global_name, noun
                   in zip((",PRSO", ",PRSI")[:len(nouns)], nouns, strict=True)]
         return [g for g in guards if g]        # 'something' tests nothing (and adds no specificity)
+
+    def broad_guards(self, nouns: list[str]) -> list[str]:
+        """The kind tests for 'something' and 'someone' in a rule's preamble, which
+        object_guard leaves out: 'something' is 'some thing', so Inform never
+        matches it against a room or a direction (or no noun at all), and
+        'someone' is a person (ADR-063). They add no specificity."""
+        tests = []
+        for global_name, noun in zip((",PRSO", ",PRSI")[:len(nouns)], nouns, strict=True):
+            n = noun.strip().lower()
+            if n in ("something", "anything", "a thing"):
+                tests.append(f"<AND {global_name} <NOT <FSET? {global_name} ,ROOMBIT>> "
+                             f"<NOT <GETP {global_name} ,P?DIR-PROP>>>")
+            elif n == "someone":
+                tests.append(f"<AND {global_name} <FSET? {global_name} ,PERSONBIT>>")
+        return tests
 
     def object_guard(self, global_name: str, noun: str, where: Location) -> str:
         """The test that the object in GLOBAL_NAME fits NOUN, a description in a

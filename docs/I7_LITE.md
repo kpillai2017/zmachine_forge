@@ -412,6 +412,9 @@ Named rules and rule swapping (ADR-028). The library's rules are Inform
     The X rule is listed first / last / in the report taking rulebook.
     The standard report taking rule response (A) is "OK."
 
+In a rule's preamble, `something` (or `anything`, `a thing`) is a thing: not
+a room, a direction or no noun at all. `someone` is a person (ADR-064).
+
 Rules are ordered as in Inform 7: more specific first, then the library
 before the author, then source order; a rule listed instead of another
 takes its place. A response edit may use substitutions.

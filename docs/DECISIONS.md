@@ -1488,3 +1488,24 @@ room, which is what the room-as-noun design is for.) Tests: the replies, the
 room as the noun (also right after another command), and an author's action
 applying to nothing or one thing.
 
+## ADR-064 — "Something" in a rule is a thing, and "someone" a person
+
+**Context.** In a rule's preamble, I7-lite tested nothing at all for
+`something`, `anything`, `a thing` or `someone`, so they matched any noun: a
+room, a direction, or no noun. No library action had a room as its noun until
+smelling and listening (ADR-063), so it went unnoticed. Switching the Bronze
+port to Inform's own smelling and listening showed it: Bronze's `Before
+listening to something when the player wears the helmet` fired for a plain
+LISTEN, whose noun is the room. *Writing with Inform* says `something` is
+"some thing", of kind thing, and a room is not a thing.
+
+**Decision.** `something`, `anything` and `a thing` require a noun that is
+neither a room nor a direction (a direction object has `DIR-PROP`); `someone`
+requires a person. The tests go into the rule's condition but not into its
+specificity, so the order of rules is unchanged.
+
+**Consequences.** `Instead of attacking someone` no longer fires on attacking a
+door, and `Instead of zapping something` not on a plain ZAP. The Bronze port
+now uses Inform's smelling and listening, as the original does, and plays its
+walkthrough exactly as before. The other examples' walkthroughs are unchanged.
+

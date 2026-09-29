@@ -6,6 +6,10 @@ behind each change are in [docs/DECISIONS.md](docs/DECISIONS.md), by number
 
 ## Unreleased
 
+- **"Something" in a rule means a thing, and "someone" a person**, as in Inform.
+  Before, they matched anything, even a room or no noun: `Instead of attacking
+  someone` fired on attacking a door.
+
 - **SMELL and LISTEN.** Inform's smelling and listening actions, with its
   grammar and replies. SMELL or LISTEN alone is about the room, so an author can
   write `Instead of smelling the Garden`. Your own actions can now apply to

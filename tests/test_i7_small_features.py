@@ -420,3 +420,25 @@ def test_smelling_or_listening_with_no_noun_is_about_the_room():
 def test_an_action_applying_to_nothing_or_one_thing():
     assert replies(["zap", "zap rose", "zap"], SENSES) == [
         "Sparks fly.", "You zap the rose.", "Sparks fly."]
+
+
+BROAD = '''"T" by T
+
+The Hall is a room. A vase is in the Hall. Bob is a man in the Hall.
+Before listening to something: say "(ears pricked) ".
+Instead of attacking someone: say "Leave [the noun] alone."
+Zapping is an action applying to nothing or one thing.
+Understand "zap" and "zap [something]" as zapping.
+Instead of zapping something: say "You zap [the noun]."
+Carry out zapping: say "Sparks fly."
+'''
+
+
+def test_something_is_a_thing_and_someone_a_person():
+    # 'something' is 'some thing' in Inform: not the room a plain LISTEN is
+    # about, and not no noun at all; 'someone' is a person (ADR-063)
+    assert replies(["listen", "listen to vase", "attack vase", "attack bob",
+                    "zap", "zap vase"], BROAD) == [
+        "You hear nothing unexpected.", "(ears pricked) You hear nothing unexpected.",
+        "Violence isn't the answer to this one.", "Leave Bob alone.",
+        "Sparks fly.", "You zap the vase."]
