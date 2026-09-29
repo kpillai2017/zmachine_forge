@@ -7,12 +7,16 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false            # a failure on one Python still shows the others
+      matrix:
+        python-version: ["3.11", "3.12", "3.13"]   # pyproject: requires-python >=3.11
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.13"
+          python-version: ${{ matrix.python-version }}
 
       - name: Install dev tools
         run: |
@@ -20,16 +24,37 @@ jobs:
           pip install -r requirements.txt
 
       - name: Lint
+        if: matrix.python-version == '3.13'
         run: ruff check .
 
-      - name: Build the spec knowledge base (network, cached afterwards)
+      # The spec and the test games come from inform-fiction.org and the IF
+      # Archive. Keep them between runs, so those sites are only asked when the
+      # list of games or the spec fetcher changes.
+      - name: Cache downloads
+        uses: actions/cache@v4
+        with:
+          path: |
+            spec/cache
+            spec/sections
+            spec/index.json
+            stories
+          key: downloads-${{ hashFiles('stories/urls.txt', 'zbuilder/tools/fetch_spec.py', 'zbuilder/tools/spec_pipeline.py') }}
+
+      # A site being down must not fail the build: tests and evals skip what is
+      # missing (a spec eval can still fail if nothing was ever cached).
+      - name: Build the spec knowledge base (network, cached)
+        continue-on-error: true
         run: python -m zbuilder --provider brief spec
 
-      - name: Fetch conformance stories (checksums pinned in stories/urls.txt)
+      - name: Fetch test stories (checksums pinned in stories/urls.txt)
+        continue-on-error: true
         run: python -m zbuilder stories
 
       - name: Unit tests
         run: pytest -q
+
+      - name: Golden builds (the ZIL examples, byte for byte)
+        run: python -m zbuilder golden --check
 
       - name: Eval gate (Section 1b acceptance cases)
         run: python -m eval.run_eval

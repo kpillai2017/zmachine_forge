@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "zmachine-forge"
-version = "0.1.0"
+version = "0.2.0"
 description = "A study-friendly Z-machine v5 toolchain in Python: interpreter, ZIL-lite compiler, assembler - plus the agentic workflow (zbuilder) that builds it."
 readme = "README.md"
 license = { text = "MIT" }

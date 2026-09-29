@@ -1,4 +1,8 @@
 """The zforge command line: exit codes and friendly errors."""
+import subprocess
+import sys
+from pathlib import Path
+
 from tests.conftest import ROOT
 from zforge.cli import main
 
@@ -74,3 +78,15 @@ def test_a_file_that_cannot_be_written_is_a_plain_error(tmp_path, capsys):
     err = capsys.readouterr().err
     assert status == 1 and "Traceback" not in err
     assert err.startswith("zforge: ") and "log.txt" in err
+
+
+def test_version_matches_the_package():
+    """zforge --version, zforge.__version__ and pyproject.toml agree."""
+    import re
+    import zforge
+    root = Path(__file__).resolve().parent.parent
+    declared = re.search(r'^version = "([^"]+)"', (root / "pyproject.toml").read_text(), re.M)
+    assert declared and declared.group(1) == zforge.__version__
+    out = subprocess.run([sys.executable, "-m", "zforge", "--version"], cwd=root,
+                         capture_output=True, text=True)
+    assert out.stdout.strip() == f"zforge {zforge.__version__}"

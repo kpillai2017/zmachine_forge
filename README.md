@@ -32,10 +32,23 @@ help of an AI, a large language model: see [How it was built](#how-it-was-built)
 
 ## Getting set up
 
-You need Python 3.13. Nothing else is required to play or compile games;
-the two extra tools in `requirements.txt` are only for running the tests.
+You need Python 3.11 or newer. Nothing else is required to play or compile
+games.
+
+To just use it, install it straight from GitHub. That gives you the `zforge`
+command (and `zbuilder`), usable from any folder:
 
 ```bash
+pip install git+https://github.com/kpillai2017/zmachine_forge
+zforge --version
+zforge run game.z8
+```
+
+To study the code or run the tests, clone it instead. The two extra tools in
+`requirements.txt` are only for the tests:
+
+```bash
+git clone https://github.com/kpillai2017/zmachine_forge.git
 cd zmachine_forge
 pip install -r requirements.txt     # pytest and ruff, for the tests
 ```
@@ -77,11 +90,17 @@ python -m zforge run glasshouse.z8
 If you get stuck, `examples/glasshouse_walkthrough.txt` has the full
 solution. It gives everything away, so only look if you mean to.
 
-To play any other Z-machine game, point zforge at its file:
+To play any other Z-machine game, point zforge at its file. Most games
+today are downloaded as Blorb files (`.zblorb`), which pack the game with its
+cover art; zforge opens those too, and plays the game inside:
 
 ```bash
 python -m zforge run game.z8
+python -m zforge run Bronze.zblorb
 ```
+
+A Blorb holding a Glulx game (`.gblorb`) is a different kind of machine, and
+zforge says so; a Glulx interpreter is needed for those.
 
 In a terminal you get a full-screen display with a status line at the
 top. Add `--ui plain` for simple scrolling text, `--script moves.txt` to

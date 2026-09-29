@@ -23,17 +23,20 @@ import pprint
 import sys
 from pathlib import Path
 
+from zforge import __version__
+from zforge.common.blorb import story_bytes
 from zforge.common.errors import UnsupportedTarget, UnsupportedVersion, ZForgeError
 from zforge.common.versions import DEFAULT_VERSION
 from zforge.config import Target, resolve_target
 
 
 def _read_story(path: str) -> bytes:
-    """The bytes of a story file, or a clear error if it isn't there."""
+    """The bytes of a story file - unwrapped if it is a Blorb (.zblorb, .blb;
+    ADR-061) - or a clear error if it isn't there."""
     p = Path(path)
     if not p.exists():
         raise ZForgeError(f"{path}: no such file")
-    return p.read_bytes()
+    return story_bytes(p.read_bytes(), path)
 
 
 # ---------------------------------------------------------------- run
@@ -243,9 +246,10 @@ def build_parser() -> argparse.ArgumentParser:
                                 "toolchain for versions 5-8: interpreter, Inform 7 (I7-lite) "
                                 "and ZIL-lite compilers, assembler.")
     p.add_argument("--debug", action="store_true", help="show Python tracebacks")
+    p.add_argument("--version", action="version", version=f"zforge {__version__}")
     sub = p.add_subparsers(dest="command", required=True)
 
-    r = sub.add_parser("run", help="play a story file (z5, z6, z7 or z8)")
+    r = sub.add_parser("run", help="play a story file (z5, z6, z7 or z8, or a Blorb holding one)")
     r.add_argument("story")
     r.add_argument("--ui", choices=["auto", "curses", "plain"], default="auto")
     r.add_argument("--script", help="file of input lines (one command per line)")

@@ -1389,3 +1389,28 @@ examining or touching the ClearingLight` (4), and the original Bronze's
 Bronze can now be measured past its first stage (1,020 in the second).
 `zbuilder compare HEAD`: every story grows 104 bytes (the parser's new
 routine); both walkthroughs play identically.
+
+
+## ADR-061: Blorb files; CI on three Pythons; the 0.2.0 release
+
+**Context.** Most interactive fiction is downloaded as a Blorb file
+(`.zblorb`), which packs the game with its cover art; zforge refused them.
+The GitHub checks tested one Python (3.13) of the three the project claims
+(3.11 and up), and downloaded every test game on every run.
+
+**Decision.**
+* `zforge/common/blorb.py` reads Blorb 2.0: the game is the resource index's
+  Exec resource 0 (the first game chunk if there is no index). A `ZCOD` game
+  is played; a `GLUL` (Glulx) game, a saved game (`IFZS`) or another IFF file
+  gets a plain message. `_read_story` unwraps every file, so run, info and
+  disasm all take Blorbs, and nothing else needed to change.
+* CI runs on Python 3.11, 3.12 and 3.13, caches the spec and the stories
+  (keyed on `stories/urls.txt` and the spec fetchers), lets the two download
+  steps fail without failing the build, and adds the golden check.
+* Version 0.2.0: `zforge --version` (checked against pyproject.toml),
+  CHANGELOG.md, and a `pip install git+...` line in the README - checked by
+  installing into a fresh environment and compiling and playing from
+  outside the project.
+
+**Consequences.** The real `Bronze.zblorb` plays as downloaded. The test
+suite passes on Python 3.12 and 3.13 here; 3.11 is first tested by CI.
