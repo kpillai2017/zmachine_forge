@@ -1,0 +1,342 @@
+w
+x hats
+n
+take stick
+up
+sleep
+d
+s
+e
+e
+x hull
+up
+w
+open locker
+take money
+take case
+take glass
+take bibles
+take pen
+d
+take gun
+take shot
+take pistol
+take cutlass
+up
+e
+d
+open carpenter's chest
+take saw
+take rope
+up
+build raft
+d
+load carpenter's chest
+load sea chest
+load sailcloth
+load bottles
+up
+w
+d
+load powder
+up
+e
+launch raft
+z
+z
+z
+z
+z
+z
+z
+z
+z
+z
+launch raft
+d
+load feed
+up
+z
+z
+z
+z
+z
+z
+z
+z
+z
+z
+launch raft
+n
+n
+up
+sleep
+d
+s
+s
+take axe
+take crow
+take adze
+take tinderbox
+take sailcloth
+w
+w
+pitch tent
+build stockade
+make ladder
+carve post
+write
+look
+w
+look
+e
+e
+e
+take powder
+w
+w
+w
+drop powder
+e
+e
+e
+take bottles
+w
+w
+w
+drop bottles
+e
+e
+e
+take sea chest
+w
+w
+w
+drop sea chest
+e
+e
+e
+take feed
+w
+w
+w
+shake bag of chicken-feed
+dig cave
+take powder
+w
+drop powder
+e
+z
+z
+z
+z
+z
+z
+z
+z
+sleep
+sleep
+open sea chest
+take tobacco
+eat tobacco
+put tobacco in bottles
+read bibles
+drink rum
+sleep
+w
+load gun
+e
+make fire
+reap barley
+e
+e
+n
+n
+w
+s
+s
+make spade
+make mortar
+s
+chop cedar
+hollow log
+carve paddle
+e
+x current
+n
+w
+n
+e
+dig clay
+make pot
+w
+s
+w
+w
+fire pot
+e
+e
+n
+fill pot
+n
+w
+take grapes
+dry grapes
+build bower
+n
+chop cedar
+hollow cedar
+launch periagua
+s
+s
+up
+down
+shoot goats
+skin carcass
+make umbrella
+make cap
+n
+e
+build pen
+pen kid
+n
+take parrot
+teach poll
+teach poll
+teach poll
+s
+s
+w
+cut osiers
+weave basket
+e
+n
+w
+w
+down
+turn turtle
+up
+e
+e
+s
+s
+w
+w
+grind barley
+bake bread
+w
+load gun
+e
+e
+e
+e
+s
+w
+launch canoe
+n
+e
+n
+w
+w
+w
+sleep
+e
+e
+e
+s
+x current
+w
+launch canoe
+z
+z
+z
+z
+z
+e
+d
+take horns
+take shirts
+load chest
+up
+launch canoe
+n
+take chest
+e
+n
+drop chest
+w
+w
+w
+sleep
+e
+e
+e
+s
+w
+n
+in
+touch eyes
+out
+s
+w
+e
+e
+n
+w
+w
+w
+sleep
+e
+up
+look through glass
+down
+e
+hit savage
+shoot savage
+name savage friday
+bury bodies
+give shirts to friday
+teach friday
+w
+up
+look through glass
+z
+z
+z
+z
+z
+z
+z
+z
+z
+z
+z
+z
+down
+e
+e
+n
+n
+talk to captain
+cut bonds with knife
+load gun
+s
+s
+w
+n
+shoot mutineers
+s
+e
+break longboat with axe
+z
+z
+z
+z
+w
+n
+halloo
+s
+e
+retake ship
+take chest
+board ship

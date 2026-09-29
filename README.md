@@ -90,6 +90,20 @@ python -m zforge run glasshouse.z8
 If you get stuck, `examples/glasshouse_walkthrough.txt` has the full
 solution. It gives everything away, so only look if you mean to.
 
+For something much longer, try *The Island of Despair*, a game after Daniel
+Defoe's *Robinson Crusoe*. You are cast away in 1659, and must salvage what
+you can from the wreck, build your castle, live through the earthquake and
+the ague, find the Spanish treasure, save Friday, and at last escape the
+island with him, twenty-eight years later. It is played in five parts, and
+typing HINT gives a nudge if you are stuck:
+
+```bash
+python -m zforge compile examples/crusoe.ni -o crusoe.z8
+python -m zforge run crusoe.z8
+```
+
+Its full solution is in `examples/crusoe_walkthrough.txt`.
+
 To play any other Z-machine game, point zforge at its file. Most games
 today are downloaded as Blorb files (`.zblorb`), which pack the game with its
 cover art; zforge opens those too, and plays the game inside:
