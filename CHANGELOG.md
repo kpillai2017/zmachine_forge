@@ -4,7 +4,7 @@ What changed from one version to the next, in plain words. The reasons
 behind each change are in [docs/DECISIONS.md](docs/DECISIONS.md), by number
 (ADR-021 and so on).
 
-## Unreleased
+## 0.3.0 - 2026-09-29
 
 - **"Something" in a rule means a thing, and "someone" a person**, as in Inform.
   Before, they matched anything, even a room or no noun: `Instead of attacking
@@ -54,6 +54,14 @@ behind each change are in [docs/DECISIONS.md](docs/DECISIONS.md), by number
 
 - *The Island of Despair*, a long game after *Robinson Crusoe*, with its
   walkthrough.
+
+- **A new example game: The Island of Despair**, a Robinson Crusoe adventure
+  following Defoe's novel, from the wreck to leaving the island with Friday,
+  with treasure, traps and red herrings (`examples/crusoe.ni`, with a
+  walkthrough).
+
+- **GitHub's checks use the current actions** (Node 24), which clears the
+  "Node.js 20 is deprecated" warnings.
 
 ## 0.2.0 - 2026-09-29
 

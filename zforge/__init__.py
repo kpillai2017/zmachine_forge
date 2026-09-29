@@ -11,4 +11,4 @@
 Every module names the section of the Z-Machine Standard 1.1 it implements
 as "§n.m". Start reading at docs/TOUR.md.
 """
-__version__ = "0.2.0"
+__version__ = "0.3.0"
