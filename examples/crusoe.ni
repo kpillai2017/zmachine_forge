@@ -14,7 +14,7 @@
 The story headline is "An interactive fiction after Daniel Defoe".
 The story genre is "Historical".
 The release number is 1.
-Use scoring. The maximum score is 206.
+Use scoring. The maximum score is 213.
 
 Volume 1 - The Machinery
 
@@ -121,8 +121,17 @@ To award (n - a number) for (item - a thing):
         increase the score by n.
 
 Hinting is an action applying to nothing. Understand "hint", "hints" and "help" as hinting.
+The hint level is a number that varies.
+The hint score is a number that varies.
 Carry out hinting:
-    say "[italic type][hint text][roman type]".
+    if the hint level is 0 or the score is not the hint score:
+        now the hint level is 1;
+        now the hint score is the score;
+    otherwise:
+        now the hint level is 2;
+    say "[italic type][hint text][roman type]";
+    if the hint level is 1:
+        say "[line break](Type HINT again for a plainer answer.)".
 
 About-ing is an action applying to nothing. Understand "about", "credits" and "info" as about-ing.
 Carry out about-ing:
@@ -569,81 +578,89 @@ The spade is a thing.
 To say hint text:
     if the act is 1:
         if the day is 1:
-            say "Get out of the sea (go west). Night is coming: find somewhere safe to sleep, off the ground.";
+            say "[if the hint level is 1]You are still in the sea, and the light is going.[otherwise]Get out of the sea (go west). Night is coming: find somewhere safe to sleep, off the ground.[end if]";
         otherwise if the raft is off-stage:
-            say "The ship holds everything you need. At low tide you can wade and swim out to her across the flats (east of the beach). Look closely at her side for a way up. Aboard, you will need a raft for the heavy goods: the carpenter's chest has the tools.";
+            say "[if the hint level is 1]Everything you will ever own is still aboard the ship. The sea goes out a long way at low water.[otherwise]The ship holds everything you need. At low tide you can wade and swim out to her across the flats (east of the beach). Look closely at her side for a way up. Aboard, you will need a raft for the heavy goods: the carpenter's chest has the tools.[end if]";
         otherwise:
-            say "Load the raft with what matters most: tools, powder, the gun, food, canvas, and the rum. Push off on the flood tide, which carries you into the creek; the ebb takes you back out to the ship. Do not push off from the ship on the ebb.";
+            say "[if the hint level is 1]Not everything aboard is worth the same to you. And the tide decides which way a raft will go.[otherwise]Load the raft with what matters most: tools, powder, the gun, food, canvas, and the rum. Push off on the flood tide, which carries you into the creek; the ebb takes you back out to the ship. Do not push off from the ship on the ebb.[end if]";
     otherwise if the act is 2:
         if the tent pitched is false:
-            say "Your goods are on the creek bank. Find a safe place to live: west of the creek there is a plain against a steep hill. Carry the sailcloth there (heavy things one at a time) and PITCH TENT, with the axe in hand.";
+            say "[if the hint level is 1]Your goods lie on the creek bank. Where would a careful man make his home: in the open, or with a hill at his back?[otherwise]Your goods are on the creek bank. Find a safe place to live: west of the creek there is a plain against a steep hill. Carry the sailcloth there (heavy things one at a time) and PITCH TENT, with the axe in hand.[end if]";
         otherwise if the stockade built is false:
-            say "BUILD STOCKADE before the tent. You need the axe.";
+            say "[if the hint level is 1]A tent keeps off the rain, but not whatever else may come.[otherwise]BUILD STOCKADE before the tent. You need the axe.[end if]";
         otherwise if the ladder is off-stage:
-            say "A stockade with no gate needs a ladder: MAKE LADDER.";
+            say "[if the hint level is 1]You have walled yourself in. How will you get out again?[otherwise]A stockade with no gate needs a ladder: MAKE LADDER.[end if]";
         otherwise if the cave dug is false:
-            say "Carry your goods inside, especially the powder and the rum and the sea chest. Then DIG CAVE behind the tent with the iron crow. A post to count the days (CARVE POST) and a journal (WRITE) would not be amiss.";
+            say "[if the hint level is 1]Some of your goods fear the wet more than others. And the rock behind your tent is soft.[otherwise]Carry your goods inside, especially the powder and the rum and the sea chest. Then DIG CAVE behind the tent with the iron crow. A post to count the days (CARVE POST) and a journal (WRITE) would not be amiss.[end if]";
         otherwise if the quake done is false:
-            say "Something is coming. Keep out of the cave when the ground grumbles.";
+            say "[if the hint level is 1]The ground itself does not seem quite settled.[otherwise]Something is coming. Keep out of the cave when the ground grumbles.[end if]";
         otherwise if the rains done is false:
-            say "Rain is coming. Is your powder under cover? Sleep, and see.";
+            say "[if the hint level is 1]The sky has an ugly look. What would the rain spoil?[otherwise]Rain is coming. Is your powder under cover? Sleep, and see.[end if]";
         otherwise if the sick is true:
-            say "The Brazilians cure almost everything with tobacco: it is in the sea chest. Steep some in the rum (PUT TOBACCO IN BOTTLES), look for comfort in a Bible (READ BIBLE), and drink the dose.";
+            say "[if the hint level is 1]You have no doctor. But you have a sea chest, a Bible, and what you know of the Brazilians' cures.[otherwise]The Brazilians cure almost everything with tobacco: it is in the sea chest. Steep some in the rum (PUT TOBACCO IN BOTTLES), look for comfort in a Bible (READ BIBLE), and drink the dose.[end if]";
         otherwise:
-            say "Sleep, and let the year turn.";
+            say "[if the hint level is 1]Nothing presses. Rest.[otherwise]Sleep, and let the year turn.[end if]";
     otherwise if the act is 3:
         if the canoe is off-stage:
-            say "Explore up the creek and north along the brook. Everything you make matters: a spade of ironwood (in the thicket) digs clay; a pot, fired, carries water; grapes dried are food. A boat must be built where the water can reach it: remember the great cedar.";
+            say "[if the hint level is 1]The island is larger than you know. And a boat is only of use if it can reach the water.[otherwise]Explore up the creek and north along the brook. Everything you make matters: a spade of ironwood (in the thicket) digs clay; a pot, fired, carries water; grapes dried are food. A boat must be built where the water can reach it: remember the great cedar.[end if]";
         otherwise if the canoe trips is 0:
-            say "Take your canoe out (LAUNCH CANOE at the southern cove, with a paddle) and come back, and sleep. Something may happen at sea.";
+            say "[if the hint level is 1]Your canoe has not yet tasted the sea.[otherwise]Take your canoe out (LAUNCH CANOE at the southern cove, with a paddle) and come back, and sleep. Something may happen at sea.[end if]";
         otherwise if the treasure chest is not scored:
-            say "The Spanish wreck lies east, past the rocky point. Watch the current from the point: it slackens with the turn. Take food (raisins or bread) and a fired pot of water. LOAD the chest into the canoe from the Spanish cabin.";
+            say "[if the hint level is 1]Something was lost at sea in that storm. And the current off the point does not always run.[otherwise]The Spanish wreck lies east, past the rocky point. Watch the current from the point: it slackens with the turn. Take food (raisins or bread) and a fired pot of water. LOAD the chest into the canoe from the Spanish cabin.[end if]";
         otherwise:
-            say "Carry the chest home. Sleep. Then go down to the southern cove again. While the years go by, there is much to do: dig and fence the ground east of the savannas and sow barley in the rainy season (grind only what you need: keep seed); MILK GOATS when your flock has grown, and MAKE CHEESE; MAKE LAMP (tallow, oakum from the carpenter's chest, clay) and LIGHT it, and see what lies deep in the cavern.";
+            say "[if the hint level is 1]The years are long, and the island has more to give: the seasons, your flock, and the dark.[otherwise]Carry the chest home. Sleep. Then go down to the southern cove again. While the years go by, there is much to do: dig and fence the ground east of the savannas and sow barley in the rainy season (grind only what you need: keep seed); MILK GOATS when your flock has grown, and MAKE CHEESE; MAKE LAMP (tallow, oakum from the carpenter's chest, clay) and LIGHT it, and see what lies deep in the cavern.[end if]";
     otherwise if the act is 4:
-        if the Friday rescued is false:
-            say "Watch for them from the hilltop above your castle: LOOK THROUGH GLASS, with your gun loaded. If one runs, be at the creek before him. Do not go near their shore.";
+        if the near fire begun is false and the Friday rescued is false:
+            say "[if the hint level is 1]Something has changed on the island. Rest, and keep your eyes open.[otherwise]Go home to your castle and sleep.[end if]";
+        otherwise if the near fire active is true and the near fire watched is false:
+            say "[if the hint level is 1]Someone is on your own side of the island. Be very quiet, and see without being seen.[otherwise]If your fire is burning, PUT OUT FIRE at once. Keep away from the creek mouth and the landing beach, and do not fire your gun. Climb the hill above your castle and LOOK THROUGH GLASS.[end if]";
+        otherwise if the near fire active is true:
+            say "[if the hint level is 1]They will not stay forever.[otherwise]Wait on the hilltop until they go with the tide.[end if]";
+        otherwise if the remains-marker is not scored and the Friday rescued is false:
+            say "[if the hint level is 1]When they are gone, you will want to know what they came for.[otherwise]Go down to the landing beach, and look.[end if]";
+        otherwise if the Friday rescued is false:
+            say "[if the hint level is 1]From high ground you can see a long way. Keep your gun ready.[otherwise]Watch for them from the hilltop above your castle: LOOK THROUGH GLASS, with your gun loaded. If one runs, be at the creek before him. Do not go near their shore.[end if]";
         otherwise if Friday is not named:
-            say "NAME HIM FRIDAY.";
+            say "[if the hint level is 1]He owes you his life. What will you call him?[otherwise]NAME HIM FRIDAY.[end if]";
         otherwise if Friday is not clothed or Friday is not taught or the second landing is false:
-            say "Friday wants burying of the dead (BURY BODIES), clothes (the Spanish shirts), and teaching (TEACH FRIDAY). Then sleep.";
+            say "[if the hint level is 1]He is a stranger to all your ways: your dead, your clothes, your God.[otherwise]Friday wants burying of the dead (BURY BODIES), clothes (the Spanish shirts), and teaching (TEACH FRIDAY). Then sleep.[end if]";
         otherwise if the landing active is true:
-            say "LOAD GUN and LOAD PISTOL, and GIVE PISTOL TO FRIDAY. Go through the thicket to the edge of the wood (west of the thicket) and SHOOT SAVAGES from behind the bush. Do not walk out onto their shore.";
+            say "[if the hint level is 1]They are twenty-one. You are two, if Friday is armed. Choose your ground.[otherwise]LOAD GUN and LOAD PISTOL, and GIVE PISTOL TO FRIDAY. Go through the thicket to the edge of the wood (west of the thicket) and SHOOT SAVAGES from behind the bush. Do not walk out onto their shore.[end if]";
         otherwise if the Spaniard is not scored or the old man is not scored:
-            say "Down on the shore: FREE SPANIARD and FREE OLD MAN, with your knife.";
+            say "[if the hint level is 1]Two men lie bound upon the sand.[otherwise]Down on the shore: FREE SPANIARD and FREE OLD MAN, with your knife.[end if]";
         otherwise if the Spaniard is not revived or the old man is not revived:
-            say "They are faint with hunger: give them the barley loaf, raisins, cheese, or the flask of rum from your sea chest.";
+            say "[if the hint level is 1]They are fainting with hunger and hurt.[otherwise]They are faint with hunger: give them the barley loaf, raisins, cheese, or the flask of rum from your sea chest.[end if]";
         otherwise if the barrow-marker is not scored:
-            say "MAKE BARROW with your axe, and carry them home.";
+            say "[if the hint level is 1]One of them cannot walk, and it is a long way home.[otherwise]MAKE BARROW with your axe, and carry them home.[end if]";
         otherwise if the hut is off-stage:
-            say "BUILD HUT for them on the plain: your axe, and straw from a harvest.";
+            say "[if the hint level is 1]Your castle is small. Guests want a roof of their own.[otherwise]BUILD HUT for them on the plain: your axe, and straw from a harvest.[end if]";
         otherwise if the plan known is false:
-            say "TALK TO SPANIARD.";
+            say "[if the hint level is 1]The Spaniard has a story to tell.[otherwise]TALK TO SPANIARD.[end if]";
         otherwise if the boat mast is false or the boat sail is false or the boat rudder is false:
-            say "Build a great boat with Friday up the creek: CHOP the creek cedar (axe), HOLLOW LOG (adze), MAKE MAST (axe), MAKE SAIL (the old sails in your cave), MAKE RUDDER (saw), and DIG DOCK (spade).";
+            say "[if the hint level is 1]Your canoe will not carry four men forty miles across the sea. And Friday is a good workman.[otherwise]Build a great boat with Friday up the creek: CHOP the creek cedar (axe), HOLLOW LOG (adze), MAKE MAST (axe), MAKE SAIL (the old sails in your cave), MAKE RUDDER (saw), and DIG DOCK (spade).[end if]";
         otherwise if the baskets of grain are off-stage:
-            say "Corn enough for all: a harvest from your barley field, carried in a basket.";
+            say "[if the hint level is 1]Men who go on a voyage must eat.[otherwise]Corn enough for all: a harvest from your barley field, carried in a basket.[end if]";
         otherwise:
-            say "SEND SPANIARD, from the plain.";
+            say "[if the hint level is 1]All is ready.[otherwise]SEND SPANIARD, from the plain.[end if]";
     otherwise:
         if the mutiny phase is 0:
-            say "Friday saw a sail. Go up the hill and LOOK THROUGH GLASS.";
+            say "[if the hint level is 1]Friday saw something at sea.[otherwise]Friday saw a sail. Go up the hill and LOOK THROUGH GLASS.[end if]";
         otherwise if the mutiny phase is 1:
-            say "Wait, out of sight, for the heat of the day. They will sleep.";
+            say "[if the hint level is 1]Men who have rowed all morning will sleep in the heat of the day.[otherwise]Wait, out of sight, for the heat of the day. They will sleep.[end if]";
         otherwise if the mutiny phase is 2:
-            say "The prisoners are under the great tree, north of the landing beach. Talk to them, and FREE CAPTAIN.";
+            say "[if the hint level is 1]Three men are held apart from the rest, under a tree.[otherwise]The prisoners are under the great tree, north of the landing beach. Talk to them, and FREE CAPTAIN.[end if]";
         otherwise if the mutiny phase is 3:
-            say "With your gun loaded, take the captain to the sleeping seamen along the brook, and SHOOT MUTINEERS.";
+            say "[if the hint level is 1]The captain wants his ship back, and his mutineers are asleep.[otherwise]With your gun loaded, take the captain to the sleeping seamen along the brook, and SHOOT MUTINEERS.[end if]";
         otherwise if the mutiny phase is 4:
-            say "Make sure the seamen cannot get back to the ship: BREAK LONGBOAT with the axe.";
+            say "[if the hint level is 1]A boat on the beach is a way off the island, for anyone.[otherwise]Make sure the seamen cannot get back to the ship: BREAK LONGBOAT with the axe.[end if]";
         otherwise if the mutiny phase is 5:
-            say "Wait. The ship will send another boat.";
+            say "[if the hint level is 1]The ship will wonder what has become of her boat.[otherwise]Wait. The ship will send another boat.[end if]";
         otherwise if the mutiny phase is 6:
-            say "Lead them astray in the woods: go inland with Friday and HALLOO.";
+            say "[if the hint level is 1]Men who do not know the island can be lost in it.[otherwise]Lead them astray in the woods: go inland with Friday and HALLOO.[end if]";
         otherwise if the mutiny phase is 7:
-            say "At the creek mouth, RETAKE SHIP.";
+            say "[if the hint level is 1]The ship is short of hands now.[otherwise]At the creek mouth, RETAKE SHIP.[end if]";
         otherwise:
-            say "Bring Friday and the Spanish chest (and Poll, and your umbrella and cap) to the creek mouth, and BOARD SHIP.";
+            say "[if the hint level is 1]It is time to go home. Take what matters.[otherwise]Bring Friday and the Spanish chest (and Poll, and your umbrella and cap) to the creek mouth, and BOARD SHIP.[end if]";
 
 Volume 3 - The Castle
 
@@ -658,7 +675,7 @@ The Hillside Plain is coastal.
 
 The hollow in the rock is scenery in the Hillside Plain. Understand "hollow", "rock", "face", "hill", "door", "cave" and "entrance" as the hollow in the rock. The description of the hollow in the rock is "A hollow place in the rock, like the door of a cave, though there is no real cave behind it. The rock is soft enough, you think, that with tools a man might dig into it."
 
-The Hilltop is up from the Hillside Plain. "From the top of the hill you can see the sea on every side: you are on an island, and no other land in sight but some rocks a great way off, and two small islands, less than this, about three leagues to the west[if the act is at least 3]. To the west and south, when the air is very clear, a long low shadow lies on the edge of the sea: the main land, you suppose, of America[end if]. There is no sign of man anywhere. The track goes down to the plain."
+The Hilltop is up from the Hillside Plain. "From the top of the hill you can see the sea on every side: you are on an island, and no other land in sight but some rocks a great way off, and two small islands, less than this, about three leagues to the west[if the act is at least 3]. To the west and south, when the air is very clear, a long low shadow lies on the edge of the sea: the main land, you suppose, of America[end if]. [if the near fire active is true]But far along your own shore, towards the landing beach, a thread of blue smoke goes straight up into the still air, where no smoke should be.[otherwise]There is no sign of man anywhere.[end if] The track goes down to the plain."
 The Hilltop is coastal.
 
 Part 2 - The tent, the stockade, the ladder
@@ -824,11 +841,20 @@ Every turn when the cave dug is true and the quake done is false:
 The quake-marker is a thing.
 
 To castle morning news:
+    if the near fire active is true:
+        now the near fire active is false;
+        now the near fire gone is true;
+        now the nine savages are off-stage;
+        say "In the night, while you lay hid, they have gone. At first light your shore is empty again, and only a smear of old smoke hangs over the landing beach.";
+        stop;
     if the act is 4 and the Spaniard sailed is true:
         begin the fifth act;
         stop;
     if the act is 4 and the second landing is false and Friday is taught and Friday is clothed:
         start the second landing;
+        stop;
+    if the act is 4 and the footprint seen is true and the near fire begun is false:
+        start the near fire;
         stop;
     if the quake done is true and the rains done is false:
         now the rains done is true;
@@ -1607,6 +1633,95 @@ Instead of doing something other than examining to the old goat:
         say "Let the old fellow die in peace."
 Instead of entering the Cavern, try going inside.
 
+Part 1b - The fire on your own side
+
+The near fire begun is a truth state that varies.
+The near fire active is a truth state that varies.
+The near fire watched is a truth state that varies.
+The near fire gone is a truth state that varies.
+The near fire day is a number that varies.
+The near fire clock is a number that varies.
+The smoke clock is a number that varies.
+
+The nine savages are a man. The nine savages are plural-named. The nine savages are scenery. The printed name of the nine savages is "savages". Understand "savages", "cannibals", "nine", "men", "canoes" and "smoke" as the nine savages. The description of the nine savages is "Far off along your own shore, by the landing beach, a little smoke goes up. From here you cannot make them out without your glass."
+The smoke-marker is a thing.
+The remains-marker is a thing.
+
+To start the near fire:
+    now the near fire begun is true;
+    now the near fire active is true;
+    now the near fire day is the day;
+    now the year is 1682;
+    move the nine savages to the Hilltop;
+    say "[bold type]The Twenty-Third Year[roman type][paragraph break]Going out very early one morning, before it is thorough daylight, you are surprised to see a light of some fire upon the shore, at a distance of about two miles, towards the landing beach: not on the far side of the island, where you have seen their leavings before, but on your own side! You stand still within your fortification, not daring to go out, lest you should be surprised.";
+    if the fire is in Inside the Stockade:
+        now the smoke clock is 6;
+        say "[paragraph break]And behind you, before your tent, your own fire is sending up a thread of smoke into the still morning air.";
+    otherwise:
+        say "[paragraph break]You thank God that your own fire was let die last night: there is no smoke to betray you.";
+        award 2 for the smoke-marker.
+
+Dousing is an action applying to one thing. Understand "put out [something]", "douse [something]", "quench [something]", "smother [something]" and "extinguish [something]" as dousing.
+Instead of dousing the lamp:
+    if the lamp is lit:
+        now the lamp is not lit;
+        say "You pinch out the little flame.";
+    otherwise:
+        say "It is not lit.".
+Check dousing:
+    if the noun is not the fire, say "That is not burning." instead;
+    if the fire is not in the location, say "Your fire is not here." instead.
+Carry out dousing:
+    now the fire is off-stage;
+    say "You throw earth upon the fire, and beat out the last of the embers, until not a thread of smoke goes up.";
+    if the near fire active is true and the smoke-marker is not scored:
+        award 2 for the smoke-marker.
+
+Every turn when the near fire active is true and the fire is in Inside the Stockade and the smoke clock is greater than 0:
+    decrease the smoke clock by 1;
+    if the smoke clock is 0:
+        end the story saying "The thread of smoke from your fire is seen. Before noon they are all about your castle, and they are nine, and hungry.".
+
+Every turn when the near fire active is true and the location is the Landing Beach:
+    end the story saying "They are sitting about their fire not a hundred yards off, and they see you as soon as you see them.".
+Every turn when the near fire active is true and the location is the Creek Mouth:
+    end the story saying "You come round the bend of the creek straight upon them, and there is nowhere to run.".
+Every turn when the near fire active is true and the location is Up the Creek:
+    say "The smell of their smoke comes up the creek to you. They are very near: at the creek mouth, or on the landing beach beyond."
+
+Before shooting when the near fire active is true:
+    if the location is the Hilltop and the noun is the nine savages:
+        say "You lie a long while on the hilltop with your gun, in a rage, meaning to fall upon them. But the more you consider it, the less you like it. What authority have you to be judge and executioner of these men, who do you no harm, and know no better? They are nine, and their nation is on the main. You put down your gun.";
+        stop the action;
+    end the story saying "The report of your gun rolls away over the island, and they hear it. They come to see what thunder it is that walks in the woods.".
+
+Before discharging when the near fire active is true:
+    end the story saying "The report of your gun rolls away over the island, and they hear it. They come to see what thunder it is that walks in the woods.".
+
+To watch the near fire:
+    if the near fire watched is false:
+        now the near fire watched is true;
+        now the near fire clock is 6;
+        say "You lie flat upon the top of the hill and set your glass upon them. There are no fewer than nine naked savages sitting round a small fire they have made, not to warm them, for the weather is extremely hot, but to dress their barbarous diet of human flesh, which they have brought with them, whether alive or dead you cannot know. They have two canoes with them, hauled up upon the shore; and as it is then tide of ebb, they seem to you to wait for the return of the flood to go away again.";
+        award 3 for the nine savages;
+    otherwise:
+        say "They are still there, about their fire. The tide is making: it will not be long."
+
+Every turn when the near fire active is true and the near fire watched is true:
+    decrease the near fire clock by 1;
+    if the near fire clock is 0:
+        now the near fire active is false;
+        now the near fire gone is true;
+        now the nine savages are off-stage;
+        if the location is the Hilltop:
+            say "As soon as the tide has made to the westward, you see them all take boat, and row, or paddle as we call it, all away. Before they go, they dance, and you can easily discern their postures and gestures by your glass.";
+        otherwise:
+            say "Far off, at the turn of the tide, you think you hear their drums, and then nothing.".
+
+Every turn when the location is the Landing Beach and the near fire gone is true and the remains-marker is not scored:
+    say "You go down, as soon as you dare, to the place where they were. The shore is spread with the horrid remains of their feast: the blood, the bones, and part of the flesh of human bodies, eaten and devoured by those wretches with merriment and sport. You are filled with such indignation that you begin to plan how you would destroy the next that come; and then you think again, and are only thankful that you were cast upon the side of the island where none of them ever came.";
+    award 2 for the remains-marker.
+
 Part 2 - The savages
 
 The rescue clock is a number that varies.
@@ -1620,8 +1735,11 @@ Check looking through:
 Carry out looking through:
     if the location is not the Hilltop and the location is not the Western Hill and the location is not the Heights:
         say "Trees and rocks block the view. From the top of a hill you could see a long way." instead;
+    if the act is 4 and the near fire active is true:
+        watch the near fire;
+        stop the action;
     if the act is 4 and the Friday rescued is false:
-        if the day is less than the footprint day plus 1:
+        if the near fire gone is false or the day is less than the near fire day plus 1:
             say "You sweep the sea and the shores with the glass, again and again. Nothing: no canoe, no smoke, no man. But the print was real." instead;
         now the savages landed is true;
         now the rescue clock is 10;
@@ -2171,7 +2289,7 @@ Instead of freeing the Spaniard:
     if the landing active is true, say "Not while they are round him." instead;
     if the Spaniard is scored, say "He is free." instead;
     if the player does not carry the knife and the player does not carry the rusty cutlass, say "You have nothing to cut the cords with." instead;
-    say "You cut the flags, or rushes, that bind his hands and feet. 'Christianus,' he says, very faint: he is a Spaniard. You give him your cutlass, and he takes it like a man that has been given his life.";
+    say "You cut the flags, or rushes, that bind his hands and feet. 'Christianus,' he says, very faint: he is a Spaniard. He gropes on the sand for one of the savages' great wooden swords, left behind in their flight, and gets it into his hand like a man that has been given his life.";
     award 3 for the Spaniard.
 Instead of cutting the old man, try freeing the old man.
 Instead of freeing the old man:

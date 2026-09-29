@@ -6,6 +6,15 @@ behind each change are in [docs/DECISIONS.md](docs/DECISIONS.md), by number
 
 ## Unreleased
 
+- **The Island of Despair: the fire on your own side, and gentler hints.** A new
+  day from the novel, between the footprint and Friday: savages land on your
+  own shore. Put out your fire, keep away, don't fire a gun, and watch them from
+  the hill. HINT now gives a nudge first, and the plain answer only if you ask
+  again. The walkthrough wins with 213 of 213 in 459 moves.
+  Play-testing also fixed: the savages leave overnight if you sleep instead of
+  watching them; PUT OUT LAMP works; the hilltop shows their smoke; and the
+  Spaniard no longer claims to take your cutlass.
+
 - **A game can have many more actions.** Each action's rulebook used one of the
   Z-machine's 240 global variables, so a big game ran out ("too many globals").
   They are now table constants, which cost none. ZIL-lite's CONSTANT accepts a
