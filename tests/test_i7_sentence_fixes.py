@@ -198,8 +198,14 @@ def test_a_phrase_word_alone_does_not_name_the_thing():
 def test_a_phrase_word_that_cannot_be_typed_is_a_problem():
     with pytest.raises(I7Problem) as e:
         compile_i7('"T" by T\n\nThe Hall is a room. The lamp is in the Hall.\n'
-                   'Understand "old lamp\'s light" as the lamp.\n', "t.ni", 8)
+                   'Understand "old lamp! light" as the lamp.\n', "t.ni", 8)
     assert "can't be a word the player types" in str(e.value)
+
+
+def test_a_possessive_word_in_a_phrase_can_be_typed():
+    # ADR-062: an apostrophe inside a word is kept, as the player types it.
+    compile_i7('"T" by T\n\nThe Hall is a room. The lamp is in the Hall.\n'
+               'Understand "old lamp\'s light" as the lamp.\n', "t.ni", 8)
 
 
 # ------------------------------------ 9. a list of things with 'are', or carried

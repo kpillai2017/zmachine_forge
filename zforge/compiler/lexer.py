@@ -113,13 +113,15 @@ class Lexer:
                     out.append(Token(Kind.ATOM, text.upper(), loc))
 
     def _atom_text(self) -> str:
-        """Consume and return an atom: a sequence of non-break characters."""
-        start = self.pos
+        r"""Consume and return an atom: a sequence of non-break characters.
+        A backslash quotes the character after it (A\ B is the one atom "A B"),
+        and is not itself part of the atom."""
+        chars: list[str] = []
         while self._peek() and self._peek() not in ATOM_BREAK:
-            if self._peek() == "\\":
+            if self._peek() == "\\" and self._peek(1):
                 self._advance()               # \x quotes one character in an atom
-            self._advance()
-        return self.src[start:self.pos]
+            chars.append(self._advance())
+        return "".join(chars)
 
     def _string(self, loc: Location) -> Token | None:
         """Consume a string literal and return its token, or None if unterminated."""

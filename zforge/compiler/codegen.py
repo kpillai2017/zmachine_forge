@@ -46,6 +46,7 @@ class CodeGenerator:
         self.filename = filename
         self.out: list[str] = []
         self.arrays: list[str] = []
+        self.constant_tables: dict[str, str] = {}   # CONSTANT name -> its table's label
 
     def error(self, node, message: str) -> None:
         self.diag.error(node.loc, message)
@@ -116,9 +117,9 @@ class CodeGenerator:
                 return self.s.objects[e.name][0]
             if kind == "flag":
                 return self.s.flags[e.name]
-        if isinstance(e, ast.Str):
-            return None
-        self.error(e, "a CONSTANT must be a number, a string or ,NAME")
+        if isinstance(e, (ast.Str, ast.Table)):   # strings are inlined, tables become
+            return None                           # a label where used (constant_table)
+        self.error(e, "a CONSTANT must be a number, a string, a table or ,NAME")
         return None
 
     def data_token(self, e) -> str:
@@ -149,6 +150,14 @@ class CodeGenerator:
         name = f"$TABLE{len(self.arrays) + 1}"
         self.arrays.append(f".array {name} {kind} {' '.join(items)}".rstrip())
         return name
+
+    def constant_table(self, name: str, e: ast.Table) -> str:
+        """The label of a CONSTANT whose value is a table: its data is emitted
+        once, the first time it is used, and every use is that address. A table
+        constant costs no global variable (a story has only 240, §6.2)."""
+        if name not in self.constant_tables:
+            self.constant_tables[name] = self.table(e)
+        return self.constant_tables[name]
 
     # ============================================================== routines
     def routine(self, r: ast.RoutineDecl) -> None:
@@ -234,6 +243,8 @@ class CodeGenerator:
         if isinstance(e, ast.Global):
             if self.s.kind_of(e.name) == "constant":
                 c = self.s.constants[e.name].value
+                if isinstance(c, ast.Table):
+                    return self.constant_table(e.name, c)
                 return asm_string(c.value) if isinstance(c, ast.Str) else e.name
             return e.name     # global variable, object, routine (packed), flag, P?prop
         raise TypeError(e)

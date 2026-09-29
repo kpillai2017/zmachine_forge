@@ -4,6 +4,31 @@ What changed from one version to the next, in plain words. The reasons
 behind each change are in [docs/DECISIONS.md](docs/DECISIONS.md), by number
 (ADR-021 and so on).
 
+## Unreleased
+
+- **A game can have many more actions.** Each action's rulebook used one of the
+  Z-machine's 240 global variables, so a big game ran out ("too many globals").
+  They are now table constants, which cost none. ZIL-lite's CONSTANT accepts a
+  table.
+- **A grammar line with two fixed words and no object works**, such as
+  `Understand "write in journal" as writing`. A line needing more fixed words
+  than the grammar table can hold now gets a problem message; it used to
+  stop the compiler with an internal error.
+- **Possessive words can be typed**, such as EXAMINE COOK'S POT.
+- **The word "of" in a name can be typed**, such as EXAMINE BAG OF SHOT.
+
+### Writing games (ZIL)
+
+- A backslash in an atom now quotes the next character without becoming part
+  of the atom's name (`COOK\'S` gives the word "cook's").
+- `<SYNTAX WRITE IN JOURNAL = V-WRITE>`: two words may follow the verb on a
+  line with no OBJECT.
+
+### Examples
+
+- *The Island of Despair*, a long game after *Robinson Crusoe*, with its
+  walkthrough.
+
 ## 0.2.0 - 2026-09-29
 
 The first release. zforge grew from a version-5 toolchain into one for

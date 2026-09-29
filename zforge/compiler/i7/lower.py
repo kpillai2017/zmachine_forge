@@ -191,10 +191,11 @@ class Lowerer:
             lines.append(f"    (IN {self.atom[o.parent]})")
         lines.append(f"    (DESC {zil_string(self.printed_name(o))})")
         # The words the player can use for it: the words of its own name (unless it
-        # is privately-named) and its Understand words, less small words like 'the'.
+        # is privately-named) and its Understand words, less the articles. 'of'
+        # stays, as in Inform: X BAG OF SHOT names the bag of shot.
         own = [] if o.private else o.name.lower().split()     # privately-named: none
         words = [w for w in (own + o.words)
-                 if DICT_WORD.match(w) and w not in ("the", "a", "an", "of")]
+                 if DICT_WORD.match(w) and w not in ("the", "a", "an")]
         if words:
             lines.append("    (SYNONYM " + " ".join(dict.fromkeys(w.upper() for w in words)) + ")")
         # Its Understand phrases ("puzzle piece"): each phrase's words and a 0; the
@@ -492,23 +493,25 @@ class Lowerer:
 
     # ------------------------------------------------------------ actions
     def actions(self) -> None:
-        """Write ZIL SYNTAX declarations and rulebook globals for all actions (ADR-016)."""
+        """Write ZIL SYNTAX declarations and rulebook tables for all actions (ADR-016).
+        The tables are CONSTANTs: they never change, and cost no global (ADR-062)."""
         self.emit('"--- rulebooks and actions"')
         for book in ("WHEN-PLAY-BEGINS", "EVERY-TURN"):
             entries = self.rulebooks.get(book, {}).get("", [])     # source order, but
             rules = [r for _, r, _ in sorted(entries, key=lambda e: e[2])]   # first/last
-            self.emit(f"<GLOBAL {book}-RULES <LTABLE {' '.join(',' + r for r in rules)}>>")
+            self.emit(f"<CONSTANT {book}-RULES <LTABLE {' '.join(',' + r for r in rules)}>>")
         self.emit(self.rulebook_global("GENERAL-RULES", ""))
         # Does the player mean: one rulebook, the most specific rule first
         entries = self.rulebooks.get("DTPM", {}).get("", [])
         order = sorted(enumerate(entries),        # group, then most specific, then source
                        key=lambda e: (e[1][2], tuple(-x for x in e[1][0]), e[0]))
-        self.emit("<GLOBAL DTPM-RULES <LTABLE" + "".join(" ," + r for _, (_, r, _) in order) + ">>")
+        self.emit("<CONSTANT DTPM-RULES <LTABLE"
+                  + "".join(" ," + r for _, (_, r, _) in order) + ">>")
         if self.m.uses_orders:                    # persuasion: the same, and the
             entries = self.rulebooks.get("PERSUASION", {}).get("", [])   # answer
             order = sorted(enumerate(entries),   # to 'oak, xyzzy' (ADR-055)
                            key=lambda e: (e[1][2], tuple(-x for x in e[1][0]), e[0]))
-            self.emit("<GLOBAL PERSUASION-RULES <LTABLE"
+            self.emit("<CONSTANT PERSUASION-RULES <LTABLE"
                       + "".join(" ," + r for _, (_, r, _) in order) + ">>")
             answer = self.action_atom.get("answering it that")
             self.emit(f"<ROUTINE ORDER-ANSWER-ACTION () {',V?' + answer if answer else '0'}>")
@@ -616,7 +619,7 @@ class Lowerer:
                     if e[2] < 1000:
                         e[3] = self.traced_library_rule(e[3], e[4])
             tables.append("<LTABLE " + " ".join("," + e[3] for e in entries) + ">")
-        return f"<GLOBAL {global_name} <TABLE {' '.join(tables)}>>"
+        return f"<CONSTANT {global_name} <TABLE {' '.join(tables)}>>"
 
     def traced_library_rule(self, routine: str, name: str) -> str:
         """A --testing build: a wrapper that says the library rule applies,
@@ -901,8 +904,41 @@ class Lowerer:
                 self.p.problem(where, line, f"'{action}' does not apply to two things, "
                                "so its nouns cannot be reversed.")
                 return []
+            if not self.fits_syntax_table(o[1:]):
+                self.p.problem(where, line, "this line has more fixed words in a row than "
+                               "I7-lite can hold. After the verb, it keeps one word before "
+                               "each [something], and one after the last [something] if "
+                               "there is only one; a line with no [something] may have two "
+                               "(WRITE IN JOURNAL). Leave some words out, or give the extra "
+                               "words their own line.")
+                return []
             out.append(Grammar(o[0], o[1:]))
         return out
+
+    @staticmethod
+    def fits_syntax_table(tokens: list[str]) -> bool:
+        """Can these tokens (after the verb) go in one row of the SYNTAX table?
+
+        A row keeps two words besides the verb (S-PREP1 and S-PREP2, see
+        zforge/compiler/grammar.py): one before object 1, and one before
+        object 2 or after object 1. A line with no object keeps both after the
+        verb: WRITE IN JOURNAL."""
+        runs, current, in_options = [], 0, False
+        for token in tokens:
+            if in_options or token.startswith("("):   # (TOPIC), (MANY HELD): options, not words
+                in_options = not token.endswith(")")
+            elif token == "OBJECT":
+                runs.append(current)
+                current = 0
+            else:
+                current += 1
+        runs.append(current)
+        objects = len(runs) - 1
+        if objects == 0:
+            return runs[0] <= 2
+        if objects == 1:
+            return runs[0] <= 1 and runs[1] <= 1
+        return runs[0] <= 1 and runs[1] <= 1 and runs[2] == 0
 
 
 def lower_model(model: WorldModel, problems: Problems, filename: str) -> str:

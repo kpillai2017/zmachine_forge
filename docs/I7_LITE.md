@@ -243,6 +243,18 @@ something - "(first taking the cloak off)", the words of Inform 7's
 *can't drop / put / insert clothes being worn* rules - but ALL never means
 a worn thing.
 
+**Words a player can type.** Every word of a thing's name can be typed,
+including small words such as "of" (BAG OF SHOT) and possessives (COOK'S
+POT). A word longer than nine letters is shortened in the story's
+dictionary, so the player can type it in full or stop after nine letters.
+
+**How many fixed words a grammar line can have.** The grammar table keeps one
+fixed word before each `[something]`, and one after the last when a line has
+a single `[something]` (TURN [something] OFF). A line with no `[something]`
+at all may have two (WRITE IN JOURNAL). A line that needs more, such as
+`fill [something] with water`, gets a problem message: leave some words out,
+or give the extra words their own line (ADR-062).
+
 ## 5. Actions
 
 The standard actions (7a unless marked): looking, examining, taking,
@@ -469,6 +481,12 @@ Also (from Advent's cave):
 | `move the player to X, without printing a room description` | moves the player only |
 | `if X is held` / `is not held` | carried or worn by the player |
 | `if the player does not carry X` / `does not wear X` | negated possession |
+
+**`stop` in a rule.** As in Inform 7, `stop` in a rule is exactly the same as
+`stop the action`: it ends the rule *and the rest of its rulebook*. In an
+every turn rule, that means the every turn rules after it don't run that
+turn. To leave just one rule early, put the rest of the rule inside an `if`
+instead.
 
 ## 8. Text substitutions (inside quoted text)
 

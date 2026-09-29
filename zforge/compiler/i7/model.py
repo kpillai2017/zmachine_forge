@@ -25,7 +25,10 @@ ARTICLES = ("the ", "a ", "an ", "some ")
 DIRECTION_NAMES = {name for name, _, _ in DIRECTIONS}
 # A word the player can type for a thing: letters, digits and hyphens (the
 # Z-machine dictionary holds other characters, but I7-lite keeps to these).
-DICT_WORD = re.compile(r"^[a-z0-9][a-z0-9-]*$")
+# A word the player can type: letters, digits, hyphens and apostrophes
+# (COOK'S POT: the Z-machine's alphabet has the apostrophe, so it goes into
+# the dictionary as typed).
+DICT_WORD = re.compile(r"^[a-z0-9][a-z0-9'-]*$")
 # The separators of a list of names: 'A, B, and C' or 'A and B'.
 LIST_SPLIT = re.compile(r",\s*(?:and\s+)?|\s+and\s+")
 

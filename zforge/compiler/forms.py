@@ -198,7 +198,9 @@ class FormParser:
         After the verb: prepositions (any atom) and up to two OBJECT slots,
         then '=' and the action routine, optionally a preaction routine.
         A preposition goes with the OBJECT that follows it; one after the
-        last OBJECT is a trailing particle (TURN OBJECT OFF)."""
+        last OBJECT is a trailing particle (TURN OBJECT OFF). With no OBJECT
+        at all, two words may follow the verb (WRITE IN JOURNAL): the parser
+        matches the first, then the second, just as it would around objects."""
         if not args or not isinstance(args[0], r.Atom):
             self.error(form, "SYNTAX needs a verb, e.g. <SYNTAX TAKE OBJECT = V-TAKE>")
             return
@@ -219,6 +221,8 @@ class FormParser:
                                                               options[objects - 1])
             elif isinstance(item, r.Atom):
                 slot = min(objects, 1)
+                if objects == 0 and preps[0] is not None:
+                    slot = 1                    # a second word with no OBJECT: WRITE IN JOURNAL
                 if preps[slot] is not None or objects == 2:
                     self.error(item, f"unexpected preposition {item.name}: one per OBJECT "
                                      "(plus one trailing particle)")

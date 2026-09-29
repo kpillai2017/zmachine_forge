@@ -1414,3 +1414,49 @@ The GitHub checks tested one Python (3.13) of the three the project claims
 
 **Consequences.** The real `Bronze.zblorb` plays as downloaded. The test
 suite passes on Python 3.12 and 3.13 here; 3.11 is first tested by CI.
+
+## ADR-062: Two-word grammar lines; possessives and "of" can be typed
+
+**Context.** Writing *The Island of Despair* (examples/crusoe.ni) turned up
+three bugs. `Understand "write in journal" as writing` stopped the compiler
+with an internal error, because the ZIL SYNTAX form allowed only one word
+after the verb when a line has no OBJECT. EXAMINE COOK'S POT failed, because
+a name's words were filtered through a pattern with no apostrophe in it, so
+"cook's" never reached the dictionary. EXAMINE BAG OF SHOT failed, because
+"of" was left out of a thing's words, while Inform 7 keeps every word of a
+name.
+
+**Decision.**
+1. ZIL SYNTAX may put a second word after the verb when a line has no
+   OBJECT. The parser already matched the first slot, then the second, then
+   checked nothing was left, so it needed no change. The I7 compiler checks
+   each grammar line against what the table can hold (one word before each
+   OBJECT, one trailing word after a single OBJECT, two with no OBJECT) and
+   gives a problem message for a line that needs more.
+2. A dictionary word may contain an apostrophe. The standard alphabet
+   includes it, so the typed word and the dictionary word encode the same.
+3. "of" is one of a thing's words, as in Inform 7.
+4. Found on the way: the ZIL lexer kept the backslash of an escaped
+   character in the atom's name (`COOK\'S` became "cook\'s"). It now keeps
+   only the escaped character.
+
+**Checked, not changed.** `stop` in an every turn rule ends the rest of the
+every turn rules for that turn. That matches Inform 7: Writing with Inform
+says `stop` in a rule "is exactly equivalent" to `stop the action`, and
+Basic Inform defines it as `rtrue`. I7_LITE.md now warns about it.
+
+**Consequences.** Every example with "of" or a possessive in a name gains
+dictionary words, so its story file changes; `zbuilder compare` shows every
+walkthrough plays identically. The ZIL golden builds are unchanged, since no
+ZIL source used these forms. The old test that used "lamp's" as a word that
+can't be typed now uses "lamp!", with a new test that "lamp's" can.
+
+**Table constants (added while expanding the Crusoe game).** Every action has a
+rulebook, and I7-lite kept each in a global variable. A story has only 240
+globals (§6.2), so a game with many actions ran out: the expanded Crusoe game
+failed with "too many globals". The rulebooks never change during play, so
+they are now CONSTANTs. ZIL-lite's CONSTANT accepts a table: the table's data
+is emitted once, the first time the constant is used, and each use is that
+table's address, so a table constant costs no global. ZIL games are unchanged
+(their golden builds are byte-identical); I7 story files change, but play the
+same. Tests: a ZIL constant table read with GET, and a story with 250 actions.
