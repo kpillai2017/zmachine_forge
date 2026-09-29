@@ -10,6 +10,14 @@ behind each change are in [docs/DECISIONS.md](docs/DECISIONS.md), by number
   Z-machine's 240 global variables, so a big game ran out ("too many globals").
   They are now table constants, which cost none. ZIL-lite's CONSTANT accepts a
   table.
+- **The Island of Despair is about half as long again.** New chapters from the
+  novel: the seasons (sow with the rains, and hedge your field against the
+  hares), milk and cheese, a tallow lamp and the glittering vault, the rescue of
+  Friday's father and the Spaniard, the great boat, and the five mutineers left
+  behind. The walkthrough wins with 206 of 206 in 439 moves.
+
+### Writing games (the Inform 7 compiler)
+
 - **A grammar line with two fixed words and no object works**, such as
   `Understand "write in journal" as writing`. A line needing more fixed words
   than the grammar table can hold now gets a problem message; it used to

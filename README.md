@@ -93,8 +93,9 @@ solution. It gives everything away, so only look if you mean to.
 For something much longer, try *The Island of Despair*, a game after Daniel
 Defoe's *Robinson Crusoe*. You are cast away in 1659, and must salvage what
 you can from the wreck, build your castle, live through the earthquake and
-the ague, find the Spanish treasure, save Friday, and at last escape the
-island with him, twenty-eight years later. It is played in five parts, and
+the ague, find the Spanish treasure, save Friday, rescue his father and a Spaniard
+from the cannibals, and at last escape the island with him, twenty-eight
+years later. It is played in five parts, and
 typing HINT gives a nudge if you are stuck:
 
 ```bash

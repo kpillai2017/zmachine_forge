@@ -14,7 +14,7 @@
 The story headline is "An interactive fiction after Daniel Defoe".
 The story genre is "Historical".
 The release number is 1.
-Use scoring. The maximum score is 150.
+Use scoring. The maximum score is 206.
 
 Volume 1 - The Machinery
 
@@ -99,7 +99,12 @@ To advance the day:
     say "You sleep[if the location is the Treetop], wedged in the fork of the tree, a short stick in your hand for defence,[end if] until the sun is high.[paragraph break]";
     now the tide clock is 12;
     now low tide is true;
-    morning news.
+    now current running is true;
+    now the current clock is 10;
+    morning news;
+    if the act is greater than 2:
+        turn the seasons;
+        field morning news.
 
 [Each act has its own news for the morning: see the parts below.]
 To morning news:
@@ -159,7 +164,7 @@ Shooting is an action applying to one thing. Understand "shoot [something]", "sh
 Discharging is an action applying to nothing. Understand "shoot" and "fire" as discharging.
 
 
-Writing is an action applying to nothing. Understand "write", "write journal", "write diary" and "keep journal" as writing.
+Writing is an action applying to nothing. Understand "write", "write journal", "write diary", "keep journal", "write in journal" and "write in diary" as writing.
 Writing in is an action applying to one thing. Understand "write in [something]" and "write on [something]" as writing in.
 Carry out writing in: try writing.
 
@@ -233,7 +238,7 @@ Beside the Wreck is east of the Sand Flats. "You have swum the last stretch and 
 
 The hanging rope is a thing. It is fixed in place. Understand "rope" and "fore-chains" and "chains" as the hanging rope. The description of the hanging rope is "A small piece of rope hanging down by the fore-chains, so low that you wonder you did not see it at first."
 
-The black hull is scenery in Beside the Wreck. Understand "ship", "hull", "side" and "wreck" as the black hull. The description of the black hull is "Her side goes straight up out of the water, wet and smooth. [if the hanging rope is in Beside the Wreck]A rope hangs from the fore-chains.[otherwise]If there is a way up, it is not on this side. You could swim round her.[end if]"
+The black hull is scenery in Beside the Wreck. Understand "ship", "hull", "side" and "wreck" as the black hull. The description of the black hull is "Her side goes straight up out of the water, wet and smooth. [if the hanging rope is in Beside the Wreck]A rope hangs from the fore-chains.[otherwise]If there is a way up, it is not on this side. You could swim round her.[end if]".
 
 Searching-round is an action applying to nothing. Understand "swim round", "swim around", "circle ship" and "circle" as searching-round.
 Searching-round-thing is an action applying to one thing.
@@ -360,7 +365,7 @@ After taking a heavy thing:
 
 Part 6 - The raft
 
-The raft is a supporter. It is fixed in place. Understand "planks" as the raft. The description of the raft is "Spars lashed together at both ends, floored with short planks laid crosswise: a raft that will bear a reasonable weight, in a calm sea. [raft cargo]"
+The raft is a supporter. It is fixed in place. Understand "planks" as the raft. The description of the raft is "Spars lashed together at both ends, floored with short planks laid crosswise: a raft that will bear a reasonable weight, in a calm sea. [raft cargo]".
 
 The raft load is a number that varies. The raft load is 0.
 
@@ -371,7 +376,7 @@ To say raft cargo:
         say "It carries [raft load in words] load[if the raft load is not 1]s[end if] of goods, of the five it will bear."
 
 
-Building a raft is an action applying to nothing. Understand "build raft", "make raft" and "lash spars" as building a raft.
+Building a raft is an action applying to nothing. Understand "build raft", "make raft", "build a raft", "make a raft" and "lash spars" as building a raft.
 Check building a raft:
     if the raft is not off-stage:
         say "You have a raft already." instead;
@@ -594,14 +599,32 @@ To say hint text:
         otherwise if the treasure chest is not scored:
             say "The Spanish wreck lies east, past the rocky point. Watch the current from the point: it slackens with the turn. Take food (raisins or bread) and a fired pot of water. LOAD the chest into the canoe from the Spanish cabin.";
         otherwise:
-            say "Carry the chest home. Sleep. Then go down to the southern cove again.";
+            say "Carry the chest home. Sleep. Then go down to the southern cove again. While the years go by, there is much to do: dig and fence the ground east of the savannas and sow barley in the rainy season (grind only what you need: keep seed); MILK GOATS when your flock has grown, and MAKE CHEESE; MAKE LAMP (tallow, oakum from the carpenter's chest, clay) and LIGHT it, and see what lies deep in the cavern.";
     otherwise if the act is 4:
         if the Friday rescued is false:
             say "Watch for them from the hilltop above your castle: LOOK THROUGH GLASS, with your gun loaded. If one runs, be at the creek before him. Do not go near their shore.";
         otherwise if Friday is not named:
             say "NAME HIM FRIDAY.";
+        otherwise if Friday is not clothed or Friday is not taught or the second landing is false:
+            say "Friday wants burying of the dead (BURY BODIES), clothes (the Spanish shirts), and teaching (TEACH FRIDAY). Then sleep.";
+        otherwise if the landing active is true:
+            say "LOAD GUN and LOAD PISTOL, and GIVE PISTOL TO FRIDAY. Go through the thicket to the edge of the wood (west of the thicket) and SHOOT SAVAGES from behind the bush. Do not walk out onto their shore.";
+        otherwise if the Spaniard is not scored or the old man is not scored:
+            say "Down on the shore: FREE SPANIARD and FREE OLD MAN, with your knife.";
+        otherwise if the Spaniard is not revived or the old man is not revived:
+            say "They are faint with hunger: give them the barley loaf, raisins, cheese, or the flask of rum from your sea chest.";
+        otherwise if the barrow-marker is not scored:
+            say "MAKE BARROW with your axe, and carry them home.";
+        otherwise if the hut is off-stage:
+            say "BUILD HUT for them on the plain: your axe, and straw from a harvest.";
+        otherwise if the plan known is false:
+            say "TALK TO SPANIARD.";
+        otherwise if the boat mast is false or the boat sail is false or the boat rudder is false:
+            say "Build a great boat with Friday up the creek: CHOP the creek cedar (axe), HOLLOW LOG (adze), MAKE MAST (axe), MAKE SAIL (the old sails in your cave), MAKE RUDDER (saw), and DIG DOCK (spade).";
+        otherwise if the baskets of grain are off-stage:
+            say "Corn enough for all: a harvest from your barley field, carried in a basket.";
         otherwise:
-            say "Friday wants burying of the dead (BURY BODIES), clothes (the Spanish shirts), and teaching (TEACH FRIDAY).";
+            say "SEND SPANIARD, from the plain.";
     otherwise:
         if the mutiny phase is 0:
             say "Friday saw a sail. Go up the hill and LOOK THROUGH GLASS.";
@@ -649,7 +672,7 @@ Inside the Stockade is sheltered.
 
 The tent is scenery in Inside the Stockade. Understand "sails", "tarpaulin" and "hammock" as the tent. The description of the tent is "A good tent of the ship's sails, with your hammock slung inside it and the powder and the tools about you, so that you may have them at hand in the night."
 
-The inner hollow is scenery in Inside the Stockade. Understand "hollow", "rock", "face" and "hill" as the inner hollow. The description of the inner hollow is "[if the cave dug is true]The cave runs back into the hill, west of the tent.[otherwise]The hollow in the rock, a few feet deep. With a crow to break the rock, you could make a cave of it: DIG CAVE.[end if]"
+The inner hollow is scenery in Inside the Stockade. Understand "hollow", "rock", "face" and "hill" as the inner hollow. The description of the inner hollow is "[if the cave dug is true]The cave runs back into the hill, west of the tent.[otherwise]The hollow in the rock, a few feet deep. With a crow to break the rock, you could make a cave of it: DIG CAVE.[end if]".
 
 Instead of going west in the Hillside Plain:
     if the stockade built is false:
@@ -670,7 +693,7 @@ Instead of exiting in Inside the Stockade, try going east.
 
 The ladder is a thing. It is scenery. The description of the ladder is "A rough ladder of two poles and rungs lashed across them. When it is drawn in after you, nothing can follow."
 
-Pitching the tent is an action applying to nothing. Understand "pitch tent", "make tent", "build tent" and "erect tent" as pitching the tent.
+Pitching the tent is an action applying to nothing. Understand "pitch tent", "make tent", "build tent", "erect tent", "put up tent" and "pitch the tent" as pitching the tent.
 Check pitching the tent:
     if the tent pitched is true, say "Your tent is pitched already." instead;
     if the location is not the Hillside Plain, say "You have your eye on a better place than this: the plain on the hillside, west of the creek, with the hollow in the rock." instead;
@@ -801,6 +824,12 @@ Every turn when the cave dug is true and the quake done is false:
 The quake-marker is a thing.
 
 To castle morning news:
+    if the act is 4 and the Spaniard sailed is true:
+        begin the fifth act;
+        stop;
+    if the act is 4 and the second landing is false and Friday is taught and Friday is clothed:
+        start the second landing;
+        stop;
     if the quake done is true and the rains done is false:
         now the rains done is true;
         say "All night and all the next day the rain falls as if the sky had split. When at last it slackens you go about your things to see what is saved.[paragraph break]";
@@ -893,6 +922,7 @@ The powder-marker is a thing.
 Shaking is an action applying to one thing. Understand "shake [something]", "empty [something]", "shake out [something]" and "scatter [something]" as shaking.
 Carry out shaking:
     say "Nothing comes out of [the noun]."
+Instead of shaking the earthen pot, try emptying the earthen pot.
 Instead of shaking the bag of chicken-feed:
     if the feed shaken is true:
         say "The bag is empty." instead;
@@ -957,7 +987,7 @@ The grapes are scenery in the Pleasant Valley. Understand "vines", "vine", "clus
 The Cedar Grove is north of the Pleasant Valley. "A grove of great cedar trees, so tall that you must lean back to see their tops. One of them, standing a little apart, is a king among them: five feet ten inches through at the foot, and straight as a mast, without a branch for twenty feet. From here, the sea is a glint far off to the east, down a long rough slope. The valley is south."
 The Cedar Grove is inland.
 
-The great cedar is scenery in the Cedar Grove. Understand "cedar", "tree", "king", "trunk" and "cedars" as the great cedar. The description of the great cedar is "[if the periagua stage is 0]The finest tree you ever saw. Hollowed, it would make a periagua, a great canoe, big enough to carry twenty-six men: big enough to carry you and all your goods to the main land.[otherwise if the periagua stage is 1]The great cedar lies where it fell, a mountain of timber.[otherwise]The periagua lies here, finished: a noble boat, the finest you ever saw, a hundred yards from the water and uphill all the way.[end if]"
+The great cedar is scenery in the Cedar Grove. Understand "cedar", "tree", "king", "trunk" and "cedars" as the great cedar. The description of the great cedar is "[if the periagua stage is 0]The finest tree you ever saw. Hollowed, it would make a periagua, a great canoe, big enough to carry twenty-six men: big enough to carry you and all your goods to the main land.[otherwise if the periagua stage is 1]The great cedar lies where it fell, a mountain of timber.[otherwise]The periagua lies here, finished: a noble boat, the finest you ever saw, a hundred yards from the water and uphill all the way.[end if]".
 
 The Western Hill is west of the Pleasant Valley. "The ridge climbs to a bare hill at the west end of the island. From here you look west over the sea, and on a clear day, far off on the horizon, you can make out a long low line of land: the main land, the country of the savages, perhaps even the Spaniards' country. Nearer, below you, is the western shore, where the sea breaks on a long pale beach. The valley is east, and a path goes down to the shore."
 The Western Hill is coastal.
@@ -993,7 +1023,7 @@ Before going south in the Pleasant Valley:
 Before going north in the Thicket:
     now the approach from above is false.
 
-The Heights are above the Goat Hills. "High rocky heights above the goat hills, where only goats and you would climb. From here you can see the herd grazing below, and the path down to them. [if the act is at least 3]To the north you can see the green of the valley, and to the east, far off, the blue of the sea by your castle.[end if]"
+The Heights are above the Goat Hills. "High rocky heights above the goat hills, where only goats and you would climb. From here you can see the herd grazing below, and the path down to them. [if the act is at least 3]To the north you can see the green of the valley, and to the east, far off, the blue of the sea by your castle.[end if]".
 
 The Thicket is south of the Goat Hills. "A close thicket of low trees and bushes, hot and dim, full of the humming of insects. Among the trees grows one with a wood so hard and heavy that the Brazilians call it the iron tree. [if the act is at least 4]Under a rock at the thicket's edge is the black mouth of a cave. [end if]The goat hills are north, and a path goes south, towards the sea."
 
@@ -1192,11 +1222,11 @@ The meal is a thing. Understand "flour" and "meal" as the meal. The description 
 Grinding is an action applying to one thing. Understand "grind [something]", "pound [something]", "beat [something]" and "crush [something]" as grinding.
 Check grinding:
     if the noun is not the ears of barley, say "That isn't something to grind." instead;
-    if the player does not carry the mortar, say "You need a mortar to beat the corn in." instead.
+    if the player does not carry the mortar, say "You need a mortar to beat the corn in." instead;
+    if the meal is not off-stage or the barley loaf is not off-stage, say "You have ground enough for now: the rest of the ears you are keeping back for seed." instead.
 Carry out grinding:
-    now the ears of barley are off-stage;
     now the player carries the meal;
-    say "You beat the corn in your mortar with the pestle, a long, patient labour, until you have a little heap of coarse barley meal."
+    say "You beat the corn in your mortar with the pestle, a long, patient labour, until you have a little heap of coarse barley meal. The best of the ears you keep back, for seed."
 
 The barley loaf is a thing. Understand "bread", "loaf" and "cake" as the barley loaf. The description of the barley loaf is "A barley loaf, baked by your own hand in the island: the first bread you have eaten in two years. It tastes like home."
 Baking is an action applying to nothing. Understand "bake bread", "make bread", "bake loaf" and "make loaf" as baking.
@@ -1271,6 +1301,7 @@ Check skinning:
 Carry out skinning:
     now the goat carcass is off-stage;
     now the player carries the goatskin;
+    now the player carries the tallow;
     say "You skin the goat with your knife, and cut up the meat, which you will salt and dry and eat for many days. The skin you stretch on sticks in the sun to dry.".
 
 Building the pen is an action applying to nothing. Understand "build pen", "make pen", "build enclosure", "make enclosure" and "fence savanna" as building the pen.
@@ -1292,6 +1323,7 @@ Check penning:
     if the goat pen is not in the location, say "There is no pen here." instead.
 Carry out penning:
     now the kid penned is true;
+    now the kid penned day is the day;
     now the kid is off-stage;
     say "You shut the kid in the pen. In time you will have a flock of them, and milk and cheese, and never want for meat again.";
     award 3 for the kid.
@@ -1418,6 +1450,7 @@ Carry out launching the periagua:
 Section 9 - The bower
 
 The bower built is a truth state that varies.
+Instead of building the bower when the location is the Hillside Plain, try hut-building.
 Building the bower is an action applying to nothing. Understand "build bower", "make bower", "build house" and "build hut" as building the bower.
 Check building the bower:
     if the bower built is true, say "Your bower is built." instead;
@@ -1432,7 +1465,7 @@ The bower-marker is a thing.
 
 Part 5 - The canoe
 
-The canoe is a supporter. It is fixed in place. Understand "boat" and "dugout" as the canoe. The description of the canoe is "A canoe of one cedar trunk, hollowed with the adze: small, rough, and near enough the water to be launched. [canoe cargo]"
+The canoe is a supporter. It is fixed in place. Understand "boat" and "dugout" as the canoe. The description of the canoe is "A canoe of one cedar trunk, hollowed with the adze: small, rough, and near enough the water to be launched. [canoe cargo]".
 To say canoe cargo:
     if the treasure chest is on the canoe:
         say "The Spanish chest is lashed amidships.";
@@ -1732,8 +1765,8 @@ Instead of teaching Friday:
     award 3 for the pen-lesson-friday.
 The pen-lesson-friday is a thing.
 
-Instead of asking Friday about, say "[if Friday is taught]'Friday not know that, Master,' he says, cheerfully.[otherwise]He watches your face, and does not understand.[end if]"
-Instead of telling Friday about, say "[if Friday is taught]Friday listens, his head on one side, and nods very seriously.[otherwise]He watches your face, and does not understand.[end if]"
+Instead of asking Friday about, say "[if Friday is taught]'Friday not know that, Master,' he says, cheerfully.[otherwise]He watches your face, and does not understand.[end if]".
+Instead of telling Friday about, say "[if Friday is taught]Friday listens, his head on one side, and nods very seriously.[otherwise]He watches your face, and does not understand.[end if]".
 
 Volume 6 - The English Ship
 
@@ -1789,7 +1822,7 @@ To captain talk:
         say "The captain nods, and waits for your orders."
 
 Talking to is an action applying to one thing. Understand "talk to [someone]", "speak to [someone]", "greet [someone]" and "hail [someone]" as talking to.
-Carry out talking to: say "[The noun] [if the noun is Friday]smiles, and says 'Master!'[otherwise]does not answer.[end if]"
+Carry out talking to: say "[The noun] [if the noun is Friday]smiles, and says 'Master!'[otherwise]does not answer.[end if]".
 
 Freeing is an action applying to one thing. Understand "free [someone]", "untie [someone]", "unbind [someone]" and "release [someone]" as freeing.
 Instead of cutting the captain, try freeing the captain.
@@ -1856,7 +1889,7 @@ The halloo-marker is a thing.
 
 Part 3 - The ship retaken, and home
 
-Retaking is an action applying to nothing. Understand "retake ship", "board ship", "take ship", "seize ship" and "attack ship" as retaking.
+Retaking is an action applying to nothing. Understand "retake ship", "board ship", "row to ship", "take ship", "seize ship" and "attack ship" as retaking.
 Check retaking:
     if the act is not 5 or the mutiny phase is less than 7, say "There is no ship for you to board." instead;
     if the location is not the Creek Mouth, say "The boats are at the creek mouth." instead.
@@ -1893,10 +1926,414 @@ Volume 7 - Mornings, years and hints
 
 To begin the fifth act:
     now the act is 5;
-    say "[bold type]The Twenty-Seventh Year[roman type][paragraph break]The years go by, and they are the pleasantest of all your years on the island. Friday is a faithful, loving, sincere servant, and you love him. You have built a great boat together, near the water this time, and talked of going to his country, to the white men there. But one morning, very early, Friday comes running in: 'O Master! O Master! O sorrow! O bad!' A sail, he says, a sail, big, far off. Go up to the hill and look."
+    say "[bold type]The Twenty-Seventh Year[roman type][paragraph break]The years go by, and they are the pleasantest of all your years on the island. Friday is a faithful, loving, sincere servant, and you love him. The Spaniard and Friday's old father have sailed for the mainland in your great boat, to fetch the Spaniard's countrymen, and you wait for their coming. Eight days go by. Then one morning, very early, Friday comes running in: 'Master, master, they are come, they are come!' But it is not they. A sail, he says, a sail, big, far off. Go up to the hill and look."
 
-Every turn when the act is 4 and the Friday rescued is true and Friday is named and Friday is clothed and Friday is taught:
-    begin the fifth act.
+
+Volume 5b - The longer years
+
+Part 1 - Seasons
+
+[From the third year, the island has a dry season and a rainy one, turning every two days. Sowing only thrives if the seed goes in with the rains, as Crusoe learned: his first sowing, in the dry season, came to nothing.]
+
+The wet season is a truth state that varies.
+The season days is a number that varies. The season days is 2.
+
+To turn the seasons:
+    if the act is less than 3, stop;
+    decrement the season days;
+    if the season days is greater than 0, stop;
+    now the season days is 2;
+    if the wet season is true:
+        now the wet season is false;
+        say "[paragraph break]The rains are over. The dry season has come again: the sky is hard and blue, and the ground bakes.";
+    otherwise:
+        now the wet season is true;
+        say "[paragraph break]The rains have come again: warm, heavy rain, day after day, and the ground drinks it in."
+
+Part 2 - The barley field
+
+The Barley Field is east of the Savannas. "A level piece of good black ground at the edge of the savannas, cleared of its brush, with the brook not far off. [if the field state is 0]It wants only digging to be a field.[otherwise if the field state is 1]The ground is dug, and ready for seed.[otherwise if the field state is 2]Your seed is in: green shoots are coming up in rows.[otherwise if the field state is 3]The barley stands ripe and golden, rustling in the wind.[otherwise]Stubble, where your harvest was.[end if] [if the field fenced is true]A thick hedge of stakes rings it round.[otherwise]Nothing keeps out the goats and the hares.[end if] The savannas are west.[if the wet season is true] The ground is soft with the rains.[otherwise] It is the dry season: the earth is baked hard.[end if]".
+The Barley Field is inland.
+
+The tilled ground is scenery in the Barley Field. Understand "ground", "earth", "soil", "field", "barley field" and "shoots" as the tilled ground. The description of the tilled ground is "[if the field state is 0]Good black earth, undug.[otherwise if the field state is 1]Dug ground, ready for seed.[otherwise if the field state is 2]Green shoots of barley, in rows.[otherwise if the field state is 3]Ripe barley, ready for the cutlass.[otherwise]Stubble.[end if]".
+
+The field state is a number that varies.
+The field fenced is a truth state that varies.
+The field grow is a number that varies.
+
+Instead of digging the tilled ground, try digging the ground.
+Digging the ground is an action applying to nothing. Understand "dig ground", "dig field", "dig earth", "till field" and "plough field" as digging the ground.
+Check digging the ground:
+    if the location is not the Barley Field, say "This is no place for a field. East of the savannas there is good ground." instead;
+    if the field state is not 0 and the field state is not 4, say "The ground is dug already." instead;
+    if the player does not carry the spade, say "You need a spade." instead.
+Carry out digging the ground:
+    now the field state is 1;
+    say "You dig the ground with your wooden spade, a long day's work in the sun, until it lies in dark clods ready for the seed.";
+    award 1 for the tilled ground.
+
+Sowing is an action applying to nothing. Understand "sow", "sow barley", "sow seed", "sow corn", "sow field", "sow ground", "plant barley", "plant seed" and "plant corn" as sowing.
+Check sowing:
+    if the location is not the Barley Field, say "You have no ground dug for seed here." instead;
+    if the field state is 0 or the field state is 4, say "Dig the ground first." instead;
+    if the field state is not 1, say "The seed is in already." instead;
+    if the player does not carry the ears of barley, say "You have no seed corn." instead.
+Carry out sowing:
+    if the wet season is false:
+        say "You sow your seed in the dry earth. But it is the dry season: no rain falls on it, and within a few days the seed has shrivelled in the ground and come to nothing. You have seed enough left to try again, at a better time; and you have learned something about the seasons of this island.";
+    otherwise:
+        now the field state is 2;
+        now the field grow is 0;
+        say "You sow your seed in the soft wet earth, and rake it in with a bough. With the rains upon it, it should thrive: if nothing eats it first.";
+        award 2 for the ears of barley.
+
+The fence-stakes-marker is a thing.
+Hedging is an action applying to nothing. Understand "fence field", "hedge field", "make hedge", "build hedge" and "plant hedge" as hedging.
+Check hedging:
+    if the location is not the Barley Field, say "There is nothing here to hedge." instead;
+    if the field fenced is true, say "It is hedged already." instead;
+    if the player does not carry the axe, say "You need the axe, to cut stakes." instead.
+Carry out hedging:
+    now the field fenced is true;
+    say "You cut stakes, and drive them close about the field, and weave the tops with osiers, until neither goat nor hare can get in.";
+    award 2 for the fence-stakes-marker.
+
+To field morning news:
+    if the field state is 2:
+        if the field fenced is false:
+            now the field state is 1;
+            say "[paragraph break]When you go to your barley field, the young shoots are gone: nibbled to the ground by the hares, and the goats have trodden the rest. You must sow again, and hedge it this time.";
+        otherwise:
+            increment the field grow;
+            if the field grow is at least 2:
+                now the field state is 3;
+                say "[paragraph break]Your barley field, safe inside its hedge, stands ripe and golden: a real harvest, the first of many."
+
+The baskets of grain are a thing. Understand "basket", "baskets", "grain", "harvest" and "corn" as the baskets of grain. The description of the baskets of grain is "Baskets of good barley and rice, enough seed and bread for a year."
+The bundle of straw is a thing. Understand "straw" and "bundle" as the bundle of straw. The description of the bundle of straw is "A bundle of barley straw, good for thatch."
+Harvesting is an action applying to nothing. Understand "harvest", "harvest field", "harvest barley", "reap field", "reap harvest" and "cut field" as harvesting.
+Instead of reaping the tilled ground, try harvesting.
+Check harvesting:
+    if the location is not the Barley Field, say "There is nothing here to harvest." instead;
+    if the field state is not 3, say "There is nothing ripe to harvest." instead;
+    if the player does not carry the rusty cutlass and the player does not carry the knife, say "You need something to cut it with." instead;
+    if the player does not carry the basket, say "You need something to carry the grain in." instead.
+Carry out harvesting:
+    now the field state is 4;
+    now the player carries the baskets of grain;
+    now the player carries the bundle of straw;
+    say "You cut your barley with the old cutlass, for scythe, and carry the ears home in your basket, and beat out the grain, and fill basket after basket. It comes to near twenty bushels of barley, and as much rice. You will never again be afraid of wanting bread.";
+    award 5 for the baskets of grain.
+
+Part 3 - Milk and cheese
+
+The kid penned day is a number that varies.
+The pot milk is a truth state that varies.
+
+Milking is an action applying to nothing. Understand "milk goat", "milk goats", "milk kid" and "milk flock" as milking.
+Check milking:
+    if the kid penned is false, say "You have no tame goats to milk." instead;
+    if the goat pen is not in the location, say "Your goats are in their pen, on the savannas." instead;
+    if the day is less than the kid penned day plus 2, say "Your little flock is too young yet to give milk. Give it a few days." instead;
+    if the player does not carry the earthen pot, say "You have nothing to milk into." instead;
+    if the pot water is true, say "Your pot is full of water. EMPTY POT first." instead;
+    if the pot milk is true, say "Your pot is full of milk already." instead.
+Carry out milking:
+    now the pot milk is true;
+    say "Your kids have grown into a little flock, and there are young ones among them. You milk the she-goats into your earthen pot: warm, sweet milk, the first you have tasted since England.";
+    award 2 for the pot-milk-marker.
+The pot-milk-marker is a thing.
+
+Emptying is an action applying to one thing. Understand "empty [something]" and "pour out [something]" as emptying.
+Check emptying:
+    if the noun is not the earthen pot, say "That isn't something to empty." instead;
+    if the pot water is false and the pot milk is false, say "It is empty." instead.
+Carry out emptying:
+    now the pot water is false;
+    now the pot milk is false;
+    say "You empty the pot on the ground."
+
+The cheese is a thing. Understand "cheese" and "butter" as the cheese. The description of the cheese is "A round of goat's-milk cheese, made by your own hand."
+Cheese-making is an action applying to nothing. Understand "make cheese", "make butter" and "churn milk" as cheese-making.
+Check cheese-making:
+    if the cheese is not off-stage, say "You have your cheese." instead;
+    if the pot milk is false or the player does not carry the earthen pot, say "You need milk to make cheese of." instead.
+Carry out cheese-making:
+    now the pot milk is false;
+    now the player carries the cheese;
+    say "It takes you a long while and a great many tries; but at last you have butter, and a round of cheese, and are as proud as ever you were of anything.";
+    award 2 for the cheese.
+
+Part 4 - The lamp and the glittering vault
+
+The tallow is a thing. Understand "fat" and "suet" as the tallow. The description of the tallow is "A lump of goat's tallow, from the she-goat you shot."
+The hank of oakum is in the carpenter's chest. Understand "oakum", "hank", "tow" and "wick" as the hank of oakum. The description of the hank of oakum is "Loose old rope-fibre, for caulking seams: it would make a wick."
+
+The lamp is a thing. Understand "candle" and "dish" as the lamp. The description of the lamp is "A little dish of clay, baked hard in the sun, with goat's tallow in it and a wick of oakum.[if the lamp is lit] It burns with a small, steady flame.[end if]".
+Contriving is an action applying to nothing. Understand "make lamp", "make candle" and "make light" as contriving.
+Check contriving:
+    if the lamp is not off-stage, say "You have your lamp." instead;
+    if the player does not carry the tallow, say "You would want some fat or tallow to burn." instead;
+    if the player does not carry the hank of oakum, say "You would want something for a wick." instead;
+    if the player does not carry the lump of clay, say "You would want a dish of clay to hold it." instead.
+Carry out contriving:
+    now the tallow is off-stage;
+    now the hank of oakum is off-stage;
+    now the lump of clay is off-stage;
+    now the player carries the lamp;
+    say "You shape a little dish of clay and bake it hard in the sun, and put your tallow in it, and a wick of oakum. It is not so clear as a candle, but it will give you a light in the dark.";
+    award 2 for the lamp.
+Lighting is an action applying to one thing. Understand "light [something]" and "kindle [something]" as lighting.
+Check lighting:
+    if the noun is not the lamp, say "That isn't something you can light." instead;
+    if the lamp is lit, say "It is lit." instead;
+    if the player does not carry the tinderbox and the fire is not in the location, say "You need a light for it: your tinderbox, or a fire." instead.
+Carry out lighting:
+    now the lamp is lit;
+    say "You strike a spark into the tinder and light the wick. The lamp burns up small and steady."
+
+The Glittering Vault is west of the Cavern. It is dark. "Beyond the place where the old goat lay, the cave narrows and runs on, and opens at last into a vault so high your lamp cannot find the top of it. The walls and roof throw back your little light a hundred thousand ways, as if they were set with diamonds, or precious stones, or gold. It is perfectly dry. It would be the safest magazine in the world for your powder. The way out is east."
+The Glittering Vault is inland.
+The glittering walls are scenery in the Glittering Vault. Understand "walls", "roof", "diamonds", "stones", "gold", "jewels", "glitter" and "lights" as the glittering walls. The description of the glittering walls is "They sparkle wonderfully in the lamplight. Whether it is diamonds, or gold, or only the damp on the rock, you cannot tell."
+Instead of taking the glittering walls, say "You pick and scrape at the brightest place with your knife, and get a handful of grit, which glitters in your palm for a moment and then is only grit: the shine was nothing but the wet on the rock. You throw it down."
+Instead of digging the glittering walls, try taking the glittering walls.
+Instead of going west in the Cavern when the old goat is not scored, say "You dare not go deeper while those two eyes glare out of the dark."
+The vault-marker is a thing.
+Every turn when the location is the Glittering Vault and the player carries the lamp and the lamp is lit and the vault-marker is not scored:
+    say "You stand a long while with your little lamp held up, lost in wonder. No one, in all the ages of the world, has seen this place before you.";
+    award 3 for the vault-marker.
+
+Part 5 - The mainland
+
+Instead of going west in Cove Waters:
+    say "The mainland lies somewhere over there, forty miles off, if it lies anywhere: past the currents, in a canoe, with no sail. Paddle for it anyway? ";
+    if the player consents:
+        end the story saying "You are never seen again";
+    otherwise:
+        say "You turn back to the cove."
+
+Part 6 - Friday's father and the Spaniard
+
+The second landing is a truth state that varies.
+To start the second landing:
+    now the second landing is true;
+    now the landing active is true;
+    move the war party to the Edge of the Wood;
+    say "Very early, Friday comes running in to you, as if he flew, and calls out: 'O Master! O Master! O sorrow! O bad!' He holds up his fingers: 'One, two, three canoe! One, two, three!' They have landed on the south-west shore, below the edge of the wood, beyond the thicket; and poor Friday is dreadfully afraid they are come to look for him, and will cut him in pieces and eat him. Load your guns, and look to Friday.".
+The landing active is a truth state that varies.
+The Spaniard sailed is a truth state that varies.
+The plan known is a truth state that varies.
+A person can be revived.
+
+The Edge of the Wood is west of the Thicket. "The trees end here, above the shore of the south-west, and a great bush grows at the very edge: from behind it you can see the whole round of sand below without being seen.[if the landing active is true] Down on the sand, one-and-twenty savages sit about a fire, with their three canoes drawn up beside them. A white man, a European, lies bound upon the sand; and in one of the canoes lies another prisoner, bound hand and foot. They are going to kill the white man now.[end if] The thicket is east; the shore is south-west."
+The Cannibal Shore is southwest of the Edge of the Wood.
+The Edge of the Wood is inland.
+The great bush is scenery in the Edge of the Wood. Understand "bush", "tree" and "trees" as the great bush. The description of the great bush is "A thick bush, a good screen, and not above eighty yards from the savages' fire."
+
+The war party is a man. The war party is plural-named. The war party is scenery. Understand "savages", "cannibals", "band", "party", "twenty-one savages" and "fire" as the war party. The description of the war party is "One-and-twenty of them, about the fire, and the white man bound among them."
+The Spaniard is a man. Understand "white man", "european", "prisoner" and "spaniard" as the Spaniard. The description of the Spaniard is "[if the Spaniard is revived]A Spaniard, a gentleman by his manners, weak but mending[otherwise]A white man, a Spaniard by his dress, so weak and faint he can scarce stand or speak[end if]."
+The old man is a man. Understand "old prisoner", "father", "friday's father", "old savage" and "canoe prisoner" as the old man. The description of the old man is "[if the old man is revived]Friday's father, a grave old man, mending every day[otherwise]An old savage, bound hand and foot, near dead with fear and the cords[end if]."
+
+Instead of going southwest in the Edge of the Wood when the landing active is true, try going to the feast.
+Instead of going south in the Western Shore when the landing active is true, try going to the feast.
+Instead of going west in the Southern Cove when the landing active is true, try going to the feast.
+Going to the feast is an action applying to nothing.
+Carry out going to the feast:
+    say "One-and-twenty of them, about the fire, and you would walk out among them. Go on? ";
+    if the player consents:
+        end the story saying "You are killed on the sand";
+    otherwise:
+        say "You draw back."
+
+Instead of giving the pistol to Friday:
+    if the pistol is not loaded, say "Load it first: he cannot load a pistol." instead;
+    now Friday carries the pistol;
+    say "You give Friday the loaded pistol, and show him how to point it. He takes it very gravely.";
+    award 1 for the pistol.
+
+Instead of attacking the war party, try shooting the war party.
+Instead of shooting the war party:
+    if the location is not the Edge of the Wood, say "You are too far off, and out in the open." instead;
+    if the player does not carry the fowling-piece or the fowling-piece is not loaded, say "Your gun is not loaded, or not in your hand." instead;
+    if Friday is not in the location, say "Not alone, against one-and-twenty." instead;
+    if Friday does not carry the pistol, say "Friday must be armed too: give him the loaded pistol." instead;
+    now the landing active is false;
+    now the war party is off-stage;
+    now the fowling-piece is not loaded;
+    move the Spaniard to the Cannibal Shore;
+    move the old man to the Cannibal Shore;
+    say "'Now, Friday,' you say, 'do exactly as you see me do.' You take aim together, and fire. Friday fires his pistol a half-second after your gun. Three of them fall, and the rest leap up in the most dreadful fright, not knowing which way to run, nor where the death comes from. You break out of the bush with a great shout, and Friday after you; and they fly for the canoes, and paddle away across the sea, those that can. The shore is yours.";
+    award 5 for the war party.
+
+Instead of cutting the Spaniard, try freeing the Spaniard.
+Instead of freeing the Spaniard:
+    if the Spaniard is not in the location, say "He is not here." instead;
+    if the landing active is true, say "Not while they are round him." instead;
+    if the Spaniard is scored, say "He is free." instead;
+    if the player does not carry the knife and the player does not carry the rusty cutlass, say "You have nothing to cut the cords with." instead;
+    say "You cut the flags, or rushes, that bind his hands and feet. 'Christianus,' he says, very faint: he is a Spaniard. You give him your cutlass, and he takes it like a man that has been given his life.";
+    award 3 for the Spaniard.
+Instead of cutting the old man, try freeing the old man.
+Instead of freeing the old man:
+    if the old man is not in the location, say "He is not here." instead;
+    if the landing active is true, say "Not while they are round him." instead;
+    if the old man is scored, say "He is free." instead;
+    if the player does not carry the knife and the player does not carry the rusty cutlass, say "You have nothing to cut the cords with." instead;
+    say "You cut the cords of the prisoner in the canoe, and bid Friday speak to him and tell him he is safe. Friday looks at him, and then it would move anyone to tears to see him: he kisses him, embraces him, hugs him, cries, laughs, hallooes, jumps about, dances, sings, then cries again. It is a good while before he can tell you: it is his father.";
+    award 4 for the old man.
+
+Instead of giving something to the Spaniard:
+    if the noun is not the flask and the noun is not the barley loaf and the noun is not the raisins and the noun is not the cheese, say "He shakes his head faintly." instead;
+    if the Spaniard is revived, say "He has had enough, and thanks you." instead;
+    now the Spaniard is revived;
+    now the noun is off-stage;
+    say "He takes it with trembling hands, and eats and drinks, and some colour comes back into his face.";
+    award 1 for the Spaniard-food-marker.
+Instead of giving something to the old man:
+    if the noun is not the flask and the noun is not the barley loaf and the noun is not the raisins and the noun is not the cheese, say "He does not understand." instead;
+    if the old man is revived, say "He has had enough." instead;
+    now the old man is revived;
+    now the noun is off-stage;
+    say "Friday takes it from you and puts it to his father's lips himself, and chafes his arms and ankles, which are numbed with the binding, until the old man can sit up.";
+    award 1 for the father-food-marker.
+The Spaniard-food-marker is a thing.
+The father-food-marker is a thing.
+The flask is in the sea chest. Understand "flask" and "dram" as the flask. The description of the flask is "A flask of the ship's rum, kept by against some great need."
+
+Barrow-making is an action applying to nothing. Understand "make barrow", "make hand-barrow", "build barrow", "make litter" and "carry them" as barrow-making.
+Check barrow-making:
+    if the Spaniard is not in the location or the old man is not in the location, say "There is no one here who needs carrying." instead;
+    if the Spaniard is not scored or the old man is not scored, say "Cut them free first." instead;
+    if the Spaniard is not revived or the old man is not revived, say "They are too faint to be moved yet: give them something to eat or drink." instead;
+    if the player does not carry the axe, say "You need the axe to cut poles." instead.
+Carry out barrow-making:
+    say "You cut two poles and lash a hand-barrow between them, and you and Friday carry them home upon it, the Spaniard and the old man, resting often, all the long way round to your castle. They cannot climb your ladder; you set them down outside your wall.";
+    move the Spaniard to the Hillside Plain;
+    move the old man to the Hillside Plain;
+    move Friday to the Hillside Plain;
+    move the player to the Hillside Plain;
+    award 3 for the barrow-marker.
+The barrow-marker is a thing.
+
+The hut is a thing. It is scenery. Understand "hut" and "shelter" as the hut. The description of the hut is "A snug hut of poles, thatched with barley straw, outside your wall."
+Hut-building is an action applying to nothing. Understand "build hut", "make hut", "build shelter" and "thatch hut" as hut-building.
+Check hut-building:
+    if the location is not the Hillside Plain, say "Build it by your castle, where they are." instead;
+    if the hut is not off-stage, say "The hut is built." instead;
+    if the Spaniard is not in the location, say "There is no one to shelter yet." instead;
+    if the player does not carry the bundle of straw, say "You need thatch: straw, from a harvest." instead;
+    if the player does not carry the axe, say "You need the axe to cut poles." instead.
+Carry out hut-building:
+    now the hut is in the Hillside Plain;
+    now the bundle of straw is off-stage;
+    say "You and Friday build them a hut between your two walls, of poles, thatched with your barley straw, and lay a bed of rice straw in it and a blanket on it; and there they mend, day by day.";
+    award 3 for the hut.
+
+To Spaniard talk:
+    if the hut is off-stage, say "'Gracias, señor,' he whispers. He is too weak to talk." instead;
+    now the plan known is true;
+    say "He is mending, and he talks with you by Friday's help, and his own little English. There are sixteen of them, he says, Spaniards and Portuguese, cast away on the mainland among Friday's people, living miserably. If you would take them in, they would all help you build a ship, and go away together, and be bound to you for ever. But there are so many mouths to feed, he says: first there must be corn enough for them all, and a boat big enough to fetch them. Then he and Friday's father could go and bring them.";
+    award 1 for the plan-marker.
+The plan-marker is a thing.
+Instead of talking to the Spaniard, Spaniard talk.
+Instead of asking the Spaniard about, Spaniard talk.
+Instead of talking to the old man, say "He smiles and nods at you, and says something to Friday, who laughs."
+
+The creek cedar is scenery in Up the Creek. Understand "cedar", "tree", "great tree" and "creek tree" as the creek cedar. The description of the creek cedar is "A great cedar, standing close by the creek, not above fifty yards from the water: big enough for a boat that would carry twenty men, and near enough the water to launch."
+The great log is a thing. It is fixed in place. Understand "log", "trunk" and "great log" as the great log. The description of the great log is "The trunk of the great cedar, lying by the creek."
+The big boat is a thing. It is fixed in place. Understand "boat", "big boat", "periagua" and "hull" as the big boat. The description of the big boat is "A great periagua, cut out of a single cedar, big enough to carry twenty men.[if the boat mast is true] She has a mast[otherwise] She has no mast yet[end if][if the boat sail is true], a sail[end if][if the boat rudder is true], and a rudder[end if].[if the boat dock is true] She lies in a little dock you dug for her.[end if]".
+The boat mast is a truth state that varies.
+The boat sail is a truth state that varies.
+The boat rudder is a truth state that varies.
+The boat dock is a truth state that varies.
+The pieces of old sail are in the Cave. Understand "sail", "sails", "old sails", "canvas" and "pieces" as the pieces of old sail. The description of the pieces of old sail is "Pieces of the ship's old sails, which you have kept by all these years."
+
+Instead of chopping the creek cedar:
+    if the act is less than 4 or Friday is not in the location, say "It is too great a work for one man." instead;
+    if the player does not carry the axe, say "You need the axe." instead;
+    now the creek cedar is off-stage;
+    now the great log is in Up the Creek;
+    say "You and Friday fell the great cedar together, and it comes down by the creek with a noise like a gun. Friday works with a will: with his help, what would have taken you a month takes a week.".
+Instead of hollowing the great log:
+    if the great log is not in the location, say "There is nothing here to make a boat of." instead;
+    if the player does not carry the adze, say "You need the adze." instead;
+    now the great log is off-stage;
+    now the big boat is in Up the Creek;
+    say "Friday works as well as you with the adze, once you have shown him, and between you, in a month's hard labour, you shape the trunk into a very handsome periagua, big enough to carry twenty men.";
+    award 3 for the big boat.
+Mast-making is an action applying to nothing. Understand "make mast", "cut mast" and "step mast" as mast-making.
+Check mast-making:
+    if the big boat is not in the location, say "You have no boat here to put a mast in." instead;
+    if the boat mast is true, say "She has her mast." instead;
+    if the player does not carry the axe, say "You need the axe." instead.
+Carry out mast-making:
+    now the boat mast is true;
+    say "You cut a straight young cedar for a mast, and step it in the boat.";
+    award 1 for the mast-marker.
+The mast-marker is a thing.
+Sail-making is an action applying to nothing. Understand "make sail", "sew sail" and "rig sail" as sail-making.
+Check sail-making:
+    if the big boat is not in the location, say "You have no boat here to rig." instead;
+    if the boat sail is true, say "She has her sail." instead;
+    if the boat mast is false, say "She needs a mast first." instead;
+    if the player does not carry the pieces of old sail, say "You need canvas: there are pieces of the old sails in your cave." instead.
+Carry out sail-making:
+    now the boat sail is true;
+    now the pieces of old sail are off-stage;
+    say "You cut and sew the pieces of old sail into a sail, a three-cornered ugly thing, a shoulder-of-mutton sail as they call it at home, and rig it to the mast.";
+    award 1 for the sail-marker.
+The sail-marker is a thing.
+Rudder-making is an action applying to nothing. Understand "make rudder", "hang rudder" and "fit rudder" as rudder-making.
+Check rudder-making:
+    if the big boat is not in the location, say "You have no boat here." instead;
+    if the boat rudder is true, say "She has her rudder." instead;
+    if the player does not carry the saw, say "You need the saw." instead.
+Carry out rudder-making:
+    now the boat rudder is true;
+    say "You saw and shape a rudder for her stern, and hang it. You are prouder of it than of the whole boat.";
+    award 1 for the rudder-marker.
+The rudder-marker is a thing.
+Dock-digging is an action applying to nothing. Understand "dig dock" and "make dock" as dock-digging.
+Check dock-digging:
+    if the big boat is not in the location, say "You have no boat here." instead;
+    if the boat dock is true, say "She has her dock." instead;
+    if the player does not carry the spade, say "You need a spade." instead.
+Carry out dock-digging:
+    now the boat dock is true;
+    say "You dig a little dock in the bank of the creek, and float her into it at high water, where she lies safe from the weather.";
+    award 1 for the dock-marker.
+The dock-marker is a thing.
+
+Sending is an action applying to nothing. Understand "send spaniard", "send them", "send father" and "send them away" as sending.
+Instead of telling the Spaniard about, try sending.
+Check sending:
+    if the Spaniard is off-stage, say "There is no one to send." instead;
+    if the plan known is false, say "Talk with the Spaniard first." instead;
+    if the big boat is off-stage or the boat mast is false or the boat sail is false or the boat rudder is false, say "There is no boat fit for the voyage yet: she wants her mast, her sail and her rudder." instead;
+    if the baskets of grain is off-stage, say "There is not corn enough yet for so many mouths. Grow a harvest first." instead;
+    if the Spaniard is not in the location, say "The Spaniard is at your castle." instead.
+Carry out sending:
+    now the Spaniard sailed is true;
+    now the Spaniard is off-stage;
+    now the old man is off-stage;
+    now the big boat is off-stage;
+    now the baskets of grain are off-stage;
+    say "You give them each a musket, with powder and ball, and bread and raisins enough for many days, and your baskets of corn to keep them all; and make the Spaniard swear to bring back none who will not swear to be true to you. With a fair wind and the full moon, Friday's father and the Spaniard sail away in your great boat for the mainland. Friday watches till the sail is gone, and then goes about his work very quiet.";
+    award 5 for the Spaniard sailed-marker.
+The Spaniard sailed-marker is a thing.
+
+Part 7 - The five left behind
+
+The five mutineers are a man. The five mutineers are plural-named. Understand "five", "mutineers", "prisoners", "rogues" and "five mutineers" as the five mutineers. The description of the five mutineers is "The five worst of the mutineers, bound: the captain would hang them in England. They are to stay on the island instead."
+Every turn when the mutiny phase is 8 and the five mutineers are off-stage:
+    move the five mutineers to the Creek Mouth.
+The island-lore-marker is a thing.
+Instead of talking to the five mutineers:
+    if the island-lore-marker is scored, say "They have heard all you can tell them." instead;
+    say "Since they are to stay, you tell them the whole story of the place, and how you came to it: you show them your fortifications, the way you make your bread, plant your corn, cure your grapes; how to tame the goats and milk them, and make butter and cheese. You tell them of the sixteen Spaniards who are to come, and leave a letter for them, and make the rogues promise to treat them well. You leave them your firearms, your tools, and the island.";
+    award 3 for the island-lore-marker.
+Instead of asking the five mutineers about, try talking to the five mutineers.
+Does the player mean talking to the five mutineers: it is very likely.
 
 Volume 7b - Which savage
 
@@ -1907,22 +2344,6 @@ Does the player mean shooting the captive: it is very unlikely.
 Does the player mean naming the captive: it is very likely.
 
 Does the player mean taking the treasure chest: it is very likely.
-
-Volume 8 - Names with 'of'
-
-[I7-lite does not accept the word 'of' inside a name (BAG OF SHOT), so each such name is also given as a phrase.]
-Understand "bag of chicken-feed" as the bag of chicken-feed.
-Understand "bag of nails" as the bag of nails.
-Understand "bag of shot" as the bag of shot.
-Understand "bunch of grapes" as the bunch of grapes.
-Understand "case of bottles" as the case of bottles.
-Understand "case of knives" as the case of knives.
-Understand "coil of rope" as the coil of rope.
-Understand "ears of barley" as the ears of barley.
-Understand "hollow in the rock" as the hollow in the rock.
-Understand "lump of clay" as the lump of clay.
-Understand "roll of sailcloth" as the roll of sailcloth.
-Understand "roll of tobacco" as the roll of tobacco.
 
 Volume 9 - Last of all
 

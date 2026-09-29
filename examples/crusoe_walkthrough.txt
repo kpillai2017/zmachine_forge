@@ -224,6 +224,58 @@ w
 w
 grind barley
 bake bread
+e
+e
+e
+look in carpenter's chest
+take oakum
+w
+n
+e
+dig clay
+make lamp
+light lamp
+w
+n
+e
+dig ground
+sow barley
+fence field
+w
+s
+s
+w
+w
+sleep
+e
+e
+n
+n
+e
+sow barley
+w
+s
+s
+w
+w
+sleep
+sleep
+e
+e
+n
+n
+e
+x ground
+harvest
+w
+empty pot
+milk goats
+make cheese
+s
+fill pot
+s
+w
+w
 w
 load gun
 e
@@ -276,6 +328,10 @@ w
 n
 in
 touch eyes
+w
+x walls
+take diamonds
+e
 out
 s
 w
@@ -298,6 +354,46 @@ bury bodies
 give shirts to friday
 teach friday
 w
+w
+sleep
+w
+load gun
+load pistol
+take old sail
+e
+take flask
+give pistol to friday
+e
+e
+n
+n
+w
+s
+s
+w
+look
+shoot savages
+sw
+look
+free spaniard
+free old man
+give flask to spaniard
+give cheese to old man
+make barrow
+build hut
+talk to spaniard
+e
+chop cedar
+hollow log
+make mast
+make sail
+make rudder
+dig dock
+w
+send spaniard
+w
+sleep
+e
 up
 look through glass
 z
@@ -339,4 +435,5 @@ s
 e
 retake ship
 take chest
+talk to mutineers
 board ship
