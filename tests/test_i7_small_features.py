@@ -341,3 +341,39 @@ def test_not_for_release_parts_are_left_out():
            'Chapter 2 - The rest\n\nThe gadget is in the Hall.\n')
     assert replies(["zap", "look"], src) == [
         "That's not a verb I recognise.", "Hall You can see a gadget here."]
+
+
+# --- ADR-060: [other things]; ALL leaves the second noun out; doing anything
+# except ...; a kind of an unknown kind
+
+OTHER = ('"T" by T\n\nThe Hall is a room. A box is an open container in the Hall. '
+         'The player carries a gem and a coin.\n'
+         'Understand "place [other things] in/inside/into [something]" as inserting it into.\n')
+
+
+def test_other_things_means_the_things_held_but_not_the_second_noun():
+    assert replies(["place all in box", "look"], OTHER) == [
+        "gem: You put the gem into the box. coin: You put the coin into the box.",
+        "Hall You can see a box (in which are a coin and a gem) here."]
+
+
+def test_all_never_means_the_second_noun():
+    assert replies(["take all", "put all in box"], OTHER.replace(
+        "The player carries a gem and a coin.\n", "")) == [
+        "(the box) Taken.", "There are none at all available!"]
+
+
+def test_doing_anything_except():
+    src = ('"T" by T\n\nThe Hall is a room. A light is in the Hall. A rock is in the Hall.\n'
+           'Instead of doing anything except examining or touching the light, say "Only light."\n'
+           'Instead of doing something other than examining to the rock, say "Leave it."\n')
+    assert replies(["x light", "touch light", "take light", "x rock", "take rock", "wait"],
+                   src) == [
+        "You see nothing special about the light.", "You feel nothing unexpected.",
+        "Only light.", "You see nothing special about the rock.", "Leave it.", "Time passes."]
+
+
+def test_a_kind_of_an_unknown_kind_is_a_problem():
+    with pytest.raises(I7Problem, match="'backdrop' is not a kind I know"):
+        compile_i7('"T" by T\n\nThe Hall is a room. A view is a kind of backdrop. '
+                   'The hills are a view in the Hall.\n')

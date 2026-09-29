@@ -176,8 +176,10 @@ compared with `""` (no text).
 | `Understand nothing as dropping.` | forget an action's earlier grammar | Advent |
 | `... when the location is the Bar` (on an Understand line) | only there | after Cloak (decision in I7_SURVEY) |
 
-Tokens: `[something]`, `[someone]`, `[things]` and `[things preferably
-held]` (several objects, below), `[text]` (a topic, section 5), and
+Tokens: `[something]`, `[someone]`, `[things]`, `[things preferably
+held]` and `[other things]` (several objects, below; `[other things]` is
+Inform's token for putting and inserting: ALL means the things you hold,
+ADR-060), `[text]` (a topic, section 5), and
 `[time]` (ADR-054): a time of day as the player types it - `9:37`,
 `9:37 pm`, `9 pm`, or 24-hour `21:05` - which a rule reads as
 `the time understood`. Anything else is not a time, and the line does not
@@ -352,7 +354,9 @@ New actions (7a):
 
 Action patterns: `taking the lamp`, `taking something`, `putting the cloak
 on the hook`, `going north`, `going`, `doing something`, `doing something
-other than going`, `doing something to the lamp` (any action on it,
+other than going`, `doing anything except examining or touching the light`
+and `doing something other than examining to the rock` (any action on that
+thing but those, ADR-060), `doing something to the lamp` (any action on it,
 ADR-053), `examining or taking the cloak`; optional
 `in <room>` / `in the presence of X` (7b) and `when <condition>`. A
 condition can also be `in <room>` (`when in Forest3`: the player is there).

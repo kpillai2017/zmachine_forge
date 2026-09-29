@@ -925,6 +925,10 @@
                        <COND (<L? .O 0> <RFALSE>)
                              (<ZERO? .O> <RETURN <PARSE-COMMAND>>)>)>)
             (ELSE)>
+    ;"PUT ALL IN BOX: ALL never means the box itself (Inform's [other things],
+      ADR-060) - and if nothing else is left, there is nothing to do"
+    <IFFLAG (I7 <COND (<AND ,P-USED-ALL ,PRSI <NOT <DROP-SECOND-NOUN>>>
+                       <I7-PARSER-ERROR ,PE-NOTHING-TO-DO> <RFALSE>)>) (ELSE)>
     <COND (,P-DEFAULT1 <IFFLAG (I7 <COND (T <TELL "("> <SAY-THE ,PRSO> <TELL ")" CR>)>)
                                (ELSE <TELL "(the " D ,PRSO ")" CR>)>)>
     <COND (,P-DEFAULT2 <IFFLAG (I7 <COND (T <TELL "("> <SAY-THE ,PRSI> <TELL ")" CR>)>)
@@ -936,6 +940,19 @@
                        <SETG P-SWAP ,PRSO> <SETG PRSO ,PRSI> <SETG PRSI ,P-SWAP>)>) (ELSE)>
     <COND (,PRSO <SETG P-IT ,PRSO>)>
     <RTRUE>>
+
+<IFFLAG (I7
+;"Take the second noun out of what ALL meant. False when nothing is left."
+<ROUTINE DROP-SECOND-NOUN ("AUX" (N 0))
+    <COND (<NOT ,P-MULTIPLE> <RETURN <NOT <EQUAL? ,PRSO ,PRSI>>>)>
+    <DO (I 1 <GET ,P-MULTI 0>)
+        <COND (<NOT <EQUAL? <GET ,P-MULTI .I> ,PRSI>>
+               <SET N <+ .N 1>>
+               <PUT ,P-MULTI .N <GET ,P-MULTI .I>>)>>
+    <PUT ,P-MULTI 0 .N>
+    <COND (<G? .N 0> <SETG PRSO <GET ,P-MULTI 1>>)>
+    <G? .N 0>>)
+         (ELSE)>
 
 <ROUTINE CHOOSE (TBL OPTS)
     ;"several candidates: let the SYNTAX search options narrow them; if one

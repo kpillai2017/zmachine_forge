@@ -270,7 +270,7 @@ class Lowerer:
     def kind_chain(self, o: Obj) -> list:
         """The object's kinds, most specific first."""
         chain, kind = [], o.kind
-        while kind:
+        while kind in self.m.kinds:      # an unknown kind is a problem already
             chain.append(self.m.kinds[kind])
             kind = self.m.kinds[kind].parent
         return chain
@@ -859,7 +859,7 @@ class Lowerer:
                     continue
                 if token not in ("something", "someone", "things", "any thing", "anything",
                                  "something preferably held", "thing",
-                                 "things preferably held"):
+                                 "things preferably held", "other things"):
                     # [undirectional goable thing]: a description - only the
                     # objects that fit it (a routine; the parser's TEST slot)
                     routine = self.token_test(token, where)
@@ -868,8 +868,10 @@ class Lowerer:
                         return []
                     options = [o + ["OBJECT", f"(TEST {routine})"] for o in options]
                     continue
-                # [things]: several at once - TAKE ALL, DROP A AND B (ADR-035)
-                flags = {"things": ["(MANY)"],
+                # [things]: several at once - TAKE ALL, DROP A AND B (ADR-035).
+                # [other things] is the same, leaving the second noun out of
+                # ALL (PUT ALL IN BOX does not try the box; ADR-060)
+                flags = {"things": ["(MANY)"], "other things": ["(MANY", "HELD)"],
                          "things preferably held": ["(MANY", "HELD)"]}.get(token, [])
                 options = [o + ["OBJECT", *flags] for o in options]
             else:

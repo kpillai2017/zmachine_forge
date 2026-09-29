@@ -459,15 +459,21 @@ class PhraseLowerer:
                 guards.insert(0, noun)
                 spec[0] = 1
             return ActionPattern([], self.all_of(guards), tuple(spec))
-        m = re.match(r"^doing (?:something|anything)(?: other than (.+))?$", low)
+        m = re.match(r"^doing (?:something|anything)(?: (?:other than|except) (.+))?$", low)
         if m:
             actions = []
             if m.group(1):
-                excluded = [self.find_action(a.strip(), where) for a in m.group(1).split(" or ")]
-                if None in excluded:
+                found = self.excluded_actions(text[len(text) - len(m.group(1)):], where)
+                if found is None:
                     return None
-                verbs = " ".join(f",V?{self.L.action_atom[a[0]]}" for a in excluded)
+                excluded, noun = found
+                verbs = " ".join(f",V?{self.L.action_atom[a]}" for a in excluded)
                 guards.insert(0, f"<NOT <EQUAL? ,PRSA {verbs}>>")
+                if noun:                            # '... or touching the ClearingLight'
+                    test = self.object_guard(",PRSO", noun, where)
+                    if test:
+                        guards.insert(0, test)
+                        spec[0] = 1
             return ActionPattern(actions, self.all_of(guards), tuple(spec))
         if low == "going nowhere":                  # no exit that way (room gone to is nothing)
             spec[0] = 1
@@ -495,6 +501,26 @@ class PhraseLowerer:
                 noun_guards.append(self.topic_guard(topic, where))
         spec[0] = len(noun_guards)
         return ActionPattern(actions, self.all_of(noun_guards + guards), tuple(spec))
+
+    def excluded_actions(self, text: str, where: Location):
+        """'examining or touching the ClearingLight' / 'examining or reading to
+        the shadow' (after 'doing anything except' or 'other than'): the
+        actions left out, and the thing the rule is about, if one is named -
+        after the last action, or after 'to' (ADR-060). None after a problem."""
+        alts = [a.strip() for a in text.split(" or ")]
+        noun = None
+        m = re.match(r"^(.+?) to (.+)$", alts[-1], re.I)
+        if m and m.group(1).lower() in self.L.m.actions:   # not 'giving it to'
+            alts[-1], noun = m.group(1), m.group(2)
+        names = []
+        for i, alt in enumerate(alts):
+            found = self.find_action(alt, where)
+            if found is None:
+                return None
+            names.append(found[0])
+            if found[1] and i == len(alts) - 1 and noun is None:
+                noun = found[1][0]
+        return names, noun
 
     def find_action(self, text: str, where: Location):
         """'putting the cloak on the hook' -> ('putting it on', ['the cloak', 'the hook']).

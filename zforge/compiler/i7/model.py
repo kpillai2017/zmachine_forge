@@ -837,7 +837,12 @@ class ModelBuilder:
             self.p.problem(s.where, s.text, f"'{prop}' is not a property I know.")
 
     def kind_of(self, s, m):
-        pass                                          # done in pass 1
+        """Made in pass 1; here, once every kind is known, check that the new
+        kind grows from a kind that exists ('A view is a kind of backdrop'
+        used to crash the lowerer - I7-lite has no backdrops yet, ADR-060)."""
+        kind = self.m.kinds.get(m.group(1).lower())
+        if kind and kind.parent not in self.m.kinds:
+            self.p.problem(s.where, s.text, f"'{kind.parent}' is not a kind I know.")
 
     def either_or(self, s, m):
         """A thing can be shiny [or dull]."""

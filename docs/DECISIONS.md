@@ -1358,3 +1358,34 @@ never looks at it in the gloom, so the walkthrough is unchanged.
 **Consequences.** Cold Iron's second stage: 226 to 189 problems. `zbuilder
 compare HEAD`: only Bronze's story changes (the fix); every walkthrough
 plays identically. The original Bronze's first stage: 465 to 458.
+
+
+## ADR-060: [other things]; ALL leaves out the second noun; doing anything except; unknown parent kinds
+
+**Context.** From Cold Iron's second stage: its own Understand lines use
+`[other things]` (8 problems), its rules say `doing anything except
+examining or touching the ClearingLight` (4), and the original Bronze's
+`A view is a kind of backdrop` crashed the compiler with a Python traceback.
+
+**Decision.**
+* `[other things]` is Inform's token for the standard put / insert grammar:
+  several things, where ALL means the things you hold. It is read like
+  `[things preferably held]`.
+* ALL never means the second noun, whichever token: after parsing, the
+  parser takes the second noun out of ALL's list, and if nothing is left it
+  is Inform's nothing to do error, "There are none at all available!". Before,
+  PUT ALL IN BOX with only the box held tried the box against itself, and
+  PLACE ALL IN BOX (a plain `[things]` line) could print nothing at all.
+* `doing anything except ...` means `doing something other than ...`, and
+  the list can end with the thing the rule is about - after the last action
+  (`examining or touching the light`) or after `to` (`examining or reading
+  to the shadow`, as in Bronze). The words before `to` must be an action's
+  name, so `giving it to` is not split.
+* `A view is a kind of backdrop` is a problem ("'backdrop' is not a kind I
+  know"), checked once every kind is known, so kinds can come in any order.
+  I7-lite still has no backdrops.
+
+**Consequences.** Cold Iron's second stage: 189 to 176 problems. The original
+Bronze can now be measured past its first stage (1,020 in the second).
+`zbuilder compare HEAD`: every story grows 104 bytes (the parser's new
+routine); both walkthroughs play identically.
